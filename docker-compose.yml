@@ -5,25 +5,30 @@ services:
     ports:
       - "6666:6666"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-file:./data/app.db?mode=memory}
+      - DATABASE_URL=${DATABASE_URL:-file:/app/data/app.db}
       - LOCAL_MEDIA_PATH=${LOCAL_MEDIA_PATH:-/data/media}
-      - IMDB_DATA_PATH=${IMDB_DATA_PATH:-./data/imdb}
+      - IMDB_DATA_PATH=${IMDB_DATA_PATH:-/app/data/imdb}
+      - IMDB_AUTO_IMPORT=${IMDB_AUTO_IMPORT:-true}
       - TVMAZE_SYNC_INTERVAL=${TVMAZE_SYNC_INTERVAL:-24h}
       - TORBOX_API_KEY=${TORBOX_API_KEY:-}
     volumes:
       - ${HOST_MEDIA_PATH:-./media}:/data/media:ro
       - ./data:/app/data:rw
-      - ./data/imdb:/app/data/imdb:rw
 
-  # PostgreSQL optional - uncomment if preferred over default SQLite
-  # db:
-  #   image: postgres:15-alpine
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   environment:
-  #     - POSTGRES_DB=torbox_mediamanager
-  #     - POSTGRES_USER=user
-  #     - POSTGRES_PASSWORD=password
+  db:
+    image: postgres:15-alpine
+    profiles: ["postgres"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-torbox_mediamanager}
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-torbox_mediamanager}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  postgres_data:  # Only needed if using PostgreSQL instead of default SQLite
+  postgres_data:

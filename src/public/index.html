@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>TorBox Media Manager</title>
+  <style>
+    :root{font:16px/1.5 system-ui,sans-serif;color:#e9edf5;background:#10141c}*{box-sizing:border-box}body{margin:0}header{padding:1.2rem max(1rem,calc((100vw - 1100px)/2));border-bottom:1px solid #2a3342;background:#171e29}h1{font-size:1.35rem;margin:0}main{max-width:1100px;margin:auto;padding:1.5rem 1rem}nav{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}button,select,input{font:inherit;color:inherit;background:#202a38;border:1px solid #39475a;border-radius:.5rem;padding:.55rem .8rem}button{cursor:pointer}button:hover,button[aria-current=true]{background:#315b89}input{min-width:min(22rem,100%)}.controls{display:flex;gap:.6rem;flex-wrap:wrap;margin:1rem 0}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.7rem}.card{background:#171e29;border:1px solid #2a3342;border-radius:.7rem;padding:.85rem;overflow-wrap:anywhere}.muted{color:#a6b1c2}.status{min-height:1.5rem;margin:.7rem 0}.row{display:flex;justify-content:space-between;gap:1rem}.hidden{display:none}a{color:#91c6ff}small{color:#a6b1c2}pre{white-space:pre-wrap;overflow-wrap:anywhere}
+  </style>
+</head>
+<body>
+  <header><h1>TorBox Media Manager</h1></header>
+  <main>
+    <p class="muted">Local IMDb catalog and media scan. TorBox features need a configured API key; the TVMaze calendar uses a local cache.</p>
+    <nav id="nav"></nav>
+    <div class="controls" id="controls">
+      <input id="query" placeholder="Search titles or music" aria-label="Search">
+      <select id="kind" aria-label="Content type"><option value="all">Movies and shows</option><option value="movie">Movies</option><option value="series">Shows</option></select>
+      <input id="date" type="date" aria-label="Schedule date">
+      <input id="country" maxlength="2" placeholder="Country (US)" aria-label="Country code">
+      <button id="search">Search</button>
+    </div>
+    <div class="status" id="status" role="status"></div>
+    <section class="grid" id="results" aria-live="polite"></section>
+    <p><button id="more" class="hidden">Load more</button></p>
+  </main>
+  <script>
+    const tabs=['Browse','Movies','Shows','Library','Music','Calendar'];
+    const nav=document.querySelector('#nav'),results=document.querySelector('#results'),status=document.querySelector('#status');
+    const query=document.querySelector('#query'),kind=document.querySelector('#kind'),date=document.querySelector('#date'),country=document.querySelector('#country'),more=document.querySelector('#more');
+    let active='Browse',offset=0,total=0,items=[];
+    date.value=new Date().toISOString().slice(0,10);
+    for(const tab of tabs){const button=document.createElement('button');button.textContent=tab;button.onclick=()=>{active=tab;offset=0;items=[];renderNav();load(true)};nav.append(button)}
+    function renderNav(){[...nav.children].forEach(b=>b.setAttribute('aria-current',String(b.textContent===active)));kind.classList.toggle('hidden',!['Browse'].includes(active));date.classList.toggle('hidden',active!=='Calendar');country.classList.toggle('hidden',active!=='Calendar');query.classList.toggle('hidden',active==='Calendar');more.classList.toggle('hidden',!['Browse','Movies','Shows','Library'].includes(active)||items.length>=total)}
+    function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+    function card(title,detail=''){return `<article class="card"><strong>${esc(title)}</strong>${detail?`<div class="muted">${esc(detail)}</div>`:''}</article>`}
+    function render(){let html='';if(active==='Calendar')html=items.map(ep=>card(`${ep.show?.name||'Show'} — ${ep.name||'Episode'}`,`${ep.airdate||''} ${ep.airtime||''} · ${ep.season?`S${ep.season}E${ep.number}`:''}`)).join('');else if(active==='Music')html=items.map(album=>`<article class="card"><strong>${esc(album.name)}</strong><div class="muted">${album.tracks.map(t=>`<a href="/music/${Number(album.torrentId)}/${Number(t.id)}/stream">${esc(t.name)}</a>`).join('<br>')}</div></article>`).join('');else if(active==='Library')html=items.map(x=>card(x.title,`${x.type} · ${x.extension} · ${(x.bytes/1048576).toFixed(1)} MB`)).join('');else html=items.map(x=>card(x.primaryTitle,`${x.startYear||'Year unknown'} · ${x.titleType} · ${x.averageRating??'No rating'}`)).join('');results.innerHTML=html||'<p class="muted">No results yet. The IMDb catalog appears after its initial import.</p>';more.classList.toggle('hidden',!['Browse','Movies','Shows','Library'].includes(active)||items.length>=total)}
+    async function load(reset=false){if(reset){offset=0;items=[]}status.textContent='Loading…';try{let url,limit=50;if(active==='Calendar'){url='/calendar?date='+encodeURIComponent(date.value)+(country.value?'&country='+encodeURIComponent(country.value):'');}else if(active==='Music'){url='/music?q='+encodeURIComponent(query.value);limit=1000;}else if(active==='Library'){url=`/library?limit=${limit}&offset=${offset}`;}else{const endpoint=active==='Movies'?'/movies':active==='Shows'?'/shows':'/browse';url=`${endpoint}?q=${encodeURIComponent(query.value)}&kind=${encodeURIComponent(kind.value)}&limit=${limit}&offset=${offset}`;}
+      const response=await fetch(url),data=await response.json();if(!response.ok)throw Error(data.error?.message||data.error||'Request failed');const page=active==='Calendar'?data.episodes:active==='Music'?data.albums:active==='Library'?data.localMedia.items:data.items;items=reset?page:[...items,...page];total=active==='Calendar'||active==='Music'?items.length:active==='Library'?data.localMedia.total:data.total;status.textContent=active==='Calendar'?`${items.length} episodes · ${data.stale?'showing cached data':data.cached?'cached':'updated'}`:`${total} results`;render();offset=items.length;
+    }catch(error){status.textContent=error.message;}}
+    document.querySelector('#search').onclick=()=>{items=[];load(true)};more.onclick=()=>load();query.addEventListener('keydown',e=>{if(e.key==='Enter'){items=[];load(true)}});renderNav();load(true);
+  </script>
+</body>
+</html>

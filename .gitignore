@@ -57,6 +57,7 @@ coverage.xml
 # IMDb data
 /imdb-data/
 /imdb-imports/
+/data/
 
 # Media files that might be generated
 /*.mp4
@@ -79,6 +80,7 @@ coverage.xml
 # Environment variables
 .env*
 *.env*
+!.env.example
 
 # Logs
 *.log

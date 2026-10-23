@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Install dependencies first (layer caching)
 COPY package*.json ./
-RUN npm install
+RUN apk add --no-cache --virtual .build-deps python3 make g++ \
+    && npm install \
+    && apk del .build-deps
 
 # Copy source code
 COPY src ./src
@@ -20,13 +22,17 @@ RUN npm run build
 FROM node:lts-alpine3.24 AS production
 
 WORKDIR /app
+RUN apk add --no-cache libstdc++
 
 # Copy built assets from builder
 COPY --from=builder /app/package*.json ./
-RUN npm install --only=production
+RUN apk add --no-cache --virtual .build-deps python3 make g++ \
+    && npm install --only=production \
+    && apk del .build-deps
 
 # Copy built code
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/public ./dist/public
 COPY --from=builder /app/constitution.md .
 COPY --from=builder /app/docker-compose.yml .
 

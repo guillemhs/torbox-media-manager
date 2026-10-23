@@ -10,6 +10,7 @@ export interface TorBoxMusicTrack {
 }
 
 export interface TorBoxMusicAlbum {
+  torrentId: number;
   hash: string;
   name: string;
   bytes: number | null;
@@ -30,43 +31,38 @@ function validBytes(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 }
 
-/** Keep torrents that contain audio tracks and exclude video torrents with incidental audio. */
+/** Return audio-only torrents from the authenticated account torrent list. */
 export function normalizeTorBoxMusicLibrary(items: unknown): TorBoxMusicAlbum[] {
   if (!Array.isArray(items)) return [];
-
   const albums: TorBoxMusicAlbum[] = [];
+
   for (const candidate of items) {
     if (!candidate || typeof candidate !== 'object') continue;
-
     const torrent = candidate as Record<string, unknown>;
     if (typeof torrent.hash !== 'string' || !INFO_HASH.test(torrent.hash)) continue;
+    if (typeof torrent.id !== 'number' || !Number.isFinite(torrent.id)) continue;
     if (!Array.isArray(torrent.files)) continue;
 
     const files = torrent.files as TorBoxFile[];
     if (files.some((file) => typeof file?.name === 'string' && VIDEO_FILE.test(file.name))) continue;
-
     const tracks = files.flatMap((file): TorBoxMusicTrack[] => {
       if (typeof file?.name !== 'string' || !AUDIO_FILE.test(file.name)) return [];
       if (typeof file.id !== 'number' || !Number.isFinite(file.id)) return [];
-      const filePath = typeof file.path === 'string' && file.path ? file.path : file.name;
       return [{
         id: file.id,
         name: file.name,
-        path: filePath,
+        path: typeof file.path === 'string' && file.path ? file.path : file.name,
         bytes: validBytes(file.size ?? file.bytes)
       }];
     });
-
     if (tracks.length === 0) continue;
-    const fileBytes = tracks.reduce((sum, track) => sum + (track.bytes ?? 0), 0);
-    const torrentName = typeof torrent.name === 'string' && torrent.name.trim()
-      ? torrent.name.trim()
-      : 'Unnamed TorBox torrent';
 
+    const trackBytes = tracks.reduce((sum, track) => sum + (track.bytes ?? 0), 0);
     albums.push({
+      torrentId: torrent.id,
       hash: torrent.hash.toLowerCase(),
-      name: torrentName,
-      bytes: fileBytes > 0 ? fileBytes : validBytes(torrent.size),
+      name: typeof torrent.name === 'string' && torrent.name.trim() ? torrent.name.trim() : 'Unnamed TorBox torrent',
+      bytes: trackBytes > 0 ? trackBytes : validBytes(torrent.size),
       tracks,
       downloadFinished: torrent.download_finished === true,
       downloadState: typeof torrent.download_state === 'string' && torrent.download_state.trim()

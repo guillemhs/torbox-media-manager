@@ -1,0 +1,106 @@
+# See https://github.com/github/gitignore/blob/main/Global/macOS.gitglobal
+# macOS
+.DS_Store
+.AppleDouble
+.LSQuarantine
+Icon?
+# Thumbnails
+*. thumbs.db
+# Files that might appear on external volumes
+.AppleDB
+
+# Node
+/node_modules/
+/*.tgz
+/.npmrc
+/.yarn-integrity
+/.yarn/cache/
+.yarn/unplugged/
+.yrc
+/yarn.lock
+/package-lock.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.env
+.env.local
+.env.*
+/.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+# SageMath parsed files
+*.sage.py
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.mdb
+*.log
+
+# Torbox integration
+/torbox-data/
+/*.torrent
+*.part
+
+# IMDb data
+/imdb-data/
+/imdb-imports/
+
+# Media files that might be generated
+/*.mp4
+/*.mkv
+/*.avi
+/*.mov
+/*.wmv
+/*.flv
+/*.webm
+/*.mp3
+/*.wav
+/*.flac
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+
+# Environment variables
+.env*
+*.env*
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+/dist/
+/build/
+/out/
+
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+
+# Temporary files
+/tmp/
+/*.tmp
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Docker
+.dockerignore
+docker-compose.yml.local

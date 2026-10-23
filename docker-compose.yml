@@ -2,33 +2,53 @@
 services:
   app:
     build: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
     ports:
       - "6666:6666"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-file:/app/data/app.db}
-      - LOCAL_MEDIA_PATH=${LOCAL_MEDIA_PATH:-/data/media}
-      - IMDB_DATA_PATH=${IMDB_DATA_PATH:-/app/data/imdb}
-      - IMDB_AUTO_IMPORT=${IMDB_AUTO_IMPORT:-true}
-      - TVMAZE_SYNC_INTERVAL=${TVMAZE_SYNC_INTERVAL:-24h}
-      - TORBOX_API_KEY=${TORBOX_API_KEY:-}
+      DATABASE_URL: ${DATABASE_URL:-file:/app/data/app.db}
+      LOCAL_MEDIA_PATH: ${LOCAL_MEDIA_PATH:-/data/media}
+      IMDB_DATA_PATH: ${IMDB_DATA_PATH:-/app/data/imdb}
+      IMDB_AUTO_IMPORT: ${IMDB_AUTO_IMPORT:-true}
+      TVMAZE_SYNC_INTERVAL: ${TVMAZE_SYNC_INTERVAL:-24h}
+      TORBOX_API_KEY: ${TORBOX_API_KEY:-}
     volumes:
       - ${HOST_MEDIA_PATH:-./media}:/data/media:ro
       - ./data:/app/data:rw
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:6666/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   db:
     image: postgres:15-alpine
     profiles: ["postgres"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 1m
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-torbox_mediamanager}
-      - POSTGRES_USER=${POSTGRES_USER:-user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-torbox_mediamanager}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-torbox_mediamanager}"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 10s
       timeout: 5s
       retries: 5
-
-volumes:
-  postgres_data:
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

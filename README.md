@@ -6,19 +6,29 @@ A self-hosted, local-first media catalog. Movie and series metadata comes from I
 
 1. Copy `.env.example` to `.env` and optionally set `TORBOX_API_KEY`.
 2. Set `HOST_MEDIA_PATH` to the media directory on the host.
-3. Run `docker compose up --build` and open <http://localhost:6666>.
+3. Run `docker compose up --build -d` and open <http://localhost:6666>.
 
-The default SQLite database and IMDb downloads persist in `./data`. On an empty database, the app starts and begins its one-time IMDb import in the background; the catalog fills as streaming batches are ingested. Large public datasets can take a while to download and import. Set `IMDB_AUTO_IMPORT=false` to disable startup import, then use `POST /admin/imdb/import` when ready.
+The default SQLite database and IMDb downloads persist in `./data`. On an empty or incomplete database, the app starts and begins/resumes its IMDb import in the background; the catalog fills as streaming batches are ingested. Large public datasets can take a while to download and import. Set `IMDB_AUTO_IMPORT=false` to disable startup import, then use `POST /admin/imdb/import` when ready. Compose restarts the app after failures, checks `/health`, and rotates container logs.
 
 ## Optional PostgreSQL
 
-Set `DATABASE_URL=postgres://user:password@db:5432/torbox_mediamanager` in `.env`, configure the `POSTGRES_*` values to match, and run:
+Set a strong `POSTGRES_PASSWORD` and matching `DATABASE_URL` in `.env`, for example `postgres://user:your-password@db:5432/torbox_mediamanager`. Keep `POSTGRES_DB`, `POSTGRES_USER`, and the URL in sync, then run:
 
 ```sh
-docker compose --profile postgres up --build
+docker compose --profile postgres up --build -d
 ```
 
-For a PostgreSQL server outside Compose, use its reachable connection URL and omit the profile.
+PostgreSQL files persist in `./data/postgres` by default. Set `POSTGRES_DATA_PATH` to move that folder. Do not delete it if you want to preserve the database. For a PostgreSQL server outside Compose, use its reachable connection URL and omit the profile. The app retries its PostgreSQL connection during startup while the database initializes.
+
+The previous Compose file used a named volume called `postgres_data`. If you already stored data in that volume, changing to `./data/postgres` leaves the old volume intact but starts PostgreSQL with a new, empty data directory. Export and restore your database before switching; do not remove the old volume until the restored database is verified.
+
+## Check it in the browser
+
+After Compose reports the app as healthy, open <http://localhost:6666>. Use the sidebar to switch between Browse, Movies, Shows, TorBox, Local Media, Music, and Calendar. Try searching a title, using **Load more**, and checking that music tracks open through TorBox.
+
+To check adding a torrent, choose **Add to TorBox**, paste a magnet URI or info hash you are authorized to use, and submit it. **Only add if TorBox already has it cached** prevents uncached items from being added. The page should show TorBox's response; the TorBox library view should then list the item. This sends the magnet/hash to TorBox through the app and does not download the media to the app host.
+
+For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:6666/health` and `curl -fsS http://localhost:6666/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.
 
 ## Routes
 

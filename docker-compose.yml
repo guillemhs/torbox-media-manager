@@ -26,4 +26,4 @@ services:
   #     - POSTGRES_PASSWORD=password
 
 volumes:
-  # postgres_data:  # Only needed if using PostgreSQL instead of default SQLite
+  postgres_data:  # Only needed if using PostgreSQL instead of default SQLite

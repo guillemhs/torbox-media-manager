@@ -108,8 +108,18 @@ export const addTorrentToTorboxRoute: RequestHandler = async (req, res) => {
       addOnlyIfCached: req.body.addOnlyIfCached === true,
       name: typeof req.body.name === 'string' ? req.body.name : undefined
     });
+    const torrentId = Number(result.data?.torrent_id);
+    let libraryItem: unknown = result.data;
+    if (Number.isSafeInteger(torrentId) && torrentId > 0) {
+      try {
+        const refreshed = await getTorrentList(undefined, { id: torrentId, bypass_cache: true });
+        libraryItem = Array.isArray(refreshed.data) ? refreshed.data[0] ?? result.data : refreshed.data ?? result.data;
+      } catch {
+        // Adding succeeded; keep the accepted response if the immediate library lookup is delayed.
+      }
+    }
     res.setHeader('Cache-Control', 'private, no-store');
-    return res.status(200).json({ detail: result.detail, torrent: result.data });
+    return res.status(200).json({ detail: result.detail, torrent: libraryItem, libraryRefreshed: libraryItem !== result.data });
   } catch (error) {
     return sendError(res, error);
   }

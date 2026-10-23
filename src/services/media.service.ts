@@ -49,7 +49,7 @@ export const parseImdbTsvStream = async (filePath: string): Promise<MediaItem[]>
  * Scan local media directory
  * Returns media files found in the specified directory
  */
-export const scanLocalMedia = (directoryPath?: string): => {
+export const scanLocalMedia = (directoryPath?: string): MediaItem[] => {
   const dir = directoryPath || process.env.LOCAL_MEDIA_PATH || '/data/media';
   const items: MediaItem[] = [];
   

@@ -18,6 +18,7 @@ import {
   syncLibraryTorboxRoute,
   titleRoute,
   titleArtworkRoute,
+  torrentSearchRoute,
   tvmazeShowRoute,
   triggerLibraryScanRoute
 } from './routes/library.route';
@@ -43,6 +44,7 @@ app.get('/library/status', getLibraryStatusRoute);
 app.post('/library/scan', triggerLibraryScanRoute);
 app.post('/library/sync', syncLibraryTorboxRoute);
 app.post('/torbox/torrents', addTorrentToTorboxRoute);
+app.get('/torrents/search', torrentSearchRoute);
 app.get('/movies', moviesRoute);
 app.get('/movies/:imdbId', titleRoute);
 app.get('/shows', showsRoute);

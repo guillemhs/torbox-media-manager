@@ -6,6 +6,7 @@ import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, requestTorrentD
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getTitleArtwork } from '../services/artwork.service';
+import { searchTorrentCandidates } from '../services/torbox/torrentSearch';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
   const status = error instanceof TorboxApiError ? error.status : 502;
@@ -111,6 +112,20 @@ export const addTorrentToTorboxRoute: RequestHandler = async (req, res) => {
     return res.status(200).json({ detail: result.detail, torrent: result.data });
   } catch (error) {
     return sendError(res, error);
+  }
+};
+
+export const torrentSearchRoute: RequestHandler = async (req, res) => {
+  const imdbId = scalar(req.query.imdbId) || '';
+  const kind = scalar(req.query.kind) === 'series' ? 'series' : 'movie';
+  const seasonValue = scalar(req.query.season) || '1';
+  if (!/^\d{1,2}$/.test(seasonValue)) return res.status(400).json({ error: 'Season must be between 1 and 99.' });
+  try {
+    const candidates = await searchTorrentCandidates(imdbId, kind, Number(seasonValue));
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json({ candidates, total: candidates.length, source: 'Torrentio' });
+  } catch (error) {
+    return res.status(502).json({ error: error instanceof Error ? error.message : 'Torrent search failed.' });
   }
 };
 export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(getLibraryStatus());

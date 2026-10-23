@@ -4,12 +4,21 @@ import { scanLocalMedia, syncTorboxCloud } from '../services/media.service';
 // GET /library - View and manage library content
 export const getLibrary = async (req: Request, res: Response) => {
   try {
-    const { apiKey } = req.query;
+    // Handle query param that could be string, string[], object, or undefined
+    const apiKeyRaw = req.query.apiKey;
+    let apiKey: string | undefined;
+    
+    if (Array.isArray(apiKeyRaw)) {
+      apiKey = apiKeyRaw[0];
+    } else if (typeof apiKeyRaw === 'string') {
+      apiKey = apiKeyRaw;
+    }
+    
     const mode = apiKey ? 'torbox-integrated' : 'local-offline';
 
     if (apiKey) {
       // Torbox Integrated Mode - sync and scan cloud
-      const torboxSync = await syncTorboxCloud(apiKey as string);
+      const torboxSync = await syncTorboxCloud(apiKey);
       const localScan = await scanLocalMedia();
       return res.json({
         mode: 'torbox-integrated',

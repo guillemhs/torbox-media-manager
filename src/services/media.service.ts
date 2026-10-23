@@ -88,8 +88,8 @@ export const scanLocalMedia = (directoryPath?: string): { items: MediaItem[] } =
  * Requires valid TORBOX_API_KEY - music features cannot function without it
  * Per constitution: "Music management cannot function without a valid Torbox API Key"
  */
-export const syncTorboxCloud = async (apiKey: string) => {
-  if (!apiKey || apiKey.trim() === '') {
+export const syncTorboxCloud = async (apiKey: string | undefined) => {
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
     throw new Error('Torbox API key is required for cloud sync and music features');
   }
   
@@ -113,7 +113,7 @@ export const syncTorboxCloud = async (apiKey: string) => {
 export const getLibrary = async (apiKey?: string) => {
   const mode = apiKey ? 'torbox-integrated' : 'local-offline';
 
-  if (apiKey) {
+  if (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '') {
     // Torbox Integrated Mode - sync and scan cloud
     const torboxSync = await syncTorboxCloud(apiKey);
     const localScan = await scanLocalMedia();
@@ -145,8 +145,8 @@ export const triggerLibraryScan = async (directoryPath?: string) => {
 /**
  * Sync library with Torbox cloud (requires API key)
  */
-export const syncLibraryTorbox = async (apiKey: string) => {
-  if (!apiKey || apiKey.trim() === '') {
+export const syncLibraryTorbox = async (apiKey: string | undefined) => {
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
     throw new Error('Torbox API key is required for cloud sync and music features');
   }
   
@@ -169,13 +169,14 @@ export const syncLibraryTorbox = async (apiKey: string) => {
  */
 export const getLibraryStatus = (apiKey?: string) => {
   const localMedia = scanLocalMedia();
-  const mode = apiKey ? 'torbox-integrated' : 'local-offline';
+  const hasApiKey = apiKey && typeof apiKey === 'string' && apiKey.trim() !== '';
+  const mode = hasApiKey ? 'torbox-integrated' : 'local-offline';
   
   return {
     mode,
     localMediaCount: localMedia.items.length,
-    torboxApiKeyConfigured: !!apiKey,
-    features: apiKey 
+    torboxApiKeyConfigured: hasApiKey,
+    features: hasApiKey
       ? ['local-library', 'cloud-sync', 'music-streaming', 'music-discovery']
       : ['local-library']
   };

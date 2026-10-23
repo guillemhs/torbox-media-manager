@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:lts-alpine3.24 AS builder
 
 # Set working directory
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY .env .
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:lts-alpine3.24 AS production
 
 WORKDIR /app
 

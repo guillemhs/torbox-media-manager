@@ -31,7 +31,6 @@ services:
 
   db:
     image: postgres:15-alpine
-    profiles: ["postgres"]
     init: true
     restart: unless-stopped
     stop_grace_period: 1m

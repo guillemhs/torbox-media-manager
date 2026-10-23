@@ -1,4 +1,4 @@
-FROM node:20-alpine AS production
+FROM node:lts-alpine3.24
 
 WORKDIR /app
 

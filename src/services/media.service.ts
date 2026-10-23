@@ -49,7 +49,7 @@ export const parseImdbTsvStream = async (filePath: string): Promise<MediaItem[]>
  * Scan local media directory
  * Returns media files found in the specified directory
  */
-export const scanLocalMedia = (directoryPath?: string): MediaItem[] => {
+export const scanLocalMedia = (directoryPath?: string): { items: MediaItem[] } => {
   const dir = directoryPath || process.env.LOCAL_MEDIA_PATH || '/data/media';
   const items: MediaItem[] = [];
   
@@ -62,7 +62,7 @@ export const scanLocalMedia = (directoryPath?: string): MediaItem[] => {
       if (entry.isDirectory()) {
         // Recursively scan subdirectories
         const subItems = scanLocalMedia(fullPath);
-        items.push(...subItems);
+        items.push(...subItems.items);
       } else if (entry.isFile()) {
         // Check for media file extensions
         const ext = path.extname(entry.name).toLowerCase();
@@ -80,7 +80,7 @@ export const scanLocalMedia = (directoryPath?: string): MediaItem[] => {
     console.error(`Error scanning directory ${dir}:`, error);
   }
   
-  return items;
+  return { items };
 };
 
 /**
@@ -89,44 +89,10 @@ export const scanLocalMedia = (directoryPath?: string): MediaItem[] => {
  * Per constitution: "Music management cannot function without a valid Torbox API Key"
  */
 export const syncTorboxCloud = async (apiKey: string) => {
-  if (!apiKey || apiKey.trim() === '') {
-    throw new Error('Torbox API key is required for cloud sync and music features');
-  }
-  
-  // In a real implementation, this would make API calls to Torbox REST endpoints
-  // per the official API schema without inventing unsupported methods
-  // (per constitution principle: "Strict API Contracts")
-  
-  // Simulated response
-  return {
-    apiKeyProvided: true,
-    cloudStatus: 'connected',
-    syncedItems: 0, // Would be actual count from API
-    lastSync: new Date().toISOString(),
-    message: 'Torbox cloud sync initiated - music features now available'
-  };
-};
-
-/**
- * Get library status - combines local and cloud status
- */
-export const getLibraryStatus = (apiKey?: string) => {
-  const localMedia = scanLocalMedia();
-  const mode = apiKey ? 'torbox-integrated' : 'local-offline';
-  
-  return {
-    mode,
-    localMediaCount: localMedia.length,
-    torboxApiKeyConfigured: !!apiKey,
-    features: apiKey 
-      ? ['local-library', 'cloud-sync', 'music-streaming', 'music-discovery']
-      : ['local-library']
-  };
-};
 
 export default { 
   parseImdbTsvStream, 
   scanLocalMedia, 
-  syncTorboxCloud, 
+  syncTorboxCloud,
   getLibraryStatus 
 };

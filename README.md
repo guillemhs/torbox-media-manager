@@ -8,17 +8,17 @@ A self-hosted, local-first media catalog. Movie and series metadata comes from I
 2. Set `HOST_MEDIA_PATH` to the media directory on the host.
 3. Run `docker compose up --build -d` and open <http://localhost:6666>.
 
-The default SQLite database and IMDb downloads persist in `./data`. On an empty or incomplete database, the app starts and begins/resumes its IMDb import in the background; the catalog fills as streaming batches are ingested. Large public datasets can take a while to download and import. Set `IMDB_AUTO_IMPORT=false` to disable startup import, then use `POST /admin/imdb/import` when ready. Compose restarts the app after failures, checks `/health`, and rotates container logs.
+PostgreSQL and IMDb downloads persist under `./data`. Compose waits for PostgreSQL's health check before starting the app. On an empty or incomplete database, the app starts and begins/resumes its IMDb import in the background; the catalog fills as streaming batches are ingested. Large public datasets can take a while to download and import. Set `IMDB_AUTO_IMPORT=false` to disable startup import, then use `POST /admin/imdb/import` when ready. Compose restarts the app after failures, checks `/health`, and rotates container logs.
 
-## Optional PostgreSQL
+## PostgreSQL
 
-Set a strong `POSTGRES_PASSWORD` and matching `DATABASE_URL` in `.env`, for example `postgres://user:your-password@db:5432/torbox_mediamanager`. Keep `POSTGRES_DB`, `POSTGRES_USER`, and the URL in sync, then run:
+The default `.env.example` uses PostgreSQL. Set a strong `POSTGRES_PASSWORD` and matching `DATABASE_URL` in `.env`, for example `postgresql://user:your-password@db:5432/torbox_mediamanager`. Keep `POSTGRES_DB`, `POSTGRES_USER`, and the URL in sync, then run:
 
 ```sh
-docker compose --profile postgres up --build -d
+docker compose up --build -d
 ```
 
-PostgreSQL files persist in `./data/postgres` by default. Set `POSTGRES_DATA_PATH` to move that folder. Do not delete it if you want to preserve the database. For a PostgreSQL server outside Compose, use its reachable connection URL and omit the profile. The app retries its PostgreSQL connection during startup while the database initializes.
+PostgreSQL files persist in `./data/postgres` by default. Set `POSTGRES_DATA_PATH` to move that folder. Do not delete it if you want to preserve the database. For a PostgreSQL server outside Compose, use its reachable connection URL and remove or disable the Compose `db` service.
 
 The previous Compose file used a named volume called `postgres_data`. If you already stored data in that volume, changing to `./data/postgres` leaves the old volume intact but starts PostgreSQL with a new, empty data directory. Export and restore your database before switching; do not remove the old volume until the restored database is verified.
 

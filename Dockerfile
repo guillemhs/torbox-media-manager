@@ -11,7 +11,7 @@ RUN npm install
 COPY src ./src
 COPY constitution.md .
 COPY docker-compose.yml .
-COPY .env.example .
+COPY .env .
 
 # Build application
 RUN npm run build
@@ -29,7 +29,7 @@ RUN npm install --only=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/constitution.md .
 COPY --from=builder /app/docker-compose.yml .
-COPY --from=builder /app/.env.example .
+COPY --from=builder /app/.env .
 
 # Add non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

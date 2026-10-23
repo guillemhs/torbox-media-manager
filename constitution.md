@@ -1,149 +1,168 @@
 # Torbox Media Manager - Constitution
 
 ## 🎯 Mission & Vision
-This application is a **completely free, open-source media manager** that operates without paid API dependencies. All data is sourced from open datasets and free APIs, running entirely offline where possible.
+This application is a **free, open-source, local-first media manager**. All metadata is sourced from open datasets and free public APIs, running entirely offline where possible. 
 
-## 📊 Data Philosophy
-- **Zero paid APIs**: No TMDB, no commercial APIs at scale
-- **Open data only**: IMDb public datasets, TVMaze public API
-- **Local-first**: Metadata stored in local database (PostgreSQL/SQLite)
-- **Torbox-native**: Full integration with Torbox infrastructure for media storage (video and music)
+Integration with Torbox cloud infrastructure is supported for cloud library management and music streaming, maintaining a strict zero-paid-API requirement for general metadata.
 
-## 🌐 Data Sources
+---
 
-### Movies & Series Metadata
-- **IMDb Public Datasets**: Periodic import of TSV fichiers for titles, genres, years, ratings
-- **Storage**: PostgreSQL or SQLite database
-- **Benefits**: Totally free, offline-capable, no rate limits
+## 📊 Data Philosophy & Operating Modes
+- **Zero Paid Metadata APIs**: No TMDB or commercial API subscriptions required.
+- **Open Data Sources**: IMDb public datasets for movie/series metadata; TVMaze public API for episode scheduling.
+- **Local-First & Data Sovereignty**: All user state, settings, and metadata remain strictly on local storage (SQLite by default, PostgreSQL optional).
+- **Fully Self-Hosted**: Operates seamlessly in homelab, VPS, or local environments without telemetry or external user databases.
 
-### Calendar & Emission Data
-- **TVMaze Public API**: Free API for episode scheduling and series premieres
-- **Purpose**: TV program calendars, airing schedules
+### Modes of Operation
+1. **Local / Offline Mode (Default - Movies & Series)**: 
+   - Full access to IMDb catalog browsing, TVMaze scheduling, and local/NAS media library scanning.
+2. **Torbox Integrated Mode**:
+   - Extends library capabilities to sync directly with Torbox cloud cache.
+   - **Mandatory for Media**: Media streaming, discovery, and management require a valid `TORBOX_API_KEY`.
+   - Torbox API is the **only permitted external key** in the project.
 
-### Music
-- **100% Torbox native**: Leverages Torbox's caching and file infrastructure
-- **No external dependencies**: All music management within Torbox ecosystem
+---
 
-## 🗂️ Application Architecture
+## 🌐 Data Sources & Integrations
 
-### Route Structure
+### 1. Movies & Series Metadata (Local-First)
+- **IMDb Public Datasets**: Periodic import of local TSV dumps for titles, genres, ratings, and year details. Downloaded once, avoiding recurring web queries.
+- **Storage**: Processed into SQLite (zero-config) or PostgreSQL.
 
-#### `/library`
-- Synchronized with user's Torbox cloud and active torrents
-- View and manage all processed/downloaded content
+### 2. Calendar & Release Schedules (Free API)
+- **TVMaze Public API**: Serves episode schedules, airing dates, and series status.
+- **Caching**: Data is cached locally to prevent rate-limiting and support offline access.
 
-#### `/movies` 
-- Centralized section for movie collection
-- Indexed via local IMDb database
+### 3. Cloud & Music Management (Torbox Service)
+- **Torbox API**: Used for streaming, cloud-cached downloads, and searching the Torbox cloud media catalog.
+- **Constraint**: Media management **cannot** function without a valid Torbox API Key due to dependency on Torbox's streaming infrastructure.
 
-#### `/shows` 
-- Dedicated series tracking and management
-- Linked with local database and calendar
+---
 
-#### `/music` 
-- Exclusive music search, exploration, and management
-- Powered by Torbox cache and file capabilities
+## 🗂️ Application Architecture & Route Structure
 
-#### `/browse` 
-- **Browse de Películas y Series**: Quick discovery crossing user queries against IMDb local database and Torbox cache verification
-- **Browse de Música**: Specific interface for searching albums, discographies, or music files in Torbox ecosystem
+- **`/library`**: View and manage processed content, syncs with Torbox Cloud.
+- **`/movies`**: Centralized Torbox movie collection indexed locally via the IMDb database (Works 100% offline).
+- **`/shows`**: Series tracking and episode management linked with the Torbox shows collection using local database and TVMaze calendar.
+- **`/music`**: Music search, exploration, download and streaming. **Requires Torbox API Key.**
+- **`/browse`**: Fast discovery engine.
+  - *Movies/Shows*: Uses local IMDb database (Optional Torbox cache status check).
+  - *Music*: Direct cloud search using a music database.
+- **`/calendar`**: Release timeline built from local database and cached TVMaze schedule.
 
-#### `/calendar` 
-- Structured timeline via open API (TVMaze)
-- Shows upcoming series and movie premieres user follows
-- Facilitates direct sending to Torbox
+---
 
-## 🔐 Authentication & Security
+## 🔐 Authentication, Security & Privacy
 
-### Single Access Point
-- **Single API Key entry**: User provides Torbox API Key in initial configuration
-- **No external user databases**: No registration systems, no OAuth, no third-party payment gateways
-- **Torbox-only authentication**: All access funneled through Torbox key
+- **Single External Key**: `TORBOX_API_KEY` is the only supported third-party key.
+- **No User Databases**: No user registration, no OAuth 2.0, no session persistence outside local storage. Like Debrid Media Manager, session state is client-managed.
+- **Privacy First**: Zero telemetry, zero analytics, zero external dependencies for non-cloud features.
 
-### Security Principles
-- **Minimal data collection**: Only what's needed for Torbox integration
-- **Local processing**: Metadata processing happens offline when possible
-- **No persistent user accounts**: Application state tied to Torbox session
+---
 
 ## 🚫 Prohibited Practices
 
-- ❌ No paid API subscriptions at commercial scale
-- ❌ No user account databases outside Torbox
-- ❌ No OAuth 2.0 or third-party authentication
-- ❌ No payment processing integration
-- ❌ No data selling or commercial licensing of collected data
+- ❌ No commercial or paid metadata APIs (e.g., TMDB API tier fees).
+- ❌ No user account databases or third-party OAuth authentication systems.
+- ❌ No integration of payment processing gateways or data monetization routines.
+- ❌ Generating code that loads full IMDb TSV files into system memory (must use stream-based parsers).
+- ❌ Claiming media management or music features work offline without explicit Torbox integration where required.
 
 ## ✅ Accepted Practices
 
-- ✅ Open dataset imports (IMDb TSV dumps)
-- ✅ Free public APIs (TVMaze, etc.) within reasonable usage
-- ✅ Torbox native integration
-- ✅ Local database storage (SQLite/PostgreSQL)
-- ✅ Offline-first where possible
-- ✅ Single API key authentication
+- ✅ Processing local IMDb TSV dataset dumps via stream handling.
+- ✅ Rate-limited caching for free public APIs (TVMaze).
+- ✅ Torbox REST API integration as the sole allowed third-party provider.
+- ✅ Support for SQLite (default) and PostgreSQL database backends.
+- ✅ Docker single-command setups for self-hosted environments.
+
+---
 
 ## 📜 Principles for AI-Assisted Development
 
-When using Spec Kit or any AI coding assistant with this project:
+When using Spec Kit or AI coding assistants with this project:
 
-1. **All generated code must comply with zero-paywall principle**
-2. **Data sources must remain open/free**
-3. **Torbox integration must be maintained**
-4. **IMDb dataset import logic must be preserved**
-5. **TVMaze API integration must not require paid tiers**
-6. **No new external paid dependencies added without team approval**
+1. **Zero Paywall Compliance**: Generated code must never assume or enforce paid API dependencies for core movie/series features.
+2. **Stream-based IMDb Ingestion**: Parser functions must process TSV files in streams to prevent memory exhaustion on large datasets.
+3. **Graceful Fallbacks**: Features targeting Movies/Series must function properly if `TORBOX_API_KEY` is empty.
+4. **Strict API Contracts**: Interact with Torbox REST endpoints according to official schemas without inventing unsupported methods.
+5. **UI Performance**: UI grids for `/browse` and `/library` must utilize list virtualization/lazy loading for large dataset rendering.
+
+---
 
 ## 🔄 Constitution Workflow
 
-1. **Before every Spec Kit command**, the constitution is read
-2. **Validation**: All generated artifacts are checked against these principles
-3. **Guardrail**: AI agents must obey these constraints
-4. **Updates**: Constitution can be updated with team consensus, but principles remain core
+1. **Context Verification**: This constitution is read prior to executing Spec Kit commands or generating code.
+2. **Rule Enforcement**: Generated code and architecture plans are validated against these constraints.
+3. **Homelab Validation**: Any new feature must declare its offline and self-hosting capability.
 
-## 💻 VS Code & Workspace Standards
+---
 
-- **Workspace Integration**: All Spec Kit prompts and tasks must target Visual Studio Code workspace settings (`.vscode/`).
-- **Extensions & Tooling**: 
-  - Code formatting and linting rules enforced via workspace configuration.
-  - Recommended extensions: REST Client / Thunder Client, SQLite Viewer, Docker.
-- **Environment Parity**: Local setup must run without requiring external cloud services or paid containers.
-
-## 🏗️ Technical Stack & Implementation Constraints
-
-### Core Stack
-- **Database**: SQLite (default for zero-config/local-first) or PostgreSQL.
-- **IMDb Parser**: Mandatory stream-based parsing for large TSV files to prevent memory exhaustion.
-- **HTTP Client**: Robust handling of TVMaze rate limits and Torbox API responses.
-
-### Code Generation Rules for AI
-1. **Stream-based Ingestion**: Never generate code that loads full IMDb TSV files into memory at once.
-2. **Torbox API Contracts**: Strictly adhere to Torbox REST API schema without inventing non-existent endpoints.
-3. **UI Performance**: Front-end grid components for `/browse` and `/library` must implement virtualization or lazy loading for heavy poster lists.
-
-## 🐳 Docker & Deployment Standards
+## 🐳 Docker & Deployment Standards (Homelab Edition)
 
 ### Containerization Strategy
-- **Single-Command Startup**: Running `docker compose up --build` must spin up the entire application stack fully functioning without manual intermediate configuration.
-- **Self-Contained Stack**: 
-  - Backend/Frontend service container.
-  - Local database volume persistence (SQLite file or PostgreSQL container volume).
-  - Automated background worker or startup routine for IMDb TSV dataset ingestion if database is empty.
+- **Single-Command Launch**: `docker compose up --build` must start the fully functional stack without manual inter-steps.
+- **Self-Contained Stack**: Includes frontend/backend container(s), persistent database volumes, and automatic initial dataset ingestion triggers.
 
-### Configuration (`.env`)
-- A `.env.example` template must be provided in the repository root.
-- Required environment variables:
-  - `TORBOX_API_KEY`: User's single authentication key.
-  - `DATABASE_URL`: Connection string for the local database.
-  - Any auxiliary tuning variables for TVMaze sync intervals.
+### Environment Configuration (`.env.example`)
+```env
+# Optional: Torbox API Key (Required for cloud sync & music streaming)
+TORBOX_API_KEY=
 
-## 📁 Repository & Folder Structure Standard
+# Local Storage & Database Configuration
+DATABASE_URL=file:./data/app.db?mode=memory
+LOCAL_MEDIA_PATH=/data/media
+IMDB_DATA_PATH=./data/imdb
 
-AI agents must place new features within the following structure:
-- `src/routes/` -> Page routes (`/library`, `/movies`, `/shows`, `/music`, `/browse`, `/calendar`)
-- `src/services/torbox/` -> Torbox API client and sync logic
-- `src/services/imdb/` -> Local TSV downloader, parser, and DB sync routines
-- `src/services/tvmaze/` -> Free TV schedule parser
-- `src/db/` -> Database schemas, migrations, and SQLite/Postgres connection handlers
-- `docker-compose.yml` -> Root orchestration file for building and running the full stack
-- `.env.example` -> Template for required environment variables
-- `Dockerfile` -> Multi-stage build for the application runtime
+# Sync intervals
+TVMAZE_SYNC_INTERVAL=24h
+
+```
+
+### Docker Compose Reference Structure
+
+```yaml
+services:
+  app:
+    build: .
+    ports:
+      - "6666:6666"
+    environment:
+      - TORBOX_API_KEY=${TORBOX_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - LOCAL_MEDIA_PATH=${LOCAL_MEDIA_PATH:-/data/media}
+      - TVMAZE_SYNC_INTERVAL=${TVMAZE_SYNC_INTERVAL:-24h}
+    volumes:
+      - ${LOCAL_MEDIA_PATH}:/app/data/media:ro
+      - ./data:/app/data:rw
+
+  db:
+    image: postgres:15-alpine
+    profiles: ["postgres"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=torbox_mediamanager
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+
+volumes:
+  postgres_data:
+
+```
+
+---
+
+## 📁 Repository Structure Standard
+
+AI agents must organize new features strictly within this layout:
+
+* `src/routes/` -> Page routes (`/library`, `/movies`, `/shows`, `/music`, `/browse`, `/calendar`)
+* `src/services/torbox/` -> Torbox REST API client and cloud sync handlers
+* `src/services/imdb/` -> Stream-based TSV downloader, parser, and DB ingestion routines
+* `src/services/tvmaze/` -> TV schedule parser and local caching logic
+* `src/db/` -> Database schemas, migrations, and SQLite/Postgres handlers
+* `docker-compose.yml` -> Self-hosted stack orchestration
+* `.env.example` -> Environment variable template with local defaults
+* `Dockerfile` -> Multi-stage container build
+* `.vscode/` -> Workspace settings, extensions, and task definitions

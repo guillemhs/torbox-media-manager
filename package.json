@@ -4,7 +4,7 @@
   "description": "Torbox Media Manager - A free, open-source, local-first media manager that operates without paid API dependencies",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc build",
+    "build": "tsc",
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts"
   },

@@ -1,0 +1,29 @@
+# docker-compose.yml
+services:
+  app:
+    build: .
+    ports:
+      - "6666:6666"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-file:./data/app.db?mode=memory}
+      - LOCAL_MEDIA_PATH=${LOCAL_MEDIA_PATH:-/data/media}
+      - IMDB_DATA_PATH=${IMDB_DATA_PATH:-./data/imdb}
+      - TVMAZE_SYNC_INTERVAL=${TVMAZE_SYNC_INTERVAL:-24h}
+      - TORBOX_API_KEY=${TORBOX_API_KEY:-}
+    volumes:
+      - ${LOCAL_MEDIA_PATH}:/app/data/media:ro
+      - ./data:/app/data:rw
+      - ./data/imdb:/app/data/imdb:rw
+
+  # PostgreSQL optional - uncomment if preferred over default SQLite
+  # db:
+  #   image: postgres:15-alpine
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_DB=torbox_mediamanager
+  #     - POSTGRES_USER=user
+  #     - POSTGRES_PASSWORD=password
+
+volumes:
+  # postgres_data:  # Only needed if using PostgreSQL instead of default SQLite

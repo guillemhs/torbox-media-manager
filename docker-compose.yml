@@ -11,7 +11,7 @@ services:
       - TVMAZE_SYNC_INTERVAL=${TVMAZE_SYNC_INTERVAL:-24h}
       - TORBOX_API_KEY=${TORBOX_API_KEY:-}
     volumes:
-      - ${LOCAL_MEDIA_PATH}:/app/data/media:ro
+      - ${HOST_MEDIA_PATH:-./media}:/data/media:ro
       - ./data:/app/data:rw
       - ./data/imdb:/app/data/imdb:rw
 

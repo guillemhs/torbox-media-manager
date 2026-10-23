@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { normalizeTorBoxMusicLibrary } from './torboxMusicLibrary';
 
 // Simulated IMDb TSV stream-based parser
 // In production, this would use stream-based parsing to prevent memory exhaustion
@@ -88,38 +88,69 @@ export const scanLocalMedia = (directoryPath?: string): { items: MediaItem[] } =
  * Requires valid TORBOX_API_KEY - music features cannot function without it
  * Per constitution: "Music management cannot function without a valid Torbox API Key"
  */
-export const syncTorboxCloud = async (apiKey: string | undefined) => {
+export class TorboxApiError extends Error {
+  constructor(public status: number, message: string, public responseBody?: unknown) {
+    super(message);
+    this.name = 'TorboxApiError';
+  }
+}
+
+export const syncTorboxCloud = async (
+  apiKey: string | undefined = process.env.TORBOX_API_KEY,
+  params: { offset?: number; limit?: number; id?: number } = {}
+) => {
   if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
     throw new Error('Torbox API key is required for cloud sync and music features');
   }
-  
-  // In a real implementation, this would make API calls to Torbox REST endpoints
-  // per the official API schema without inventing unsupported methods
-  // (per constitution principle: "Strict API Contracts")
-  
-  // Simulated response
-  return {
-    apiKeyProvided: true,
-    cloudStatus: 'connected',
-    syncedItems: 0, // Would be actual count from API
-    lastSync: new Date().toISOString(),
-    message: 'Torbox cloud sync initiated - music features now available'
-  };
+
+  const url = new URL('https://api.torbox.app/v1/api/torrents/mylist');
+  url.searchParams.set('bypass_cache', 'true');
+  url.searchParams.set('_fresh', String(Date.now()));
+  if (params.offset !== undefined) url.searchParams.set('offset', String(params.offset));
+  if (params.limit !== undefined) url.searchParams.set('limit', String(params.limit));
+  if (params.id !== undefined) url.searchParams.set('id', String(params.id));
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${apiKey.trim()}` },
+    signal: AbortSignal.timeout(10_000)
+  });
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    body = undefined;
+  }
+
+  if (!response.ok) {
+    const detail = typeof body === 'object' && body !== null && 'detail' in body
+      ? String(body.detail)
+      : `Torbox API returned HTTP ${response.status}`;
+    throw new TorboxApiError(response.status, detail, body);
+  }
+
+  if (typeof body === 'object' && body !== null && 'success' in body && body.success === false) {
+    const detail = 'detail' in body ? String(body.detail) : 'Torbox reported that the request failed';
+    throw new TorboxApiError(502, detail, body);
+  }
+
+  return body;
 };
 
 /**
  * Get library content - view and manage library content
  */
-export const getLibrary = async (apiKey?: string) => {
+export const getLibrary = async (apiKey: string | undefined = process.env.TORBOX_API_KEY) => {
   const mode = apiKey ? 'torbox-integrated' : 'local-offline';
 
   if (apiKey && typeof apiKey === 'string' && apiKey.trim() !== '') {
     // Torbox Integrated Mode - sync and scan cloud
-    const torboxSync = await syncTorboxCloud(apiKey);
+    const torboxLibrary = await getTorboxMusicLibrary(apiKey);
     const localScan = await scanLocalMedia();
     return {
       mode: 'torbox-integrated',
-      torboxCloud: torboxSync,
+      torboxCloud: torboxLibrary.torboxCloud,
+      torboxMusic: torboxLibrary.albums,
       localMedia: localScan,
       message: 'Library synced with Torbox cloud and local media library'
     };
@@ -134,6 +165,18 @@ export const getLibrary = async (apiKey?: string) => {
   };
 };
 
+export const getTorboxMusicLibrary = async (apiKey: string | undefined = process.env.TORBOX_API_KEY) => {
+  const torboxCloud = await syncTorboxCloud(apiKey, { limit: 1000 });
+  const data = typeof torboxCloud === 'object' && torboxCloud !== null && 'data' in torboxCloud
+    ? torboxCloud.data
+    : undefined;
+  const items = Array.isArray(data) ? data : data ? [data] : [];
+  return {
+    torboxCloud,
+    albums: normalizeTorBoxMusicLibrary(items)
+  };
+};
+
 /**
  * Trigger local media scan
  */
@@ -145,29 +188,14 @@ export const triggerLibraryScan = async (directoryPath?: string) => {
 /**
  * Sync library with Torbox cloud (requires API key)
  */
-export const syncLibraryTorbox = async (apiKey: string | undefined) => {
-  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '') {
-    throw new Error('Torbox API key is required for cloud sync and music features');
-  }
-  
-  // In a real implementation, this would make API calls to Torbox REST endpoints
-  // per the official API schema without inventing unsupported methods
-  // (per constitution principle: "Strict API Contracts")
-  
-  // Simulated response
-  return {
-    apiKeyProvided: true,
-    cloudStatus: 'connected',
-    syncedItems: 0, // Would be actual count from API
-    lastSync: new Date().toISOString(),
-    message: 'Torbox cloud sync initiated - music features now available'
-  };
+export const syncLibraryTorbox = async (apiKey: string | undefined = process.env.TORBOX_API_KEY) => {
+  return syncTorboxCloud(apiKey);
 };
 
 /**
  * Get library status - combines local and cloud status
  */
-export const getLibraryStatus = (apiKey?: string) => {
+export const getLibraryStatus = (apiKey: string | undefined = process.env.TORBOX_API_KEY) => {
   const localMedia = scanLocalMedia();
   const hasApiKey = apiKey && typeof apiKey === 'string' && apiKey.trim() !== '';
   const mode = hasApiKey ? 'torbox-integrated' : 'local-offline';

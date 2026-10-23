@@ -102,5 +102,4 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Docker
-.dockerignore
 docker-compose.yml.local

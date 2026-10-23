@@ -1,7 +1,13 @@
 import "dotenv/config";
 
 import express from "express";
-import { getLibrary, triggerLibraryScan, syncLibraryTorbox, getLibraryStatus } from "./services/media.service";
+import {
+  getLibraryRoute,
+  getLibraryStatusRoute,
+  getTorboxMusicLibraryRoute,
+  syncLibraryTorboxRoute,
+  triggerLibraryScanRoute
+} from "./routes/library.route";
 
 const app = express();
 const PORT = process.env.PORT || 6666;
@@ -11,10 +17,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.get("/library", getLibrary);
-app.post("/library/scan", triggerLibraryScan);
-app.post("/library/sync", syncLibraryTorbox);
-app.get("/library/status", getLibraryStatus);
+app.get("/library", getLibraryRoute);
+app.get("/library/music", getTorboxMusicLibraryRoute);
+app.post("/library/scan", triggerLibraryScanRoute);
+app.post("/library/sync", syncLibraryTorboxRoute);
+app.get("/library/status", getLibraryStatusRoute);
 
 // Health check
 app.get("/health", (req, res) => {

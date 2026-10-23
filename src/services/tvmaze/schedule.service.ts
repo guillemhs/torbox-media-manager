@@ -8,6 +8,7 @@ export interface ScheduleOptions {
 
 let requestQueue = Promise.resolve();
 let lastRequestAt = 0;
+const showCache = new Map<number, { expiresAt: number; show: unknown }>();
 
 function cacheTtlMs(): number {
   const configured = process.env.TVMAZE_SYNC_INTERVAL || '24h';
@@ -69,4 +70,23 @@ export async function getTvmazeSchedule(options: ScheduleOptions) {
     }
     throw error;
   }
+}
+
+export async function getTvmazeShow(id: number): Promise<unknown> {
+  const cached = showCache.get(id);
+  if (cached && cached.expiresAt > Date.now()) return cached.show;
+  await throttleTvmaze();
+  const response = await fetch(`https://api.tvmaze.com/shows/${id}`, {
+    headers: { 'User-Agent': 'TorboxMediaManager/1.0 (self-hosted TV details)' },
+    signal: AbortSignal.timeout(12_000)
+  });
+  if (response.status === 404) throw new Error('TVMaze show was not found.');
+  if (!response.ok) throw new Error(`TVMaze returned HTTP ${response.status}`);
+  const show: unknown = await response.json();
+  if (!show || typeof show !== 'object' || !('id' in show) || show.id !== id) {
+    throw new Error('TVMaze returned an unexpected show record.');
+  }
+  if (showCache.size >= 500) showCache.delete(showCache.keys().next().value as number);
+  showCache.set(id, { show, expiresAt: Date.now() + 24 * 60 * 60 * 1000 });
+  return show;
 }

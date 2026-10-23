@@ -26,6 +26,10 @@ The previous Compose file used a named volume called `postgres_data`. If you alr
 
 After Compose reports the app as healthy, open <http://localhost:6666>. Use the sidebar to switch between Browse, Movies, Shows, TorBox, Local Media, Music, and Calendar. Try searching a title, using **Load more**, and checking that music tracks open through TorBox.
 
+Movie and TV posters are matched from IMDb IDs through TMDB when `TMDB_API_READ_ACCESS_TOKEN` is configured in `.env`; TVMaze supplies a fallback for series posters and artwork in the calendar. TMDB credentials stay on the server. Music cover art is searched lazily from MusicBrainz and Cover Art Archive using album/torrent names, so ambiguous torrent names may not match. Artwork requests are cached in memory for 24 hours. The interface includes source credits; TMDB attribution is required by its API terms.
+
+To enable TMDB posters, request an API Read Access Token in your TMDB account's API settings, add `TMDB_API_READ_ACCESS_TOKEN=...` to `.env`, and recreate the app with `docker compose up --build -d`. TMDB's developer API is for non-commercial use and requires attribution; check its current terms before enabling it for other use.
+
 To check adding a torrent, choose **Add to TorBox**, paste a magnet URI or info hash you are authorized to use, and submit it. **Only add if TorBox already has it cached** prevents uncached items from being added. The page should show TorBox's response; the TorBox library view should then list the item. This sends the magnet/hash to TorBox through the app and does not download the media to the app host.
 
 For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:6666/health` and `curl -fsS http://localhost:6666/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.

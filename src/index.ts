@@ -11,11 +11,14 @@ import {
   getLibraryStatusRoute,
   getTorboxMusicLibraryRoute,
   imdbImportRoute,
+  musicArtworkRoute,
   moviesRoute,
   showsRoute,
   streamTorboxTrackRoute,
   syncLibraryTorboxRoute,
   titleRoute,
+  titleArtworkRoute,
+  tvmazeShowRoute,
   triggerLibraryScanRoute
 } from './routes/library.route';
 import { importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
@@ -46,7 +49,10 @@ app.get('/shows', showsRoute);
 app.get('/shows/:imdbId', titleRoute);
 app.get('/browse', browseRoute);
 app.get('/calendar', calendarRoute);
+app.get('/tvmaze/shows/:id', tvmazeShowRoute);
+app.get('/artwork/:imdbId', titleArtworkRoute);
 app.get('/music', getTorboxMusicLibraryRoute);
+app.get('/music/artwork', musicArtworkRoute);
 app.get('/music/:torrentId/:fileId/stream', streamTorboxTrackRoute);
 app.post('/admin/imdb/import', imdbImportRoute);
 app.get('/admin/imdb/status', async (_req, res) => {

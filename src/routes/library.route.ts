@@ -4,7 +4,8 @@ import { importImdbDatasets } from '../services/imdb/import.service';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
 import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
-import { getTvmazeSchedule } from '../services/tvmaze/schedule.service';
+import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
+import { getMusicArtwork, getTitleArtwork } from '../services/artwork.service';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
   const status = error instanceof TorboxApiError ? error.status : 502;
@@ -158,6 +159,37 @@ export const calendarRoute: RequestHandler = async (req, res) => {
   const web = scalar(req.query.type) === 'web';
   try { return res.json(await getTvmazeSchedule({ date, country, web })); }
   catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'TVMaze schedule request failed' }); }
+};
+
+export const tvmazeShowRoute: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: 'TVMaze show ID must be a positive integer.' });
+  try {
+    const show = await getTvmazeShow(id);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.json(show);
+  } catch (error) {
+    return res.status(502).json({ error: error instanceof Error ? error.message : 'TVMaze show lookup failed.' });
+  }
+};
+
+export const titleArtworkRoute: RequestHandler = async (req, res) => {
+  const imdbId = req.params.imdbId;
+  if (!/^tt\d+$/.test(imdbId)) return res.status(400).json({ error: 'IMDb ID must look like tt1234567.' });
+  const kind = scalar(req.query.kind) === 'series' ? 'series' : 'movie';
+  const artwork = await getTitleArtwork(imdbId, kind);
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.json({ artwork });
+};
+
+export const musicArtworkRoute: RequestHandler = async (req, res) => {
+  const query = scalar(req.query.q)?.trim();
+  if (!query || query.length < 2 || query.length > 180) {
+    return res.status(400).json({ error: 'Artwork search must be between 2 and 180 characters.' });
+  }
+  const artwork = await getMusicArtwork(query);
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.json({ artwork });
 };
 
 let importPromise: Promise<unknown> | undefined;

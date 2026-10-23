@@ -14,6 +14,7 @@ services:
       IMDB_AUTO_IMPORT: ${IMDB_AUTO_IMPORT:-true}
       TVMAZE_SYNC_INTERVAL: ${TVMAZE_SYNC_INTERVAL:-24h}
       TORBOX_API_KEY: ${TORBOX_API_KEY:-}
+      TMDB_API_READ_ACCESS_TOKEN: ${TMDB_API_READ_ACCESS_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy

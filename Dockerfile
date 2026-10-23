@@ -9,6 +9,7 @@ RUN npm install
 
 # Copy source code
 COPY src ./src
+COPY tsconfig.json .
 COPY constitution.md .
 COPY docker-compose.yml .
 COPY .env .

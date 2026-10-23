@@ -22,16 +22,17 @@ For a PostgreSQL server outside Compose, use its reachable connection URL and om
 
 ## Routes
 
-- `/` — paginated browser for IMDb movies/shows and local media, TorBox music, and the TVMaze schedule.
+- `/` — Puppertino browser for IMDb movies/shows, local media, TorBox torrents/music, and the TVMaze schedule.
 - `GET /movies` and `GET /shows` — IMDb catalog; accepts `q`, `limit` (max 200), and `offset`.
 - `GET /browse` — combined IMDb discovery; accepts `kind=movie|series|all`; with a TorBox key, `hash=<40-character-info-hash>` checks its cache status.
 - `GET /calendar?date=YYYY-MM-DD&country=US` — TVMaze broadcast schedule. Use `type=web` for the web schedule. Cached results are returned if TVMaze is unavailable.
 - `GET /library?limit=50&offset=0` — local scan and, when configured, TorBox cloud list.
 - `GET /music?q=...` or `/library/music` — audio-only view of files in the authenticated TorBox account.
 - `GET /music/:torrentId/:fileId/stream` — asks TorBox for a file URL and redirects to it.
+- `POST /torbox/torrents` — submit a magnet URI or 40-character info hash to TorBox. The browser never downloads the media to this server. Set `addOnlyIfCached: true` to only add items TorBox already has cached.
 - `GET /health`, `/library/status`, and `/admin/imdb/status` — service and import status.
 - `POST /library/scan`, `POST /library/sync`, and `POST /admin/imdb/import` — trigger scans/syncs/imports.
 
-IMDb ingestion reads TSV rows incrementally and writes small batches to SQLite/PostgreSQL. The dataset files are saved under `IMDB_DATA_PATH`, so subsequent imports use the local copy. TVMaze responses are cached according to `TVMAZE_SYNC_INTERVAL` (default 24 hours), with stale cache fallback when its API cannot be reached. The browser fetches catalog and local-library pages incrementally. Local catalog and schedule routes work without a TorBox key; music/cloud operations return 503 until it is configured.
+IMDb ingestion reads TSV rows incrementally and writes small batches to SQLite/PostgreSQL. The dataset files are saved under `IMDB_DATA_PATH`, so subsequent imports use the local copy. TVMaze responses are cached according to `TVMAZE_SYNC_INTERVAL` (default 24 hours), with stale cache fallback when its API cannot be reached. The browser fetches catalog and local-library pages incrementally. Puppertino 2.0 is bundled locally. Local catalog and schedule routes work without a TorBox key; music/cloud operations return 503 until it is configured.
 
 The server is intended for a trusted self-hosted network and does not implement user authentication. Do not expose it directly to the public internet.

@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 import { countTitles, getImportStatus, getTitle, searchTitles } from '../db/database';
 import { importImdbDatasets } from '../services/imdb/import.service';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
-import { checkCachedTorrent, getTorrentList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
+import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule } from '../services/tvmaze/schedule.service';
 
@@ -86,6 +86,31 @@ export const syncLibraryTorboxRoute: RequestHandler = async (_req, res) => {
   if (!process.env.TORBOX_API_KEY?.trim()) return res.status(503).json({ error: 'TORBOX_API_KEY is not configured.' });
   try { return res.json(await getTorrentList(undefined, { bypass_cache: true, limit: 1000 })); }
   catch (error) { return sendError(res, error); }
+};
+
+export const addTorrentToTorboxRoute: RequestHandler = async (req, res) => {
+  if (!process.env.TORBOX_API_KEY?.trim()) return res.status(503).json({ error: 'TORBOX_API_KEY is not configured.' });
+  const input = typeof req.body?.magnet === 'string' ? req.body.magnet.trim() : '';
+  if (!input || input.length > 4096) return res.status(400).json({ error: 'Provide a magnet URI or 40-character torrent info hash.' });
+  const magnet = /^[a-f0-9]{40}$/i.test(input)
+    ? `magnet:?xt=urn:btih:${input.toLowerCase()}`
+    : input;
+  if (!/^magnet:\?\S+$/i.test(magnet) || !/(?:^|[?&])xt=urn:btih:[a-z0-9]{32,40}(?:&|$)/i.test(magnet)) {
+    return res.status(400).json({ error: 'Magnet URI must include a valid BitTorrent info hash (xt=urn:btih:…). ' });
+  }
+  if (typeof req.body?.addOnlyIfCached !== 'undefined' && typeof req.body.addOnlyIfCached !== 'boolean') {
+    return res.status(400).json({ error: 'addOnlyIfCached must be true or false.' });
+  }
+  try {
+    const result = await addTorrentToTorbox(magnet, {
+      addOnlyIfCached: req.body.addOnlyIfCached === true,
+      name: typeof req.body.name === 'string' ? req.body.name : undefined
+    });
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.status(200).json({ detail: result.detail, torrent: result.data });
+  } catch (error) {
+    return sendError(res, error);
+  }
 };
 export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(getLibraryStatus());
 

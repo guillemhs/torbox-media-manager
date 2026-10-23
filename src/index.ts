@@ -6,6 +6,7 @@ import { initializeDatabase, countTitles, getImportStatus } from './db/database'
 import {
   browseRoute,
   calendarRoute,
+  addTorrentToTorboxRoute,
   getLibraryRoute,
   getLibraryStatusRoute,
   getTorboxMusicLibraryRoute,
@@ -23,6 +24,7 @@ const app = express();
 const PORT = Number(process.env.PORT || 6666);
 app.use(express.json({ limit: '32kb' }));
 app.use(express.urlencoded({ extended: true, limit: '32kb' }));
+app.use('/vendor/puppertino', express.static(path.join(__dirname, '../node_modules/@codedgar/puppertino/dist/css')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', async (_req, res) => {
@@ -37,6 +39,7 @@ app.get('/library/music', getTorboxMusicLibraryRoute);
 app.get('/library/status', getLibraryStatusRoute);
 app.post('/library/scan', triggerLibraryScanRoute);
 app.post('/library/sync', syncLibraryTorboxRoute);
+app.post('/torbox/torrents', addTorrentToTorboxRoute);
 app.get('/movies', moviesRoute);
 app.get('/movies/:imdbId', titleRoute);
 app.get('/shows', showsRoute);

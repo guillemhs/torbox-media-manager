@@ -158,6 +158,11 @@ export async function importImdbDatasets(): Promise<{ basicsImported: number; ra
   return { basicsImported, ratingsImported };
 }
 
+/** A partial import can leave many rows behind without its completion marker. */
+export async function needsImdbImport(): Promise<boolean> {
+  return !(await isDatasetImported(DATASETS.basics)) || !(await isDatasetImported(DATASETS.ratings));
+}
+
 export async function getLocalImdbDatasetFiles(): Promise<string[]> {
   const directory = process.env.IMDB_DATA_PATH || './data/imdb';
   try {

@@ -17,7 +17,7 @@ import {
   titleRoute,
   triggerLibraryScanRoute
 } from './routes/library.route';
-import { importImdbDatasets } from './services/imdb/import.service';
+import { importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
 
 const app = express();
 const PORT = Number(process.env.PORT || 6666);
@@ -58,8 +58,8 @@ async function start(): Promise<void> {
     console.log(`Mode: ${process.env.TORBOX_API_KEY?.trim() ? 'Torbox Integrated' : 'Local Offline'}`);
     console.log(`IMDb titles currently stored: startup import may add more`);
   });
-  if (process.env.IMDB_AUTO_IMPORT !== 'false' && await countTitles() === 0) {
-    console.info('Starting initial IMDb dataset import in the background');
+  if (process.env.IMDB_AUTO_IMPORT !== 'false' && await needsImdbImport()) {
+    console.info('Starting or resuming the IMDb dataset import in the background');
     void importImdbDatasets().catch((error: unknown) => {
       console.error('IMDb initial import failed:', error instanceof Error ? error.message : 'unknown error');
     });

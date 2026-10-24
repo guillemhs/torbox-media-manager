@@ -65,6 +65,9 @@ services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     restart: unless-stopped
+    depends_on:
+      flaresolverr:
+        condition: service_started
     environment:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
@@ -79,6 +82,21 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${FLARESOLVERR_LOG_LEVEL:-info}
+      LOG_HTML: "false"
+      CAPTCHA_SOLVER: none
+      TZ: ${TZ:-Europe/Madrid}
+    # Keep port 8191 internal to the Compose network; Prowlarr reaches it by service name.
     logging:
       driver: json-file
       options:

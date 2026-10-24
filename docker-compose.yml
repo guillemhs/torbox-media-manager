@@ -64,7 +64,6 @@ services:
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
-    init: true
     restart: unless-stopped
     environment:
       PUID: ${PUID:-1000}

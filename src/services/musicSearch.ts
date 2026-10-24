@@ -58,6 +58,22 @@ function magnetHash(value: string): string {
   return (/xt=urn:btih:([a-f0-9]{40})/i.exec(value)?.[1] || '').toLowerCase();
 }
 
+function encodeQueryValue(value: string): string {
+  let wellFormed = '';
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        wellFormed += value[index] + value[index + 1];
+        index++;
+      } else wellFormed += '\ufffd';
+    } else if (code >= 0xdc00 && code <= 0xdfff) wellFormed += '\ufffd';
+    else wellFormed += value[index];
+  }
+  return encodeURIComponent(wellFormed);
+}
+
 function jsonCandidates(body: unknown): MusicTorrentCandidate[] {
   if (!Array.isArray(body)) return [];
   const results = new Map<string, MusicTorrentCandidate>();
@@ -68,7 +84,7 @@ function jsonCandidates(body: unknown): MusicTorrentCandidate[] {
     const magnetUrl = text(item.magnetUrl) || text(item.magnet);
     const hash = magnetHash(magnetUrl) || text(item.infoHash || item.infohash || item.hash).toLowerCase();
     if (!name || !/^[a-f0-9]{40}$/.test(hash)) continue;
-    const magnet = magnetUrl.startsWith('magnet:') ? magnetUrl : `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(name.slice(0, 180))}`;
+    const magnet = magnetUrl.startsWith('magnet:') ? magnetUrl : `magnet:?xt=urn:btih:${hash}&dn=${encodeQueryValue(name.slice(0, 180))}`;
     const indexer = text(item.indexer) || 'Prowlarr';
     const number = (value: unknown): number | null => {
       const n = typeof value === 'number' ? value : Number(value);

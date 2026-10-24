@@ -7,7 +7,7 @@ import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork } from '../services/artwork.service';
 import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
-import { searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
+import { getMusicTorrentDownload, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
   const status = error instanceof TorboxApiError ? error.status : 502;
@@ -184,6 +184,22 @@ export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
     res.setHeader('Cache-Control', 'private, no-store');
     return res.json({ candidates, total: candidates.length, source: 'Torznab' });
   } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music torrent search failed.' }); }
+};
+
+export const musicTorrentDownloadRoute: RequestHandler = async (req, res) => {
+  const token = scalar(req.params.token) || '';
+  if (!/^[a-f0-9-]{36}$/i.test(token)) return res.status(400).json({ error: 'Torrent download link is invalid or expired.' });
+  try {
+    const torrent = await getMusicTorrentDownload(token);
+    if (!torrent) return res.status(404).json({ error: 'Torrent file is no longer available from the indexer.' });
+    res.setHeader('Content-Type', 'application/x-bittorrent');
+    const fallbackName = torrent.name.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
+    res.setHeader('Content-Disposition', `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(torrent.name)}`);
+    res.setHeader('Content-Length', torrent.data.length);
+    return res.send(torrent.data);
+  } catch (error) {
+    return res.status(502).json({ error: error instanceof Error ? error.message : 'Torrent download failed.' });
+  }
 };
 export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(getLibraryStatus());
 

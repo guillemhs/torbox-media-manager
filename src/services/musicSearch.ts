@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 export interface MusicRelease {
   id: string;
@@ -53,7 +53,30 @@ function attr(item: string, name: string): string | null {
 }
 
 export interface MusicTorrentCandidate {
-  hash: string; magnet: string; name: string; seeders: number | null; leechers: number | null; size: number | null; source: string;
+  hash: string; magnet: string; name: string; seeders: number | null; leechers: number | null; size: number | null; source: string; downloadToken?: string;
+}
+
+const torrentDownloads = new Map<string, { url: string; name: string; expiresAt: number }>();
+
+export async function getMusicTorrentDownload(token: string): Promise<{ data: Buffer; name: string } | null> {
+  const entry = torrentDownloads.get(token);
+  torrentDownloads.delete(token);
+  if (!entry || entry.expiresAt < Date.now()) return null;
+  const apiUrl = prowlarrSearchUrl();
+  const apiKey = process.env.TORZNAB_API_KEY?.trim();
+  if (!apiUrl || !apiKey) return null;
+  let target: URL;
+  try { target = new URL(entry.url, apiUrl); } catch { return null; }
+  if (target.origin !== apiUrl.origin || !['http:', 'https:'].includes(target.protocol)) return null;
+  const response = await fetch(target, {
+    headers: { 'X-Api-Key': apiKey, Accept: 'application/x-bittorrent, application/octet-stream' },
+    signal: AbortSignal.timeout(30_000), redirect: 'manual'
+  });
+  if (!response.ok || Number(response.headers.get('content-length')) > 20_000_000) return null;
+  const data = Buffer.from(await response.arrayBuffer());
+  if (!data.length || data.length > 20_000_000 || !torrentInfoHash(data)) return null;
+  const name = entry.name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 150) || 'torrent';
+  return { data, name: name.endsWith('.torrent') ? name : `${name}.torrent` };
 }
 
 function magnetHash(value: string): string {
@@ -175,12 +198,19 @@ async function jsonCandidates(body: unknown, apiUrl: URL, apiKey: string): Promi
       const n = typeof value === 'number' ? value : Number(value);
       return Number.isFinite(n) && n >= 0 ? n : null;
     };
+    const downloadToken = downloadUrl && !/^magnet:/i.test(downloadUrl) ? randomUUID() : undefined;
+    if (downloadToken) {
+      const now = Date.now();
+      for (const [token, entry] of torrentDownloads) if (entry.expiresAt < now) torrentDownloads.delete(token);
+      torrentDownloads.set(downloadToken, { url: downloadUrl, name, expiresAt: now + 10 * 60_000 });
+    }
     return {
       hash, magnet, name,
       seeders: number(item.seeders),
       leechers: number(item.leechers ?? item.peers),
       size: number(item.size),
-      source: indexer
+      source: indexer,
+      ...(downloadToken ? { downloadToken } : {})
     };
   }));
   for (const candidate of parsed) if (candidate) results.set(candidate.hash, candidate);

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 export interface MusicRelease {
   id: string;
   title: string;
@@ -74,30 +76,114 @@ function encodeQueryValue(value: string): string {
   return encodeURIComponent(wellFormed);
 }
 
-function jsonCandidates(body: unknown): MusicTorrentCandidate[] {
+function torrentInfoHash(data: Buffer): string | null {
+  function readStringEnd(offset: number): { end: number; value: string } | null {
+    let colon = offset;
+    while (colon < data.length && data[colon] !== 0x3a) colon++;
+    if (colon === offset || colon >= data.length) return null;
+    const lengthText = data.toString('ascii', offset, colon);
+    if (!/^\d+$/.test(lengthText)) return null;
+    const start = colon + 1;
+    const end = start + Number(lengthText);
+    if (!Number.isSafeInteger(end) || end > data.length) return null;
+    return { end, value: data.toString('utf8', start, end) };
+  }
+
+  function skipValue(offset: number, depth = 0): number | null {
+    if (depth > 100 || offset >= data.length) return null;
+    const marker = data[offset];
+    if (marker === 0x69) {
+      const end = data.indexOf(0x65, offset + 1);
+      return end < 0 ? null : end + 1;
+    }
+    if (marker === 0x6c || marker === 0x64) {
+      const dictionary = marker === 0x64;
+      let cursor = offset + 1;
+      while (cursor < data.length && data[cursor] !== 0x65) {
+        if (dictionary) {
+          const key = readStringEnd(cursor);
+          if (!key) return null;
+          cursor = key.end;
+        }
+        const end = skipValue(cursor, depth + 1);
+        if (end === null) return null;
+        cursor = end;
+      }
+      return cursor < data.length ? cursor + 1 : null;
+    }
+    if (marker >= 0x30 && marker <= 0x39) return readStringEnd(offset)?.end ?? null;
+    return null;
+  }
+
+  if (data[0] !== 0x64) return null;
+  let cursor = 1;
+  while (cursor < data.length && data[cursor] !== 0x65) {
+    const key = readStringEnd(cursor);
+    if (!key) return null;
+    const valueStart = key.end;
+    const valueEnd = skipValue(valueStart);
+    if (valueEnd === null) return null;
+    if (key.value === 'info') return createHash('sha1').update(data.subarray(valueStart, valueEnd)).digest('hex');
+    cursor = valueEnd;
+  }
+  return null;
+}
+
+async function readTorrentDownload(downloadUrl: string, apiUrl: URL, apiKey: string): Promise<string | null> {
+  let target: URL;
+  try { target = new URL(downloadUrl, apiUrl); } catch { return null; }
+  if (target.origin !== apiUrl.origin || !['http:', 'https:'].includes(target.protocol)) return null;
+  try {
+    const response = await fetch(target, {
+      headers: { 'X-Api-Key': apiKey, Accept: 'application/x-bittorrent, application/octet-stream' },
+      signal: AbortSignal.timeout(12_000),
+      redirect: 'manual'
+    });
+    if (!response.ok || (Number(response.headers.get('content-length')) > 5_000_000)) return null;
+    const reader = response.body?.getReader();
+    if (!reader) return null;
+    const chunks: Buffer[] = [];
+    let size = 0;
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      size += chunk.value.byteLength;
+      if (size > 5_000_000) { await reader.cancel(); return null; }
+      chunks.push(Buffer.from(chunk.value));
+    }
+    const data = Buffer.concat(chunks);
+    const magnetHash = /xt=urn:btih:([a-f0-9]{40})/i.exec(data.toString('utf8'))?.[1];
+    return (magnetHash || torrentInfoHash(data))?.toLowerCase() || null;
+  } catch { return null; }
+}
+
+async function jsonCandidates(body: unknown, apiUrl: URL, apiKey: string): Promise<MusicTorrentCandidate[]> {
   if (!Array.isArray(body)) return [];
   const results = new Map<string, MusicTorrentCandidate>();
-  for (const raw of body) {
-    if (!raw || typeof raw !== 'object') continue;
+  const parsed = await Promise.all(body.slice(0, 10).map(async (raw): Promise<MusicTorrentCandidate | null> => {
+    if (!raw || typeof raw !== 'object') return null;
     const item = raw as Record<string, unknown>;
     const name = text(item.title);
-    const magnetUrl = text(item.magnetUrl) || text(item.magnet);
-    const hash = magnetHash(magnetUrl) || text(item.infoHash || item.infohash || item.hash).toLowerCase();
-    if (!name || !/^[a-f0-9]{40}$/.test(hash)) continue;
+    const downloadUrl = text(item.downloadUrl);
+    const magnetUrl = text(item.magnetUrl) || text(item.magnet) || (/^magnet:/i.test(downloadUrl) ? downloadUrl : '');
+    const hash = magnetHash(magnetUrl) || text(item.infoHash || item.infohash || item.hash).toLowerCase()
+      || (downloadUrl ? await readTorrentDownload(downloadUrl, apiUrl, apiKey) || '' : '');
+    if (!name || !/^[a-f0-9]{40}$/.test(hash)) return null;
     const magnet = magnetUrl.startsWith('magnet:') ? magnetUrl : `magnet:?xt=urn:btih:${hash}&dn=${encodeQueryValue(name.slice(0, 180))}`;
     const indexer = text(item.indexer) || 'Prowlarr';
     const number = (value: unknown): number | null => {
       const n = typeof value === 'number' ? value : Number(value);
       return Number.isFinite(n) && n >= 0 ? n : null;
     };
-    results.set(hash, {
+    return {
       hash, magnet, name,
       seeders: number(item.seeders),
       leechers: number(item.leechers ?? item.peers),
       size: number(item.size),
       source: indexer
-    });
-  }
+    };
+  }));
+  for (const candidate of parsed) if (candidate) results.set(candidate.hash, candidate);
   return [...results.values()];
 }
 
@@ -129,7 +215,7 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
   try { response = await fetch(url, { headers: { Accept: 'application/json', 'X-Api-Key': key }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.'); }
   if (!response.ok) throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
-  return jsonCandidates(await response.json());
+  return jsonCandidates(await response.json(), url, key);
 }
 
 async function searchTorznabFeed(query: string, category: string): Promise<MusicTorrentCandidate[]> {
@@ -173,7 +259,13 @@ export async function searchIndexerTorrents(
 ): Promise<MusicTorrentCandidate[]> {
   try {
     const prowlarr = await searchProwlarr(query, type, categories);
-    if (prowlarr !== null) return prowlarr.slice(0, 50);
+    if (prowlarr !== null) {
+      if (prowlarr.length || type !== 'music') return prowlarr.slice(0, 50);
+      const unrestrictedMusic = await searchProwlarr(query, 'music', []);
+      if (unrestrictedMusic?.length) return unrestrictedMusic.slice(0, 50);
+      const broadSearch = await searchProwlarr(query, 'search', []);
+      return broadSearch?.slice(0, 50) || [];
+    }
     return await searchTorznabFeed(query, categories.join(','));
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : 'Indexer search failed.');

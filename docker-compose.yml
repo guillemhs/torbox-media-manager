@@ -70,7 +70,7 @@ services:
       PGID: ${PGID:-1000}
       TZ: ${TZ:-Europe/Madrid}
     ports:
-      - "127.0.0.1:9696:9696"
+      - "192.168.1.5:9696:9696"
     volumes:
       - ${PROWLARR_CONFIG_PATH:-./data/prowlarr}:/config
     healthcheck:

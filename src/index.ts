@@ -12,6 +12,8 @@ import {
   getTorboxMusicLibraryRoute,
   imdbImportRoute,
   musicArtworkRoute,
+  musicMetadataSearchRoute,
+  musicTorrentSearchRoute,
   moviesRoute,
   showsRoute,
   streamTorboxTrackRoute,
@@ -54,6 +56,8 @@ app.get('/calendar', calendarRoute);
 app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);
 app.get('/music', getTorboxMusicLibraryRoute);
+app.get('/music/search', musicMetadataSearchRoute);
+app.get('/music/torrents/search', musicTorrentSearchRoute);
 app.get('/music/artwork', musicArtworkRoute);
 app.get('/music/:torrentId/:fileId/stream', streamTorboxTrackRoute);
 app.post('/admin/imdb/import', imdbImportRoute);

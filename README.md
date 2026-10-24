@@ -30,6 +30,8 @@ Movie and TV posters are matched from IMDb IDs through TMDB when `TMDB_API_READ_
 
 To enable TMDB posters, request an API Read Access Token in your TMDB account's API settings, add `TMDB_API_READ_ACCESS_TOKEN=...` to `.env`, and recreate the app with `docker compose up --build -d`. TMDB's developer API is for non-commercial use and requires attribution; check its current terms before enabling it for other use.
 
+Music search uses the free MusicBrainz web service for release and artist metadata, with Cover Art Archive artwork. Compose includes Prowlarr as the Torznab indexer manager. Open <http://localhost:9696>, add the indexers you want to search, then copy the Prowlarr API key from **Settings → General** into `TORZNAB_API_KEY` in `.env`. Set `TORZNAB_URL` to the Torznab feed URL for a configured indexer (usually `http://prowlarr:9696/<indexer-id>/api` from inside the Compose network); the default category is music `3000` and can be changed with `TORZNAB_MUSIC_CATEGORY`. Restart with `docker compose up -d` after editing `.env`. Prowlarr's config persists in `./data/prowlarr` by default, and its UI port is only published on localhost. Music candidates use the same **Add cached** action as movies and shows, which only submits torrents TorBox already has cached.
+
 To check adding a torrent, choose **Add to TorBox**, paste a magnet URI or info hash you are authorized to use, and submit it. **Only add if TorBox already has it cached** prevents uncached items from being added. The page should show TorBox's response; the TorBox library view should then list the item. This sends the magnet/hash to TorBox through the app and does not download the media to the app host.
 
 For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:6666/health` and `curl -fsS http://localhost:6666/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.
@@ -42,6 +44,8 @@ For a quick service check, run `docker compose ps` and confirm `app` is `healthy
 - `GET /calendar?date=YYYY-MM-DD&country=US` — TVMaze broadcast schedule. Use `type=web` for the web schedule. Cached results are returned if TVMaze is unavailable.
 - `GET /library?limit=50&offset=0` — local scan and, when configured, TorBox cloud list.
 - `GET /music?q=...` or `/library/music` — audio-only view of files in the authenticated TorBox account.
+- `GET /music/search?q=...` — release and artist search via MusicBrainz.
+- `GET /music/torrents/search?q=...` — music torrent candidates from the configured Torznab source.
 - `GET /music/:torrentId/:fileId/stream` — asks TorBox for a file URL and redirects to it.
 - `POST /torbox/torrents` — submit a magnet URI or 40-character info hash to TorBox. The browser never downloads the media to this server. Set `addOnlyIfCached: true` to only add items TorBox already has cached.
 - `GET /health`, `/library/status`, and `/admin/imdb/status` — service and import status.

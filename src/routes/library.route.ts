@@ -7,6 +7,7 @@ import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getTitleArtwork } from '../services/artwork.service';
 import { searchTorrentCandidates } from '../services/torbox/torrentSearch';
+import { searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
   const status = error instanceof TorboxApiError ? error.status : 502;
@@ -137,6 +138,26 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
   } catch (error) {
     return res.status(502).json({ error: error instanceof Error ? error.message : 'Torrent search failed.' });
   }
+};
+
+export const musicMetadataSearchRoute: RequestHandler = async (req, res) => {
+  const query = scalar(req.query.q)?.trim() || '';
+  if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Music search must be between 2 and 180 characters.' });
+  try {
+    const releases = await searchMusicMetadata(query);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return res.json({ releases, total: releases.length, source: 'MusicBrainz' });
+  } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music metadata search failed.' }); }
+};
+
+export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
+  const query = scalar(req.query.q)?.trim() || '';
+  if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Music torrent search must be between 2 and 180 characters.' });
+  try {
+    const candidates = await searchMusicTorrents(query);
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json({ candidates, total: candidates.length, source: 'Torznab' });
+  } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music torrent search failed.' }); }
 };
 export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(getLibraryStatus());
 

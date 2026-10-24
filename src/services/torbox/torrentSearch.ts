@@ -3,6 +3,7 @@ export interface TorrentCandidate {
   magnet: string;
   name: string;
   seeders: number | null;
+  leechers: number | null;
   size: number | null;
   source: string;
 }
@@ -10,6 +11,11 @@ export interface TorrentCandidate {
 function positiveNumber(value: unknown): number | null {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function countNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1): Promise<TorrentCandidate[]> {
@@ -59,7 +65,8 @@ export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 's
       hash,
       magnet: `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(name.slice(0, 180))}${trackers.length ? `&${[...new Set(trackers)].join('&')}` : ''}`,
       name,
-      seeders: positiveNumber(stream.seeders),
+      seeders: countNumber(stream.seeders),
+      leechers: countNumber(stream.leechers ?? stream.peers),
       size,
       source: 'Torrentio'
     });

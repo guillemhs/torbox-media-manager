@@ -137,3 +137,8 @@ export async function getMusicArtwork(name: string): Promise<Artwork | null> {
   remember(key, artwork);
   return artwork;
 }
+
+export function getMusicArtworkByReleaseGroup(id: string): Artwork | null {
+  if (!/^[a-f0-9-]{36}$/i.test(id)) return null;
+  return { url: `https://coverartarchive.org/release-group/${id}/front-250`, source: 'Cover Art Archive' };
+}

@@ -5,7 +5,7 @@ import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
 import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
-import { getMusicArtwork, getTitleArtwork } from '../services/artwork.service';
+import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork } from '../services/artwork.service';
 import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
 import { searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 
@@ -255,6 +255,13 @@ export const titleArtworkRoute: RequestHandler = async (req, res) => {
 };
 
 export const musicArtworkRoute: RequestHandler = async (req, res) => {
+  const releaseGroupId = scalar(req.query.id)?.trim();
+  if (releaseGroupId) {
+    const artwork = getMusicArtworkByReleaseGroup(releaseGroupId);
+    if (!artwork) return res.status(400).json({ error: 'MusicBrainz release group ID is invalid.' });
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.json({ artwork });
+  }
   const query = scalar(req.query.q)?.trim();
   if (!query || query.length < 2 || query.length > 180) {
     return res.status(400).json({ error: 'Artwork search must be between 2 and 180 characters.' });

@@ -6,8 +6,8 @@ import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, requestTorrentD
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getTitleArtwork } from '../services/artwork.service';
-import { searchTorrentCandidates } from '../services/torbox/torrentSearch';
-import { searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
+import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
+import { searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
   const status = error instanceof TorboxApiError ? error.status : 502;
@@ -130,11 +130,37 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
   const imdbId = scalar(req.query.imdbId) || '';
   const kind = scalar(req.query.kind) === 'series' ? 'series' : 'movie';
   const seasonValue = scalar(req.query.season) || '1';
-  if (!/^\d{1,2}$/.test(seasonValue)) return res.status(400).json({ error: 'Season must be between 1 and 99.' });
+  if (!/^\d{1,2}$/.test(seasonValue) || Number(seasonValue) < 1 || Number(seasonValue) > 99) return res.status(400).json({ error: 'Season must be between 1 and 99.' });
+  if (!/^tt\d+$/.test(imdbId)) return res.status(400).json({ error: 'A valid IMDb ID is required for torrent search.' });
+  const storedTitle = await getTitle(imdbId) as { primaryTitle?: string } | null;
+  const title = (scalar(req.query.title)?.trim() || storedTitle?.primaryTitle || '').slice(0, 180);
+  if (!title) return res.status(404).json({ error: 'A title is required for indexer search.' });
   try {
-    const candidates = await searchTorrentCandidates(imdbId, kind, Number(seasonValue));
+    const season = Number(seasonValue);
+    const torznabQuery = kind === 'series' ? `${title} S${String(season).padStart(2, '0')}` : title;
+    const searches = await Promise.allSettled([
+      searchTorrentCandidates(imdbId, kind, season),
+      searchIndexerTorrents(torznabQuery, kind === 'series' ? 'tvsearch' : 'movie', [kind === 'series' ? '5000' : '2000'])
+    ]);
+    const providerNames = ['Torrentio', 'Prowlarr'];
+    const successful: TorrentCandidate[] = searches.flatMap((result) => result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []);
+    const errors = searches.flatMap((result, index) => result.status === 'rejected'
+      ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`]
+      : []);
+    if (!successful.length && errors.length === searches.length) throw new Error(errors.join(' · '));
+    const unique = new Map<string, typeof successful[number]>();
+    for (const candidate of successful) {
+      const existing = unique.get(candidate.hash);
+      unique.set(candidate.hash, existing ? {
+        ...existing,
+        seeders: existing.seeders ?? candidate.seeders,
+        leechers: existing.leechers ?? candidate.leechers,
+        size: existing.size ?? candidate.size
+      } : candidate);
+    }
+    const candidates = [...unique.values()].slice(0, 80);
     res.setHeader('Cache-Control', 'private, no-store');
-    return res.json({ candidates, total: candidates.length, source: 'Torrentio' });
+    return res.json({ candidates, total: candidates.length, source: 'Torrentio + Prowlarr', warnings: errors });
   } catch (error) {
     return res.status(502).json({ error: error instanceof Error ? error.message : 'Torrent search failed.' });
   }

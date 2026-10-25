@@ -33,8 +33,17 @@ async function torboxGet<T>(endpoint: string, apiKey: string, params: Record<str
       : `TorBox returned HTTP ${response.status}`;
     throw new TorboxApiError(response.status, detail, body);
   }
-  if (!body || typeof body !== 'object' || !('success' in body)) {
-    throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
+  if (Array.isArray(body)) return { success: true, error: null, detail: '', data: body } as TorboxEnvelope<T>;
+  if (!body || typeof body !== 'object') throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
+  if (!('success' in body)) {
+    // Some list responses are returned as a bare data array/object rather than the
+    // standard envelope. Accept those while still surfacing provider error details.
+    if ('data' in body) return { success: true, error: null, detail: '', data: body.data } as TorboxEnvelope<T>;
+    const detail = 'detail' in body ? String(body.detail)
+      : 'message' in body ? String(body.message)
+      : 'error' in body ? String(body.error)
+      : 'TorBox returned an unexpected response';
+    throw new TorboxApiError(502, detail, body);
   }
   const envelope = body as TorboxEnvelope<T>;
   if (!envelope.success) {

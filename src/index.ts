@@ -52,15 +52,15 @@ app.post('/torbox/usenet', addUsenetToTorboxRoute);
 app.get('/torbox/usenet/:usenetId/files/:fileId', downloadUsenetFileRoute);
 app.get('/torrents/search', torrentSearchRoute);
 app.get('/torrents/download/:token', musicTorrentDownloadRoute);
-app.get('/movies', moviesRoute);
-app.get('/movies/:imdbId', titleRoute);
-app.get('/shows', showsRoute);
-app.get('/shows/:imdbId', titleRoute);
-app.get('/browse', browseRoute);
-app.get('/calendar', calendarRoute);
+app.get('/api/movies', moviesRoute);
+app.get('/api/movies/:imdbId', titleRoute);
+app.get('/api/shows', showsRoute);
+app.get('/api/shows/:imdbId', titleRoute);
+app.get('/api/browse', browseRoute);
+app.get('/api/calendar', calendarRoute);
 app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);
-app.get('/music', getTorboxMusicLibraryRoute);
+app.get('/api/music', getTorboxMusicLibraryRoute);
 app.get('/music/search', musicMetadataSearchRoute);
 app.get('/music/recent', recentMusicReleasesRoute);
 app.get('/music/torrents/search', musicTorrentSearchRoute);
@@ -76,6 +76,12 @@ app.get('/admin/imdb/status', async (_req, res) => {
     res.json({ titles, datasets, progress });
   }
   catch (error) { res.status(503).json({ error: error instanceof Error ? error.message : 'Database unavailable' }); }
+});
+
+// Serve the SPA for its real, bookmarkable URLs. API endpoints live under
+// /api where a UI route would otherwise have the same path.
+app.get(['/', '/browse', '/movies', '/shows', '/torrents', '/local', '/music', '/calendar', '/title/:imdbId', '/tvmaze/:id', '/music/release/:id'], (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 async function start(): Promise<void> {

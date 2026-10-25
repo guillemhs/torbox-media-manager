@@ -13,6 +13,7 @@ import {
   imdbImportRoute,
   musicArtworkRoute,
   musicMetadataSearchRoute,
+  recentMusicReleasesRoute,
   musicTorrentDownloadRoute,
   musicTorrentSearchRoute,
   moviesRoute,
@@ -65,6 +66,7 @@ app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);
 app.get('/music', getTorboxMusicLibraryRoute);
 app.get('/music/search', musicMetadataSearchRoute);
+app.get('/music/recent', recentMusicReleasesRoute);
 app.get('/music/torrents/search', musicTorrentSearchRoute);
 app.get('/music/torrents/download/:token', musicTorrentDownloadRoute);
 app.get('/music/artwork', musicArtworkRoute);

@@ -7,7 +7,7 @@ import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow, getTvmazeShowByImdb } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork, getTitleMetadata } from '../services/artwork.service';
 import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
-import { getMusicTorrentDownload, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
+import { getMusicTorrentDownload, getRecentMusicReleases, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
@@ -222,6 +222,14 @@ export const musicMetadataSearchRoute: RequestHandler = async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=300');
     return res.json({ releases, total: releases.length, source: 'MusicBrainz' });
   } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music metadata search failed.' }); }
+};
+
+export const recentMusicReleasesRoute: RequestHandler = async (_req, res) => {
+  try {
+    const releases = await getRecentMusicReleases();
+    res.setHeader('Cache-Control', 'public, max-age=1800');
+    return res.json({ releases, total: releases.length, source: 'MusicBrainz', periodDays: 60 });
+  } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Recent music releases are unavailable.' }); }
 };
 
 export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {

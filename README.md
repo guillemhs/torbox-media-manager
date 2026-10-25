@@ -47,6 +47,7 @@ For a quick service check, run `docker compose ps` and confirm `app` is `healthy
 - `GET /library?limit=50&offset=0` — local scan and, when configured, TorBox cloud list.
 - `GET /music?q=...` or `/library/music` — audio-only view of files in the authenticated TorBox account.
 - `GET /music/search?q=...` — release and artist search via MusicBrainz.
+- `GET /music/recent` — MusicBrainz releases dated within the last 60 days, sorted newest first; used by Music discovery and independent of the TorBox API.
 - `GET /music/torrents/search?q=...` — music torrent candidates from the configured Torznab source.
 - `GET /music/:torrentId/:fileId/stream` — asks TorBox for a file URL and redirects to it.
 - `POST /torbox/torrents` — submit a magnet URI or 40-character info hash to TorBox. The browser never downloads the media to this server. Set `addOnlyIfCached: true` to only add items TorBox already has cached.

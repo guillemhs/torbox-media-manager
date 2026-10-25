@@ -148,8 +148,34 @@ export async function requestTorrentDownload(
   return data;
 }
 
-export async function getUsenetList(apiKey = process.env.TORBOX_API_KEY) {
-  return torboxGet<unknown[] | Record<string, unknown>>('usenet/mylist', requireApiKey(apiKey), { bypass_cache: 'true' });
+export async function getUsenetList(apiKey = process.env.TORBOX_API_KEY, params: { limit?: number; offset?: number; bypass_cache?: boolean } = {}) {
+  const query: Record<string, string> = { bypass_cache: String(params.bypass_cache ?? true) };
+  if (params.limit !== undefined) query.limit = String(params.limit);
+  if (params.offset !== undefined) query.offset = String(params.offset);
+  return torboxGet<unknown[] | Record<string, unknown>>('usenet/mylist', requireApiKey(apiKey), query);
+}
+
+export async function requestUsenetDownload(usenetId: string | number, fileId: string | number, apiKey = process.env.TORBOX_API_KEY): Promise<string> {
+  const token = requireApiKey(apiKey);
+  const url = new URL('https://api.torbox.app/v1/api/usenet/requestdl');
+  url.searchParams.set('token', token);
+  url.searchParams.set('usenet_id', String(usenetId));
+  url.searchParams.set('file_id', String(fileId));
+  url.searchParams.set('redirect', 'true');
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, signal: AbortSignal.timeout(10_000), redirect: 'manual' });
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get('location');
+    if (location) return new URL(location, url).toString();
+  }
+  let body: unknown;
+  try { body = await response.json(); } catch { body = undefined; }
+  if (!response.ok || !body || typeof body !== 'object' || !('success' in body) || body.success !== true) {
+    const detail = typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail) : `TorBox returned HTTP ${response.status}`;
+    throw new TorboxApiError(response.ok ? 502 : response.status, detail, body);
+  }
+  const data = 'data' in body ? body.data : undefined;
+  if (typeof data !== 'string') throw new TorboxApiError(502, 'TorBox did not return a Usenet file download URL', body);
+  return data;
 }
 
 export async function addUsenetNzb(
@@ -164,6 +190,7 @@ export async function addUsenetNzb(
   form.set('file', new Blob([nzbBytes.buffer], { type: 'application/x-nzb' }), `${(options.name || 'usenet-download').replace(/[^\w .()-]/g, '').slice(0, 120) || 'usenet-download'}.nzb`);
   if (options.name?.trim()) form.set('name', options.name.trim().slice(0, 200));
   if (options.addOnlyIfCached) form.set('add_only_if_cached', 'true');
+  form.set('post_processing', '-1');
   const response = await fetch('https://api.torbox.app/v1/api/usenet/createusenetdownload', {
     method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, body: form,
     signal: AbortSignal.timeout(30_000)

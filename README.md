@@ -51,7 +51,7 @@ For a quick service check, run `docker compose ps` and confirm `app` is `healthy
 - `GET /music/:torrentId/:fileId/stream` — asks TorBox for a file URL and redirects to it.
 - `POST /torbox/torrents` — submit a magnet URI or 40-character info hash to TorBox. The browser never downloads the media to this server. Set `addOnlyIfCached: true` to only add items TorBox already has cached.
 - `GET /usenet/search?q=...&source=all|NZBIndex|Binsearch` — search configured NZB indexes.
-- `POST /torbox/usenet` — submit `{ source, id, name?, addOnlyIfCached? }`; the server fetches the NZB and uploads it to TorBox.
+- `POST /torbox/usenet` — submit `{ source, id, name?, addOnlyIfCached? }`; the server passes the NZB to TorBox as the download job with default post-processing, so extracted audio/video files—not the NZB—appear in the TorBox library. The library includes Usenet download entries and links to their actual media files through TorBox's Usenet download endpoint.
 - `GET /health`, `/library/status`, and `/admin/imdb/status` — service and import status.
 - `POST /library/scan`, `POST /library/sync`, and `POST /admin/imdb/import` — trigger scans/syncs/imports.
 

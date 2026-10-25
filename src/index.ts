@@ -25,7 +25,8 @@ import {
   tvmazeShowRoute,
   triggerLibraryScanRoute,
   usenetSearchRoute,
-  addUsenetToTorboxRoute
+  addUsenetToTorboxRoute,
+  downloadUsenetFileRoute
 } from './routes/library.route';
 import { importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
 
@@ -51,7 +52,9 @@ app.post('/library/sync', syncLibraryTorboxRoute);
 app.post('/torbox/torrents', addTorrentToTorboxRoute);
 app.get('/usenet/search', usenetSearchRoute);
 app.post('/torbox/usenet', addUsenetToTorboxRoute);
+app.get('/torbox/usenet/:usenetId/files/:fileId', downloadUsenetFileRoute);
 app.get('/torrents/search', torrentSearchRoute);
+app.get('/torrents/download/:token', musicTorrentDownloadRoute);
 app.get('/movies', moviesRoute);
 app.get('/movies/:imdbId', titleRoute);
 app.get('/shows', showsRoute);

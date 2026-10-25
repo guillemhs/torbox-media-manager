@@ -6,6 +6,7 @@ export interface TorrentCandidate {
   leechers: number | null;
   size: number | null;
   source: string;
+  downloadToken?: string;
 }
 
 function positiveNumber(value: unknown): number | null {

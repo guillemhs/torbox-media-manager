@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 import { countTitles, getImportStatus, getTitle, searchTitles } from '../db/database';
 import { importImdbDatasets } from '../services/imdb/import.service';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
-import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, getTorrentList, getUsenetList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
+import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, getTorrentList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork } from '../services/artwork.service';

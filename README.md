@@ -34,7 +34,7 @@ Music search uses the free MusicBrainz web service for release and artist metada
 
 To check adding a torrent, choose **Add to TorBox**, paste a magnet URI or info hash you are authorized to use, and submit it. **Only add if TorBox already has it cached** prevents uncached items from being added. The page should show TorBox's response; the TorBox library view should then list the item. This sends the magnet/hash to TorBox through the app and does not download the media to the app host.
 
-Usenet search is available from **TorBox → Search Usenet**. NZBIndex and Binsearch work without indexer credentials. Search results can be uploaded to TorBox as NZBs, and **Add cached** sets TorBox's `add_only_if_cached` option. Usenet items appear in the same TorBox library list as torrents. TorBox Essential currently includes Usenet downloads; its plan limits still apply. The app streams NZB bytes through memory to TorBox and does not persist them locally.
+The TorBox library view lists torrent downloads from your account and lets you search and sort the current list locally by name, hash, status, size, or date added. Search does not issue a new TorBox query.
 
 For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:6666/health` and `curl -fsS http://localhost:6666/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.
 

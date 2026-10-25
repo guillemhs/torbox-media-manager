@@ -43,8 +43,14 @@ export const getLibraryRoute: RequestHandler = async (req, res) => {
       const items = Array.isArray(data) ? data : data ? [data] : [];
       result.torbox = items;
       result.music = normalizeTorBoxMusicLibrary(items);
-      const usenet = await getUsenetList();
-      result.usenet = Array.isArray(usenet.data) ? usenet.data : usenet.data ? [usenet.data] : [];
+      try {
+        const usenet = await getUsenetList();
+        result.usenet = Array.isArray(usenet.data) ? usenet.data : usenet.data ? [usenet.data] : [];
+      } catch (error) {
+        // A failure in the newer Usenet endpoint must not hide a working torrent library.
+        result.usenet = [];
+        result.usenetError = error instanceof Error ? error.message : 'TorBox Usenet list could not be loaded.';
+      }
     }
     return res.json(result);
   } catch (error) {

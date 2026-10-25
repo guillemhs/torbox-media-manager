@@ -4,6 +4,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { createGunzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
+import { setImmediate as yieldToEventLoop } from 'node:timers/promises';
 import {
   isDatasetImported,
   markDatasetImported,
@@ -19,6 +20,11 @@ const DATASETS = {
 } as const;
 const DATASET_BASE_URL = 'https://datasets.imdbws.com';
 const BATCH_SIZE = 100;
+let importProgress: { running: boolean; dataset: string; importedRows: number; error?: string } = { running: false, dataset: '', importedRows: 0 };
+
+export function getImdbImportProgress() {
+  return { ...importProgress };
+}
 
 function parseOptionalInteger(value: string | undefined): number | null {
   if (!value || value === '\\N') return null;
@@ -83,6 +89,7 @@ async function* linesFrom(stream: NodeJS.ReadableStream, compressed: boolean): A
 
 export async function importTitleBasics(): Promise<number> {
   if (await isDatasetImported(DATASETS.basics)) return 0;
+  importProgress = { running: true, dataset: DATASETS.basics, importedRows: 0 };
   const dataset = await getDatasetStream(DATASETS.basics);
   const batch: TitleRecord[] = [];
   let imported = 0;
@@ -108,7 +115,9 @@ export async function importTitleBasics(): Promise<number> {
     if (batch.length >= BATCH_SIZE) {
       await saveTitleBatch(batch.splice(0, batch.length));
       imported += BATCH_SIZE;
+      importProgress.importedRows = imported;
       if (imported % 100_000 === 0) console.info(`Imported ${imported.toLocaleString()} IMDb titles`);
+      if (imported % 10_000 === 0) await yieldToEventLoop();
     }
   }
 
@@ -117,12 +126,14 @@ export async function importTitleBasics(): Promise<number> {
     await saveTitleBatch(batch);
   }
   await markDatasetImported(DATASETS.basics, imported);
+  importProgress.importedRows = imported;
   console.info(`IMDb title basics import complete: ${imported.toLocaleString()} titles`);
   return imported;
 }
 
 export async function importTitleRatings(): Promise<number> {
   if (await isDatasetImported(DATASETS.ratings)) return 0;
+  importProgress = { running: true, dataset: DATASETS.ratings, importedRows: 0 };
   const dataset = await getDatasetStream(DATASETS.ratings);
   const batch: RatingRecord[] = [];
   let imported = 0;
@@ -139,7 +150,9 @@ export async function importTitleRatings(): Promise<number> {
     if (batch.length >= BATCH_SIZE) {
       await saveRatingBatch(batch.splice(0, batch.length));
       imported += BATCH_SIZE;
+      importProgress.importedRows = imported;
       if (imported % 100_000 === 0) console.info(`Imported ratings for ${imported.toLocaleString()} IMDb titles`);
+      if (imported % 10_000 === 0) await yieldToEventLoop();
     }
   }
 
@@ -148,14 +161,22 @@ export async function importTitleRatings(): Promise<number> {
     await saveRatingBatch(batch);
   }
   await markDatasetImported(DATASETS.ratings, imported);
+  importProgress.importedRows = imported;
   console.info(`IMDb ratings import complete: ${imported.toLocaleString()} ratings`);
   return imported;
 }
 
 export async function importImdbDatasets(): Promise<{ basicsImported: number; ratingsImported: number }> {
-  const basicsImported = await importTitleBasics();
-  const ratingsImported = await importTitleRatings();
-  return { basicsImported, ratingsImported };
+  importProgress = { running: true, dataset: DATASETS.basics, importedRows: 0 };
+  try {
+    const basicsImported = await importTitleBasics();
+    const ratingsImported = await importTitleRatings();
+    importProgress = { running: false, dataset: '', importedRows: 0 };
+    return { basicsImported, ratingsImported };
+  } catch (error) {
+    importProgress = { ...importProgress, running: false, error: error instanceof Error ? error.message : 'IMDb import failed' };
+    throw error;
+  }
 }
 
 /** A partial import can leave many rows behind without its completion marker. */

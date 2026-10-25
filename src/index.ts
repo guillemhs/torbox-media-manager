@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 import express from 'express';
 import path from 'node:path';
-import { initializeDatabase, countTitles, getImportStatus } from './db/database';
+import { initializeDatabase, getImportStatus } from './db/database';
 import {
   browseRoute,
   calendarRoute,
@@ -29,7 +29,7 @@ import {
   addUsenetToTorboxRoute,
   downloadUsenetFileRoute
 } from './routes/library.route';
-import { importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
+import { getImdbImportProgress, importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
 
 const app = express();
 const PORT = Number(process.env.PORT || 6666);
@@ -39,11 +39,7 @@ app.use('/vendor/puppertino', express.static(path.join(__dirname, '../node_modul
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', async (_req, res) => {
-  try {
-    res.json({ status: 'ok', mode: process.env.TORBOX_API_KEY?.trim() ? 'torbox-integrated' : 'local-offline', titleCount: await countTitles() });
-  } catch (error) {
-    res.status(503).json({ status: 'starting', error: error instanceof Error ? error.message : 'Database unavailable' });
-  }
+  res.json({ status: 'ok', mode: process.env.TORBOX_API_KEY?.trim() ? 'torbox-integrated' : 'local-offline' });
 });
 app.get('/library', getLibraryRoute);
 app.get('/library/music', getTorboxMusicLibraryRoute);
@@ -73,7 +69,12 @@ app.get('/music/artwork', musicArtworkRoute);
 app.get('/music/:torrentId/:fileId/stream', streamTorboxTrackRoute);
 app.post('/admin/imdb/import', imdbImportRoute);
 app.get('/admin/imdb/status', async (_req, res) => {
-  try { res.json({ titles: await countTitles(), datasets: await getImportStatus() }); }
+  try {
+    const [datasets, progress] = await Promise.all([getImportStatus(), Promise.resolve(getImdbImportProgress())]);
+    const basics = datasets.find(dataset => dataset.dataset === 'title.basics.tsv.gz');
+    const titles = basics?.importedRows ?? (progress.dataset === 'title.basics.tsv.gz' ? progress.importedRows : 0);
+    res.json({ titles, datasets, progress });
+  }
   catch (error) { res.status(503).json({ error: error instanceof Error ? error.message : 'Database unavailable' }); }
 });
 

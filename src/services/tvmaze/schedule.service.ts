@@ -40,7 +40,9 @@ export async function getTvmazeSchedule(options: ScheduleOptions) {
   if (!/^[A-Z]{2}$/.test(country)) throw new Error('country must be a two-letter ISO country code');
 
   const kind = options.web ? 'web' : 'broadcast';
-  const cacheKey = `${kind}:${country}:${options.date}`;
+  // Omitting country from the web schedule asks TVmaze for both global
+  // services (Netflix, Apple TV+, Prime Video, etc.) and local web channels.
+  const cacheKey = options.web ? `web:all:${options.date}` : `${kind}:${country}:${options.date}`;
   const cached = await getCachedSchedule(cacheKey);
   const stale = cached?.payload;
   const ttl = cacheTtlMs();
@@ -52,7 +54,7 @@ export async function getTvmazeSchedule(options: ScheduleOptions) {
   const endpoint = options.web ? '/schedule/web' : '/schedule';
   const url = new URL(endpoint, 'https://api.tvmaze.com');
   url.searchParams.set('date', options.date);
-  url.searchParams.set('country', country);
+  if (!options.web) url.searchParams.set('country', country);
 
   try {
     const response = await fetch(url, {

@@ -36,8 +36,10 @@ async function torboxGet<T>(endpoint: string, apiKey: string, params: Record<str
   }
   if (Array.isArray(body)) return { success: true, error: null, detail: '', data: body } as TorboxEnvelope<T>;
   if (!body || typeof body !== 'object') {
-    if (typeof body === 'string' && /text\/html/i.test(response.headers.get('content-type') || '')) {
-      throw new TorboxApiError(502, 'TorBox returned an HTML page instead of API JSON. The library request is being redirected or challenged by the TorBox API edge.', body);
+    if (typeof body === 'string' && (/<(?:!doctype|html|div|nav)\b/i.test(body.trimStart()) || /text\/html/i.test(response.headers.get('content-type') || ''))) {
+      const finalUrl = new URL(response.url);
+      const redirect = response.redirected ? 'yes' : 'no';
+      throw new TorboxApiError(502, `TorBox API returned HTML instead of its documented JSON response (HTTP ${response.status}; redirected: ${redirect}; final URL: ${finalUrl.origin}${finalUrl.pathname}).`, body);
     }
     const preview = typeof body === 'string' && body.trim() ? `: ${body.trim().slice(0, 300)}` : '';
     throw new TorboxApiError(502, `TorBox returned an unexpected response (HTTP ${response.status}, ${response.headers.get('content-type') || 'unknown content type'})${preview}`, body);

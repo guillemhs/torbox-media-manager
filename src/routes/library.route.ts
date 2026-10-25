@@ -19,19 +19,19 @@ function scalar(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-function pagination(query: Record<string, unknown>) {
+function pagination(query: Record<string, unknown>, maxLimit = 200) {
   const number = (value: unknown, fallback: number) => {
     if (value === undefined) return fallback;
     if (typeof value !== 'string' || !/^\d+$/.test(value)) throw new Error('limit and offset must be non-negative integers');
     return Number(value);
   };
-  return { limit: Math.min(200, Math.max(1, number(query.limit, 50))), offset: number(query.offset, 0) };
+  return { limit: Math.min(maxLimit, Math.max(1, number(query.limit, 50))), offset: number(query.offset, 0) };
 }
 
 export const getLibraryRoute: RequestHandler = async (req, res) => {
   try {
     const local = scanLocalMedia();
-    const page = pagination(req.query as Record<string, unknown>);
+    const page = pagination(req.query as Record<string, unknown>, 1000);
     const result: Record<string, unknown> = {
       mode: process.env.TORBOX_API_KEY?.trim() ? 'torbox-integrated' : 'local-offline',
       localMedia: { ...local, total: local.items.length, items: local.items.slice(page.offset, page.offset + page.limit), limit: page.limit, offset: page.offset },
@@ -43,14 +43,6 @@ export const getLibraryRoute: RequestHandler = async (req, res) => {
       const items = Array.isArray(data) ? data : data ? [data] : [];
       result.torbox = items;
       result.music = normalizeTorBoxMusicLibrary(items);
-      try {
-        const usenet = await getUsenetList();
-        result.usenet = Array.isArray(usenet.data) ? usenet.data : usenet.data ? [usenet.data] : [];
-      } catch (error) {
-        // A failure in the newer Usenet endpoint must not hide a working torrent library.
-        result.usenet = [];
-        result.usenetError = error instanceof Error ? error.message : 'TorBox Usenet list could not be loaded.';
-      }
     }
     return res.json(result);
   } catch (error) {

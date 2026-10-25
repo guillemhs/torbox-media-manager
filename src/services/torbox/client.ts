@@ -24,8 +24,9 @@ async function torboxGet<T>(endpoint: string, apiKey: string, params: Record<str
     headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
     signal: AbortSignal.timeout(10_000)
   });
+  const responseText = await response.text();
   let body: unknown;
-  try { body = await response.json(); } catch { body = undefined; }
+  try { body = responseText ? JSON.parse(responseText) as unknown : undefined; } catch { body = responseText; }
 
   if (!response.ok) {
     const detail = typeof body === 'object' && body !== null && 'detail' in body
@@ -34,7 +35,10 @@ async function torboxGet<T>(endpoint: string, apiKey: string, params: Record<str
     throw new TorboxApiError(response.status, detail, body);
   }
   if (Array.isArray(body)) return { success: true, error: null, detail: '', data: body } as TorboxEnvelope<T>;
-  if (!body || typeof body !== 'object') throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
+  if (!body || typeof body !== 'object') {
+    const preview = typeof body === 'string' && body.trim() ? `: ${body.trim().slice(0, 300)}` : '';
+    throw new TorboxApiError(502, `TorBox returned an unexpected response (HTTP ${response.status}, ${response.headers.get('content-type') || 'unknown content type'})${preview}`, body);
+  }
   if (!('success' in body)) {
     // Some list responses are returned as a bare data array/object rather than the
     // standard envelope. Accept those while still surfacing provider error details.
@@ -42,7 +46,7 @@ async function torboxGet<T>(endpoint: string, apiKey: string, params: Record<str
     const detail = 'detail' in body ? String(body.detail)
       : 'message' in body ? String(body.message)
       : 'error' in body ? String(body.error)
-      : 'TorBox returned an unexpected response';
+      : `TorBox returned an unexpected response (HTTP ${response.status}, ${response.headers.get('content-type') || 'unknown content type'}): ${JSON.stringify(body).slice(0, 300)}`;
     throw new TorboxApiError(502, detail, body);
   }
   const envelope = body as TorboxEnvelope<T>;
@@ -57,8 +61,7 @@ export async function getTorrentList(
   params: { bypass_cache?: boolean; offset?: number; limit?: number; id?: number } = {}
 ): Promise<TorboxEnvelope<unknown[] | Record<string, unknown>>> {
   const query: Record<string, string> = {
-    bypass_cache: String(params.bypass_cache ?? true),
-    _fresh: String(Date.now())
+    bypass_cache: String(params.bypass_cache ?? true)
   };
   if (params.offset !== undefined) query.offset = String(params.offset);
   if (params.limit !== undefined) query.limit = String(params.limit);
@@ -161,9 +164,13 @@ export async function addUsenetNzb(
     signal: AbortSignal.timeout(30_000)
   });
   let body: unknown;
-  try { body = await response.json(); } catch { body = undefined; }
+  const responseText = await response.text();
+  try { body = responseText ? JSON.parse(responseText) as unknown : undefined; } catch { body = responseText; }
   if (!response.ok) {
-    const detail = typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail) : `TorBox returned HTTP ${response.status}`;
+    const detail = typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail)
+      : typeof body === 'object' && body !== null && 'error' in body ? String(body.error)
+      : typeof body === 'string' && body.trim() ? `TorBox returned HTTP ${response.status}: ${body.trim().slice(0, 500)}`
+      : `TorBox returned HTTP ${response.status}`;
     throw new TorboxApiError(response.status, detail, body);
   }
   if (!body || typeof body !== 'object' || !('success' in body)) throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);

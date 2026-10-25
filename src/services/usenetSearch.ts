@@ -77,6 +77,9 @@ export async function fetchUsenetNzb(source: 'NZBIndex' | 'Binsearch', id: strin
   const response = await fetch(url, { headers: { Accept: 'application/x-nzb, application/xml, */*' }, signal: AbortSignal.timeout(20_000) });
   if (!response.ok) throw new Error(`Indexer NZB download returned HTTP ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length < 20 || bytes.length > 20 * 1024 * 1024 || !bytes.toString('utf8', 0, Math.min(bytes.length, 512)).includes('<')) throw new Error('Indexer did not return a valid NZB file');
+  const prefix = bytes.toString('utf8', 0, Math.min(bytes.length, 4096)).replace(/^\uFEFF/, '').trimStart();
+  if (bytes.length < 20 || bytes.length > 20 * 1024 * 1024 || !/<(?:[\w.-]+:)?nzb(?:\s|>)/i.test(prefix)) {
+    throw new Error('Indexer response was not an NZB XML file. It may be an article fragment or an indexer error page.');
+  }
   return bytes;
 }

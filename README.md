@@ -34,6 +34,8 @@ Music search uses the free MusicBrainz web service for release and artist metada
 
 To check adding a torrent, choose **Add to TorBox**, paste a magnet URI or info hash you are authorized to use, and submit it. **Only add if TorBox already has it cached** prevents uncached items from being added. The page should show TorBox's response; the TorBox library view should then list the item. This sends the magnet/hash to TorBox through the app and does not download the media to the app host.
 
+Usenet search is available from **TorBox → Search Usenet**. NZBIndex and Binsearch work without indexer credentials. Search results can be uploaded to TorBox as NZBs, and **Add cached** sets TorBox's `add_only_if_cached` option. Usenet items appear in the same TorBox library list as torrents. TorBox Essential currently includes Usenet downloads; its plan limits still apply. The app streams NZB bytes through memory to TorBox and does not persist them locally.
+
 For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:6666/health` and `curl -fsS http://localhost:6666/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.
 
 ## Routes
@@ -48,6 +50,8 @@ For a quick service check, run `docker compose ps` and confirm `app` is `healthy
 - `GET /music/torrents/search?q=...` — music torrent candidates from the configured Torznab source.
 - `GET /music/:torrentId/:fileId/stream` — asks TorBox for a file URL and redirects to it.
 - `POST /torbox/torrents` — submit a magnet URI or 40-character info hash to TorBox. The browser never downloads the media to this server. Set `addOnlyIfCached: true` to only add items TorBox already has cached.
+- `GET /usenet/search?q=...&source=all|NZBIndex|Binsearch` — search configured NZB indexes.
+- `POST /torbox/usenet` — submit `{ source, id, name?, addOnlyIfCached? }`; the server fetches the NZB and uploads it to TorBox.
 - `GET /health`, `/library/status`, and `/admin/imdb/status` — service and import status.
 - `POST /library/scan`, `POST /library/sync`, and `POST /admin/imdb/import` — trigger scans/syncs/imports.
 

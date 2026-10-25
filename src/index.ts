@@ -23,7 +23,9 @@ import {
   titleArtworkRoute,
   torrentSearchRoute,
   tvmazeShowRoute,
-  triggerLibraryScanRoute
+  triggerLibraryScanRoute,
+  usenetSearchRoute,
+  addUsenetToTorboxRoute
 } from './routes/library.route';
 import { importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
 
@@ -47,6 +49,8 @@ app.get('/library/status', getLibraryStatusRoute);
 app.post('/library/scan', triggerLibraryScanRoute);
 app.post('/library/sync', syncLibraryTorboxRoute);
 app.post('/torbox/torrents', addTorrentToTorboxRoute);
+app.get('/usenet/search', usenetSearchRoute);
+app.post('/torbox/usenet', addUsenetToTorboxRoute);
 app.get('/torrents/search', torrentSearchRoute);
 app.get('/movies', moviesRoute);
 app.get('/movies/:imdbId', titleRoute);

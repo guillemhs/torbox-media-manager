@@ -19,7 +19,7 @@ Integration with Torbox cloud infrastructure is supported for cloud library mana
 2. **Torbox Integrated Mode**:
    - Extends library capabilities to sync directly with Torbox cloud cache.
    - **Mandatory for Media**: Media streaming, discovery, and management require a valid `TORBOX_API_KEY`.
-   - Torbox API is the **only permitted external key** in the project.
+   - Torbox API is the only permitted media/download service provider. NZBIndex and Binsearch are permitted as Usenet search indexes; they do not provide download hosting or media metadata.
 
 ---
 
@@ -54,7 +54,7 @@ Integration with Torbox cloud infrastructure is supported for cloud library mana
 
 ## 🔐 Authentication, Security & Privacy
 
-- **Single External Key**: `TORBOX_API_KEY` is the only supported third-party key.
+- **Credential Scope**: `TORBOX_API_KEY` is the only media service credential. NZBIndex and Binsearch search are keyless.
 - **No User Databases**: No user registration, no OAuth 2.0, no session persistence outside local storage. Like Debrid Media Manager, session state is client-managed.
 - **Privacy First**: Zero telemetry, zero analytics, zero external dependencies for non-cloud features.
 
@@ -72,7 +72,7 @@ Integration with Torbox cloud infrastructure is supported for cloud library mana
 
 - ✅ Processing local IMDb TSV dataset dumps via stream handling.
 - ✅ Rate-limited caching for free public APIs (TVMaze).
-- ✅ Torbox REST API integration as the sole allowed third-party provider.
+- ✅ TorBox REST API integration and explicitly configured NZBIndex/Binsearch Usenet search.
 - ✅ Support for SQLite (default) and PostgreSQL database backends.
 - ✅ Docker single-command setups for self-hosted environments.
 

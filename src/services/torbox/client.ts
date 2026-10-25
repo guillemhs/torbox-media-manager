@@ -130,3 +130,35 @@ export async function requestTorrentDownload(
   if (typeof data !== 'string') throw new TorboxApiError(502, 'TorBox did not return a download URL', body);
   return data;
 }
+
+export async function getUsenetList(apiKey = process.env.TORBOX_API_KEY) {
+  return torboxGet<unknown[] | Record<string, unknown>>('usenet/mylist', requireApiKey(apiKey), { bypass_cache: 'true' });
+}
+
+export async function addUsenetNzb(
+  nzb: Buffer,
+  options: { name?: string; addOnlyIfCached?: boolean } = {},
+  apiKey = process.env.TORBOX_API_KEY
+): Promise<TorboxEnvelope<Record<string, unknown>>> {
+  const token = requireApiKey(apiKey);
+  const form = new FormData();
+  const nzbBytes = new Uint8Array(nzb.byteLength);
+  nzbBytes.set(nzb);
+  form.set('file', new Blob([nzbBytes.buffer], { type: 'application/x-nzb' }), `${(options.name || 'usenet-download').replace(/[^\w .()-]/g, '').slice(0, 120) || 'usenet-download'}.nzb`);
+  if (options.name?.trim()) form.set('name', options.name.trim().slice(0, 200));
+  if (options.addOnlyIfCached) form.set('add_only_if_cached', 'true');
+  const response = await fetch('https://api.torbox.app/v1/api/usenet/createusenetdownload', {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, body: form,
+    signal: AbortSignal.timeout(30_000)
+  });
+  let body: unknown;
+  try { body = await response.json(); } catch { body = undefined; }
+  if (!response.ok) {
+    const detail = typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail) : `TorBox returned HTTP ${response.status}`;
+    throw new TorboxApiError(response.status, detail, body);
+  }
+  if (!body || typeof body !== 'object' || !('success' in body)) throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
+  const envelope = body as TorboxEnvelope<Record<string, unknown>>;
+  if (!envelope.success) throw new TorboxApiError(502, envelope.detail || envelope.error || 'TorBox rejected the NZB', body);
+  return envelope;
+}

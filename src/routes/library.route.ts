@@ -2,12 +2,13 @@ import type { RequestHandler } from 'express';
 import { countTitles, getImportStatus, getTitle, searchTitles } from '../db/database';
 import { importImdbDatasets } from '../services/imdb/import.service';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
-import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
+import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, getTorrentList, getUsenetList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork } from '../services/artwork.service';
 import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
 import { getMusicTorrentDownload, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
+import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
   const status = error instanceof TorboxApiError ? error.status : 502;
@@ -42,11 +43,39 @@ export const getLibraryRoute: RequestHandler = async (req, res) => {
       const items = Array.isArray(data) ? data : data ? [data] : [];
       result.torbox = items;
       result.music = normalizeTorBoxMusicLibrary(items);
+      const usenet = await getUsenetList();
+      result.usenet = Array.isArray(usenet.data) ? usenet.data : usenet.data ? [usenet.data] : [];
     }
     return res.json(result);
   } catch (error) {
     return sendError(res, error);
   }
+};
+
+export const usenetSearchRoute: RequestHandler = async (req, res) => {
+  const query = scalar(req.query.q)?.trim() || '';
+  const sourceValue = scalar(req.query.source) || 'all';
+  if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Usenet search must be between 2 and 180 characters.' });
+  if (!['all', 'NZBIndex', 'Binsearch'].includes(sourceValue)) return res.status(400).json({ error: 'source must be all, NZBIndex, or Binsearch.' });
+  try {
+    const data = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch');
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json(data);
+  } catch (error) { return sendError(res, error); }
+};
+
+export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
+  if (!process.env.TORBOX_API_KEY?.trim()) return res.status(503).json({ error: 'TORBOX_API_KEY is not configured.' });
+  const source = scalar(req.body?.source);
+  const id = scalar(req.body?.id)?.trim() || '';
+  const name = scalar(req.body?.name)?.trim().slice(0, 200) || '';
+  if ((source !== 'NZBIndex' && source !== 'Binsearch') || !id) return res.status(400).json({ error: 'A valid NZB source and result ID are required.' });
+  try {
+    const nzb = await fetchUsenetNzb(source, id);
+    const result = await addUsenetNzb(nzb, { name, addOnlyIfCached: req.body?.addOnlyIfCached === true });
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.status(200).json({ detail: result.detail, usenet: result.data });
+  } catch (error) { return sendError(res, error); }
 };
 
 export const getTorboxMusicLibraryRoute: RequestHandler = async (req, res) => {

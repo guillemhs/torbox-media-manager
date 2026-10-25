@@ -4,8 +4,8 @@ import { importImdbDatasets } from '../services/imdb/import.service';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
 import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, getTorrentList, requestTorrentDownload, TorboxApiError } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
-import { getTvmazeSchedule, getTvmazeShow } from '../services/tvmaze/schedule.service';
-import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork } from '../services/artwork.service';
+import { getTvmazeSchedule, getTvmazeShow, getTvmazeShowByImdb } from '../services/tvmaze/schedule.service';
+import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork, getTitleMetadata } from '../services/artwork.service';
 import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
 import { getMusicTorrentDownload, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
@@ -251,7 +251,16 @@ export const titleRoute: RequestHandler = async (req, res) => {
   if (!/^tt\d+$/.test(imdbId)) return res.status(400).json({ error: 'IMDb ID must look like tt1234567.' });
   const title = await getTitle(imdbId);
   if (!title) return res.status(404).json({ error: 'Title not found. The IMDb dataset may not be imported yet.' });
-  return res.json(title);
+  const kind = typeof title.titleType === 'string' && /^tv/i.test(title.titleType) ? 'series' : 'movie';
+  const metadata = await getTitleMetadata(imdbId, kind);
+  let tvmaze: Record<string, unknown> | null = null;
+  if (kind === 'series') {
+    try { tvmaze = await getTvmazeShowByImdb(imdbId) as Record<string, unknown> | null; } catch { /* optional title enrichment */ }
+  }
+  const seasons = Array.isArray(tvmaze?._embedded && (tvmaze._embedded as Record<string, unknown>).seasons) ? (tvmaze!._embedded as Record<string, unknown>).seasons as unknown[] : [];
+  const image = tvmaze?.image && typeof tvmaze.image === 'object' ? (tvmaze.image as Record<string, unknown>).original || (tvmaze.image as Record<string, unknown>).medium : undefined;
+  const tvArtwork = typeof image === 'string' && /^https:\/\/static\.tvmaze\.com\//.test(image) ? { url: image, source: 'TVMaze' } : undefined;
+  return res.json({ ...title, overview: metadata?.overview || (typeof tvmaze?.summary === 'string' ? tvmaze.summary.replace(/<[^>]*>/g, ' ').trim() : ''), releaseDate: metadata?.releaseDate || tvmaze?.premiered || (title.startYear ? `${title.startYear}-01-01` : undefined), seasonCount: metadata?.seasonCount ?? (seasons.length || undefined), showStatus: typeof tvmaze?.status === 'string' ? tvmaze.status : undefined, artwork: metadata?.artwork || tvArtwork });
 };
 
 export const browseRoute: RequestHandler = async (req, res) => {

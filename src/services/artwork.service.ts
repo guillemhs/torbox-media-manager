@@ -79,6 +79,29 @@ export async function getTitleArtwork(imdbId: string, kind: 'movie' | 'series'):
   return artwork;
 }
 
+export async function getTitleMetadata(imdbId: string, kind: 'movie' | 'series'): Promise<{ overview?: string; releaseDate?: string; seasonCount?: number; artwork?: Artwork } | null> {
+  const token = process.env.TMDB_API_READ_ACCESS_TOKEN?.trim();
+  if (!token) return null;
+  try {
+    const findUrl = new URL(`https://api.themoviedb.org/3/find/${encodeURIComponent(imdbId)}`);
+    findUrl.searchParams.set('external_source', 'imdb_id');
+    const found = await requestJson(findUrl, { Authorization: `Bearer ${token}`, accept: 'application/json' }) as Record<string, unknown>;
+    const media = kind === 'series' ? 'tv' : 'movie';
+    const results = found[kind === 'series' ? 'tv_results' : 'movie_results'];
+    const item = Array.isArray(results) ? results[0] as Record<string, unknown> | undefined : undefined;
+    if (!item || !Number.isSafeInteger(Number(item.id))) return null;
+    const detailUrl = new URL(`https://api.themoviedb.org/3/${media}/${Number(item.id)}`);
+    const details = await requestJson(detailUrl, { Authorization: `Bearer ${token}`, accept: 'application/json' }) as Record<string, unknown>;
+    const path = item.poster_path;
+    return {
+      overview: typeof details.overview === 'string' ? details.overview : undefined,
+      releaseDate: typeof details.release_date === 'string' ? details.release_date : typeof details.first_air_date === 'string' ? details.first_air_date : undefined,
+      seasonCount: Number.isSafeInteger(Number(details.number_of_seasons)) ? Number(details.number_of_seasons) : undefined,
+      artwork: typeof path === 'string' ? { url: `https://image.tmdb.org/t/p/w500${path}`, source: 'TMDB' } : undefined
+    };
+  } catch { return null; }
+}
+
 async function throttleMusicBrainz(): Promise<void> {
   const turn = musicBrainzQueue.then(async () => {
     const wait = 1_000 - (Date.now() - lastMusicBrainzRequest);

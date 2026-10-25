@@ -76,7 +76,9 @@ export async function getTvmazeShow(id: number): Promise<unknown> {
   const cached = showCache.get(id);
   if (cached && cached.expiresAt > Date.now()) return cached.show;
   await throttleTvmaze();
-  const response = await fetch(`https://api.tvmaze.com/shows/${id}`, {
+  const url = new URL(`/shows/${id}`, 'https://api.tvmaze.com');
+  url.searchParams.set('embed', 'seasons');
+  const response = await fetch(url, {
     headers: { 'User-Agent': 'TorboxMediaManager/1.0 (self-hosted TV details)' },
     signal: AbortSignal.timeout(12_000)
   });
@@ -89,4 +91,16 @@ export async function getTvmazeShow(id: number): Promise<unknown> {
   if (showCache.size >= 500) showCache.delete(showCache.keys().next().value as number);
   showCache.set(id, { show, expiresAt: Date.now() + 24 * 60 * 60 * 1000 });
   return show;
+}
+
+export async function getTvmazeShowByImdb(imdbId: string): Promise<unknown> {
+  if (!/^tt\d+$/.test(imdbId)) throw new Error('IMDb ID is invalid.');
+  await throttleTvmaze();
+  const url = new URL('/lookup/shows', 'https://api.tvmaze.com');
+  url.searchParams.set('imdb', imdbId);
+  url.searchParams.set('embed', 'seasons');
+  const response = await fetch(url, { headers: { 'User-Agent': 'TorboxMediaManager/1.0 (self-hosted title details)' }, signal: AbortSignal.timeout(12_000) });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`TVMaze returned HTTP ${response.status}`);
+  return response.json();
 }

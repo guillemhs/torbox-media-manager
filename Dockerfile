@@ -11,6 +11,7 @@ RUN apk add --no-cache --virtual .build-deps python3 make g++ \
 
 # Copy source code
 COPY src ./src
+COPY scripts ./scripts
 COPY tsconfig.json .
 COPY constitution.md .
 COPY docker-compose.yml .
@@ -32,7 +33,6 @@ RUN apk add --no-cache --virtual .build-deps python3 make g++ \
 
 # Copy built code
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src/public ./dist/public
 COPY --from=builder /app/constitution.md .
 COPY --from=builder /app/docker-compose.yml .
 

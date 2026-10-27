@@ -152,6 +152,18 @@ export const addTorrentToTorboxRoute: RequestHandler = async (req, res) => {
     return res.status(400).json({ error: 'addOnlyIfCached must be true or false.' });
   }
   try {
+    // When addOnlyIfCached is true, verify the torrent is cached before adding
+    if (req.body.addOnlyIfCached === true) {
+      const hashMatch = /[?&]xt=urn:btih:([a-f0-9]{32,40})/i.exec(magnet);
+      if (hashMatch) {
+        const hash = hashMatch[1].toLowerCase();
+        try {
+          await checkCachedTorrent(hash, process.env.TORBOX_API_KEY!);
+        } catch {
+          return res.status(404).json({ error: 'Torrent not found in cache. Disable the add only if cached parameter to add the download.' });
+        }
+      }
+    }
     const result = await addTorrentToTorbox(magnet, {
       addOnlyIfCached: req.body.addOnlyIfCached === true,
       name: typeof req.body.name === 'string' ? req.body.name : undefined

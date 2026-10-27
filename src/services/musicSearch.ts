@@ -303,11 +303,16 @@ async function searchTorznabFeed(query: string, category: string, limit = 50, of
     const hash = (attr(item, 'infohash') || magnetHash(magnet)).toLowerCase();
     if (!name || !magnet || !/^[a-f0-9]{40}$/.test(hash)) continue;
     const indexer = tag(item, 'jackettindexer') || tag(item, 'prowlarrindexer') || 'Torznab';
+    const number = (value: string | null): number | null => {
+      if (value === null) return null;
+      const n = Number(value);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    };
     candidates.set(hash, {
       hash, magnet, name,
-      seeders: attr(item, 'seeders') === null ? null : Number(attr(item, 'seeders')),
-      leechers: attr(item, 'peers') === null && attr(item, 'leechers') === null ? null : Number(attr(item, 'peers') ?? attr(item, 'leechers')),
-      size: attr(item, 'size') === null ? null : Number(attr(item, 'size')),
+      seeders: number(attr(item, 'seeders')),
+      leechers: number(attr(item, 'peers') ?? attr(item, 'leechers')),
+      size: number(attr(item, 'size')),
       source: indexer
     });
   }

@@ -383,7 +383,7 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
           if (indexers.includes('torrentio')) sourceNames.push('Torrentio');
         }
 
-        if ((kind === 'movie' || kind === 'series' || kind === 'all') && !torrentCandidates.length) {
+        if ((kind === 'movie' || kind === 'series' || kind === 'all') && (kind !== 'all' || !torrentCandidates.length)) {
           const localResults = await searchTitles({ limit: 5, q: query, kind: kind === 'all' ? 'movie' : kind });
           if (localResults.items.length > 0) {
             const firstResult = localResults.items[0] as { imdbId: string; titleType: string; primaryTitle: string };

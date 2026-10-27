@@ -11,11 +11,12 @@ export interface MusicRelease {
 
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
 
-export async function searchMusicMetadata(query: string): Promise<MusicRelease[]> {
+export async function searchMusicMetadata(query: string, limit = 25, offset = 0): Promise<MusicRelease[]> {
   const url = new URL('https://musicbrainz.org/ws/2/release-group');
   url.searchParams.set('query', query);
   url.searchParams.set('fmt', 'json');
-  url.searchParams.set('limit', '25');
+  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
+  url.searchParams.set('offset', String(Math.max(0, offset)));
   const response = await fetch(url, {
     headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },
     signal: AbortSignal.timeout(10_000)
@@ -261,12 +262,13 @@ function prowlarrSearchUrl(): URL | null {
   return url;
 }
 
-async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movie' | 'music', categories: string[]): Promise<MusicTorrentCandidate[] | null> {
+async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movie' | 'music', categories: string[], limit = 50, offset = 0): Promise<MusicTorrentCandidate[] | null> {
   const url = prowlarrSearchUrl();
   if (!url) return null;
   url.searchParams.set('query', query);
   url.searchParams.set('type', type);
-  url.searchParams.set('limit', '50');
+  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
+  url.searchParams.set('offset', String(Math.max(0, offset)));
   for (const category of categories) url.searchParams.append('categories', category);
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');

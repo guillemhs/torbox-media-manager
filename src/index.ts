@@ -73,9 +73,15 @@ app.post('/admin/imdb/import', imdbImportRoute);
 app.get('/admin/imdb/status', async (_req, res) => {
   try {
     const [datasets, progress] = await Promise.all([getImportStatus(), Promise.resolve(getImdbImportProgress())]);
-    const basics = datasets.find(dataset => dataset.dataset === 'title.basics.tsv.gz');
+    // Normalize property names: PostgreSQL lowercases unquoted aliases (importedrows vs importedRows)
+    const normalized = datasets.map(row => ({
+      dataset: row.dataset,
+      completedAt: row.completedAt ?? row.completedat,
+      importedRows: row.importedRows ?? row.importedrows
+    }));
+    const basics = normalized.find(dataset => dataset.dataset === 'title.basics.tsv.gz');
     const titles = basics?.importedRows ?? (progress.dataset === 'title.basics.tsv.gz' ? progress.importedRows : 0);
-    res.json({ titles, datasets, progress });
+    res.json({ titles, datasets: normalized, progress });
   }
   catch (error) { res.status(503).json({ error: error instanceof Error ? error.message : 'Database unavailable' }); }
 });

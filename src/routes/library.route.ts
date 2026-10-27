@@ -4,7 +4,7 @@ import { importImdbDatasets } from '../services/imdb/import.service';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
 import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
-import { getTvmazeSchedule, getTvmazeShow, getTvmazeShowByImdb } from '../services/tvmaze/schedule.service';
+import { getTvmazeSchedule, getTvmazeShow, getTvmazeShowByImdb, getTvmazeMonthlyCalendar } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork, getTitleMetadata } from '../services/artwork.service';
 import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
 import { getMusicTorrentDownload, getRecentMusicReleases, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
@@ -524,6 +524,34 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
 };
 
 export const calendarRoute: RequestHandler = async (req, res) => {
+  // Check if monthly calendar is requested (year + month provided)
+  const year = scalar(req.query.year);
+  const month = scalar(req.query.month);
+  
+  if (year && month) {
+    // Monthly calendar mode - uses streaming/web schedule with popularity filtering
+    const yearNum = Number(year);
+    const monthNum = Number(month);
+    if (!Number.isInteger(yearNum) || !Number.isInteger(monthNum) || monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({ error: 'year and month must be valid integers (month 1-12)' });
+    }
+    try {
+      const filter = scalar(req.query.filter) === 'all' ? 'all' : 'popular';
+      const minRating = scalar(req.query.minRating) ? Number(scalar(req.query.minRating)) : 7.0;
+      const limitPerDay = scalar(req.query.limitPerDay) ? Number(scalar(req.query.limitPerDay)) : 50;
+      if (!Number.isFinite(minRating) || minRating < 0 || minRating > 10) {
+        return res.status(400).json({ error: 'minRating must be a number between 0 and 10' });
+      }
+      if (!Number.isInteger(limitPerDay) || limitPerDay < 1 || limitPerDay > 200) {
+        return res.status(400).json({ error: 'limitPerDay must be an integer between 1 and 200' });
+      }
+      return res.json(await getTvmazeMonthlyCalendar({ year: yearNum, month: monthNum, filter, minRating, limitPerDay }));
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : 'Monthly calendar request failed' });
+    }
+  }
+  
+  // Daily schedule mode (existing behavior)
   const date = scalar(req.query.date) || new Date().toISOString().slice(0, 10);
   const country = scalar(req.query.country);
   const web = scalar(req.query.type) === 'web';

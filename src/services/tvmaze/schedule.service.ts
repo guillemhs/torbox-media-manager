@@ -6,6 +6,14 @@ export interface ScheduleOptions {
   web?: boolean;
 }
 
+export interface MonthlyCalendarOptions {
+  year: number;
+  month: number; // 1-12
+  filter?: 'popular' | 'all';
+  minRating?: number; // minimum show rating for popular filter
+  limitPerDay?: number; // max episodes per day
+}
+
 let requestQueue = Promise.resolve();
 let lastRequestAt = 0;
 const showCache = new Map<number, { expiresAt: number; show: unknown }>();
@@ -72,6 +80,124 @@ export async function getTvmazeSchedule(options: ScheduleOptions) {
     }
     throw error;
   }
+}
+
+/**
+ * Fetch a monthly calendar by aggregating daily web schedules.
+ * Uses TVMaze's /schedule/web endpoint for streaming services.
+ * Supports popularity filtering based on show rating.
+ */
+export async function getTvmazeMonthlyCalendar(options: MonthlyCalendarOptions) {
+  const { year, month, filter = 'popular', minRating = 7.0, limitPerDay = 50 } = options;
+  
+  // Validate month/year
+  if (month < 1 || month > 12) throw new Error('month must be between 1 and 12');
+  if (year < 2000 || year > 2100) throw new Error('year must be between 2000 and 2100');
+  
+  // Calculate days in month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const cacheKey = `monthly:web:${year}-${String(month).padStart(2, '0')}`;
+  
+  // Check cache first
+  const cached = await getCachedSchedule(cacheKey);
+  const ttl = cacheTtlMs();
+  if (cached && Date.now() - new Date(cached.fetchedAt).valueOf() < ttl) {
+    let episodes = cached.payload as unknown[];
+    // Apply filters to cached data
+    episodes = applyFilters(episodes, filter, minRating, limitPerDay);
+    return { episodes, cached: true, stale: false, fetchedAt: cached.fetchedAt, year, month, daysInMonth };
+  }
+  
+  // Fetch all days in parallel (with throttling via the queue)
+  const datePromises = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return getTvmazeSchedule({ date, web: true }).catch(err => {
+      console.warn(`Failed to fetch schedule for ${date}:`, err instanceof Error ? err.message : err);
+      return { episodes: [], cached: false, stale: false, fetchedAt: new Date().toISOString() };
+    });
+  });
+  
+  const results = await Promise.all(datePromises);
+  
+  // Combine all episodes
+  let allEpisodes = results.flatMap(r => r.episodes);
+  
+  // Apply filters
+  allEpisodes = applyFilters(allEpisodes, filter, minRating, limitPerDay);
+  
+  // Group by day for easier frontend consumption
+  const episodesByDay: Record<string, unknown[]> = {};
+  for (const ep of allEpisodes) {
+    const epData = ep as Record<string, unknown>;
+    const airdate = typeof epData.airdate === 'string' ? epData.airdate : 
+                     typeof epData.airdate === 'object' && epData.airdate && 'date' in epData.airdate 
+                       ? String((epData.airdate as Record<string, unknown>).date) 
+                       : null;
+    if (airdate) {
+      if (!episodesByDay[airdate]) episodesByDay[airdate] = [];
+      episodesByDay[airdate].push(ep);
+    }
+  }
+  
+  // Save to cache
+  await saveCachedSchedule(cacheKey, allEpisodes);
+  
+  return { 
+    episodes: allEpisodes, 
+    episodesByDay, 
+    cached: false, 
+    stale: false, 
+    fetchedAt: new Date().toISOString(),
+    year,
+    month,
+    daysInMonth,
+    totalEpisodes: allEpisodes.length
+  };
+}
+
+function applyFilters(episodes: unknown[], filter: 'popular' | 'all', minRating: number, limitPerDay: number): unknown[] {
+  if (filter === 'all') return episodes;
+  
+  // Group by day first, then filter each day
+  const byDay = new Map<string, unknown[]>();
+  for (const ep of episodes) {
+    const epData = ep as Record<string, unknown>;
+    const airdate = typeof epData.airdate === 'string' ? epData.airdate : 
+                     typeof epData.airdate === 'object' && epData.airdate && 'date' in epData.airdate 
+                       ? String((epData.airdate as Record<string, unknown>).date) 
+                       : null;
+    if (airdate) {
+      if (!byDay.has(airdate)) byDay.set(airdate, []);
+      byDay.get(airdate)!.push(ep);
+    }
+  }
+  
+  // For each day, sort by show rating (popular) and limit
+  const filtered: unknown[] = [];
+  for (const [day, dayEpisodes] of byDay) {
+    let sorted = dayEpisodes;
+    if (filter === 'popular') {
+      sorted = dayEpisodes.sort((a, b) => {
+        const ratingA = getShowRating(a);
+        const ratingB = getShowRating(b);
+        return ratingB - ratingA; // descending (highest rated first)
+      }).filter(ep => getShowRating(ep) >= minRating);
+    }
+    filtered.push(...sorted.slice(0, limitPerDay));
+  }
+  
+  return filtered;
+}
+
+function getShowRating(episode: unknown): number {
+  const epData = episode as Record<string, unknown>;
+  const show = epData.show as Record<string, unknown> | undefined;
+  if (!show) return 0;
+  const rating = show.rating as Record<string, unknown> | undefined;
+  if (!rating) return 0;
+  const average = rating.average;
+  return typeof average === 'number' && Number.isFinite(average) ? average : 0;
 }
 
 export async function getTvmazeShow(id: number): Promise<unknown> {

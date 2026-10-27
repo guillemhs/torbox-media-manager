@@ -461,9 +461,19 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
       }
     }
 
-    // Apply pagination to combined list
-    const total = combined.length;
-    const paginated = combined.slice(page.offset, page.offset + page.limit);
+    // Group results by source for frontend compatibility
+    const movies = combined.filter(item => item._source === 'local-movies');
+    const shows = combined.filter(item => item._source === 'local-shows');
+    const music = combined.filter(item => item._source === 'local-music');
+    const torrents = combined.filter(item => item._source === 'torrents');
+    const usenet = combined.filter(item => item._source === 'usenet');
+
+    // Apply pagination to each group
+    const paginatedMovies = movies.slice(page.offset, page.offset + page.limit);
+    const paginatedShows = shows.slice(page.offset, page.offset + page.limit);
+    const paginatedMusic = music.slice(page.offset, page.offset + page.limit);
+    const paginatedTorrents = torrents.slice(page.offset, page.offset + page.limit);
+    const paginatedUsenet = usenet.slice(page.offset, page.offset + page.limit);
 
     res.setHeader('Cache-Control', 'private, no-store');
     return res.json({
@@ -472,8 +482,11 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
       sources,
       indexers,
       page: { limit: page.limit, offset: page.offset },
-      total,
-      items: paginated,
+      movies: { items: paginatedMovies, total: movies.length },
+      shows: { items: paginatedShows, total: shows.length },
+      music: { items: paginatedMusic, total: music.length },
+      torrents: { items: paginatedTorrents, total: torrents.length },
+      usenet: { items: paginatedUsenet, total: usenet.length },
       warnings: warnings.length > 0 ? warnings : undefined
     });
   } catch (error) {

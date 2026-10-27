@@ -1,4 +1,4 @@
-    const state={view:'browse',calendarType:'broadcast',calendarData:null,calendarKey:'',offset:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0},total:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0},items:{browse:[],movies:[],shows:[],torrents:[],local:[]},browseResults:{movie:[],series:[],music:[],torrents:[],usenet:[]},recentTorrents:[],browseTorrentSearch:{candidates:[],total:0,query:'',kind:'',imdbId:''},browseUsenetSearch:{candidates:[],total:0,query:''}};
+    const state={view:'browse',calendarType:'broadcast',calendarData:null,calendarKey:'',offset:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0, 'title-torrent-search':0, 'title-usenet-search':0, 'torrents-usenet-search':0},total:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0, 'title-torrent-search':0, 'title-usenet-search':0, 'torrents-usenet-search':0},items:{browse:[],movies:[],shows:[],torrents:[],local:[]},browseResults:{movie:[],series:[],music:[],torrents:[],usenet:[]},recentTorrents:[],browseTorrentSearch:{candidates:[],total:0,query:'',kind:'',imdbId:''},browseUsenetSearch:{candidates:[],total:0,query:''},titleTorrentSearch:{candidates:[],total:0,query:'',kind:'',imdbId:''},titleUsenetSearch:{candidates:[],total:0,query:''},torrentsUsenetSearch:{candidates:[],total:0,query:''}};
     const $=selector=>document.querySelector(selector);
     const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const fmtBytes=value=>{const bytes=Number(value)||0;if(bytes<1024)return `${bytes} B`;const units=['KB','MB','GB','TB'];let n=bytes/1024,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return `${n.toFixed(1)} ${units[i]}`};
@@ -56,6 +56,74 @@ async function searchBrowseUsenetSearch(query) {
         renderBrowseUsenetSearchResults();
     } catch (error) {
         $('#browse-usenet-search-results').innerHTML = empty(error.message);
+    }
+}
+
+// Search torrent candidates for a specific title (inline, no modal) - for title detail page
+async function searchTitleTorrentSearch(imdbId, kind, title) {
+    state.titleTorrentSearch = { candidates: [], total: 0, query: title, kind, imdbId };
+    state.offset['title-torrent-search'] = 0;
+    
+    $('#title-torrent-search-section').style.display = 'block';
+    $('#title-torrent-results').innerHTML = '';
+    $('#title-torrent-count').textContent = 'Loading…';
+    $('#title-torrent-more').classList.add('hidden');
+    
+    try {
+        const data = await searchBrowseTorrentCandidates(imdbId, kind, title, 0, 20);
+        state.titleTorrentSearch.candidates = data.candidates || [];
+        state.titleTorrentSearch.total = data.total || 0;
+        state.offset['title-torrent-search'] = data.candidates?.length || 0;
+        renderTitleTorrentSearchResults();
+    } catch (error) {
+        $('#title-torrent-results').innerHTML = empty(error.message);
+        $('#title-torrent-count').textContent = 'Error loading results';
+    }
+}
+
+// Search usenet candidates for a specific query (inline, no modal) - for title detail page
+async function searchTitleUsenetSearch(query) {
+    state.titleUsenetSearch = { candidates: [], total: 0, query };
+    state.offset['title-usenet-search'] = 0;
+    
+    $('#title-usenet-search-section').style.display = 'block';
+    $('#title-usenet-search-results').innerHTML = '';
+    $('#title-usenet-search-count').textContent = 'Loading…';
+    $('#title-usenet-search-more').classList.add('hidden');
+    
+    try {
+        const source = $('#title-usenet-search-source').value || 'all';
+        const data = await searchBrowseUsenetCandidates(query, source, 0, 20);
+        state.titleUsenetSearch.candidates = data.candidates || [];
+        state.titleUsenetSearch.total = data.total || 0;
+        state.offset['title-usenet-search'] = data.candidates?.length || 0;
+        renderTitleUsenetSearchResults();
+    } catch (error) {
+        $('#title-usenet-search-results').innerHTML = empty(error.message);
+        $('#title-usenet-search-count').textContent = 'Error loading results';
+    }
+}
+
+// Search usenet candidates for a specific query (inline, no modal) - for torrents view
+async function searchTorrentsUsenetSearch(query) {
+    state.torrentsUsenetSearch = { candidates: [], total: 0, query };
+    state.offset['torrents-usenet-search'] = 0;
+    
+    $('#torrents-usenet-search-section').style.display = 'block';
+    $('#torrents-usenet-search-results').innerHTML = '';
+    $('#torrents-usenet-search-count').textContent = 'Loading…';
+    $('#torrents-usenet-search-more').classList.add('hidden');
+    
+    try {
+        const source = $('#torrents-usenet-search-source').value || 'all';
+        const data = await searchBrowseUsenetCandidates(query, source, 0, 20);
+        state.torrentsUsenetSearch.candidates = data.candidates || [];
+        state.torrentsUsenetSearch.total = data.total || 0;
+        state.offset['torrents-usenet-search'] = data.candidates?.length || 0;
+        renderTorrentsUsenetSearchResults();
+    } catch (error) {
+        $('#torrents-usenet-search-results').innerHTML = empty(error.message);
+        $('#torrents-usenet-search-count').textContent = 'Error loading results';
     }
 }
     
@@ -221,6 +289,181 @@ async function searchBrowseUsenetSearch(query) {
         });
     }
     
+    // Render torrent search results inline - for title detail page
+    function renderTitleTorrentSearchResults() {
+        const candidates = state.titleTorrentSearch.candidates || [];
+        const total = state.titleTorrentSearch.total || 0;
+        
+        $('#title-torrent-results').innerHTML = candidates.length ? renderBrowseTorrentCandidates(candidates) : empty('No torrent candidates found.');
+        $('#title-torrent-count').textContent = `Showing ${candidates.length} of ${total} results`;
+        $('#title-torrent-more').classList.toggle('hidden', candidates.length >= total);
+        
+        // Add event listeners for add buttons
+        $('#title-torrent-results').querySelectorAll('[data-add-torrent]').forEach(button => {
+            button.onclick = async () => {
+                const magnet = decodeURIComponent(button.dataset.addTorrent);
+                const name = button.dataset.torrentName || '';
+                button.disabled = true;
+                button.textContent = 'Adding…';
+                try {
+                    const data = await jsonFetch('/torbox/torrents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ magnet, name, addOnlyIfCached: true })
+                    });
+                    button.textContent = 'Added';
+                    setTimeout(() => {
+                        button.textContent = 'Add cached';
+                        button.disabled = false;
+                    }, 1500);
+                    pinRecentTorrent(data.torrent);
+                    loadView('torrents', true);
+                } catch (error) {
+                    button.textContent = 'Add cached';
+                    button.disabled = false;
+                    alert(error.message);
+                }
+            };
+        });
+    }
+    
+    // Render usenet search results inline - for title detail page
+    function renderTitleUsenetSearchResults() {
+        const candidates = state.titleUsenetSearch.candidates || [];
+        const total = state.titleUsenetSearch.total || 0;
+        
+        $('#title-usenet-search-results').innerHTML = candidates.length ? renderBrowseUsenetCandidates(candidates) : empty('No usenet results found.');
+        $('#title-usenet-search-count').textContent = `Showing ${candidates.length} of ${total} results`;
+        $('#title-usenet-search-more').classList.toggle('hidden', candidates.length >= total);
+        
+        // Add event listeners for add buttons
+        $('#title-usenet-search-results').querySelectorAll('[data-add-usenet]').forEach(button => {
+            button.onclick = async () => {
+                const usenetData = JSON.parse(decodeURIComponent(button.dataset.addUsenet));
+                button.disabled = true;
+                button.textContent = 'Adding…';
+                try {
+                    const result = await jsonFetch('/torbox/usenet', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...usenetData, addOnlyIfCached: true })
+                    });
+                    button.textContent = 'Added';
+                    setTimeout(() => {
+                        button.textContent = 'Add to TorBox';
+                        button.disabled = false;
+                    }, 1500);
+                    loadView('torrents', true);
+                } catch (error) {
+                    button.disabled = false;
+                    button.textContent = 'Add to TorBox';
+                    alert(error.message);
+                }
+            };
+        });
+    }
+    
+    // Render usenet search results inline - for torrents view
+    function renderTorrentsUsenetSearchResults() {
+        const candidates = state.torrentsUsenetSearch.candidates || [];
+        const total = state.torrentsUsenetSearch.total || 0;
+        
+        $('#torrents-usenet-search-results').innerHTML = candidates.length ? renderBrowseUsenetCandidates(candidates) : empty('No usenet results found.');
+        $('#torrents-usenet-search-count').textContent = `Showing ${candidates.length} of ${total} results`;
+        $('#torrents-usenet-search-more').classList.toggle('hidden', candidates.length >= total);
+        
+        // Add event listeners for add buttons
+        $('#torrents-usenet-search-results').querySelectorAll('[data-add-usenet]').forEach(button => {
+            button.onclick = async () => {
+                const usenetData = JSON.parse(decodeURIComponent(button.dataset.addUsenet));
+                button.disabled = true;
+                button.textContent = 'Adding…';
+                try {
+                    const result = await jsonFetch('/torbox/usenet', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ...usenetData, addOnlyIfCached: true })
+                    });
+                    button.textContent = 'Added';
+                    setTimeout(() => {
+                        button.textContent = 'Add to TorBox';
+                        button.disabled = false;
+                    }, 1500);
+                    loadView('torrents', true);
+                } catch (error) {
+                    button.disabled = false;
+                    button.textContent = 'Add to TorBox';
+                    alert(error.message);
+                }
+            };
+        });
+    }
+    
+    // Load more torrent search results - for title detail page
+    async function loadMoreTitleTorrentSearch() {
+        const { query, kind, imdbId } = state.titleTorrentSearch;
+        if (!query || !imdbId) return;
+        
+        const offset = state.offset['title-torrent-search'] || 0;
+        const limit = 20;
+        
+        setStatus('browse', 'Loading more torrent results…');
+        try {
+            const data = await searchBrowseTorrentCandidates(imdbId, kind, query, offset, limit);
+            const newItems = data.candidates || [];
+            state.titleTorrentSearch.candidates = [...state.titleTorrentSearch.candidates, ...newItems];
+            state.offset['title-torrent-search'] += newItems.length;
+            renderTitleTorrentSearchResults();
+            setStatus('browse', '');
+        } catch (error) {
+            setStatus('browse', error.message);
+        }
+    }
+    
+    // Load more usenet search results - for title detail page
+    async function loadMoreTitleUsenetSearch() {
+        const { query } = state.titleUsenetSearch;
+        if (!query) return;
+        
+        const offset = state.offset['title-usenet-search'] || 0;
+        const limit = 20;
+        const source = $('#title-usenet-search-source').value || 'all';
+        
+        setStatus('browse', 'Loading more usenet results…');
+        try {
+            const data = await searchBrowseUsenetCandidates(query, source, offset, limit);
+            const newItems = data.candidates || [];
+            state.titleUsenetSearch.candidates = [...state.titleUsenetSearch.candidates, ...newItems];
+            state.offset['title-usenet-search'] += newItems.length;
+            renderTitleUsenetSearchResults();
+            setStatus('browse', '');
+        } catch (error) {
+            setStatus('browse', error.message);
+        }
+    }
+    
+    // Load more usenet search results - for torrents view
+    async function loadMoreTorrentsUsenetSearch() {
+        const { query } = state.torrentsUsenetSearch;
+        if (!query) return;
+        
+        const offset = state.offset['torrents-usenet-search'] || 0;
+        const limit = 20;
+        const source = $('#torrents-usenet-search-source').value || 'all';
+        
+        setStatus('torrents', 'Loading more usenet results…');
+        try {
+            const data = await searchBrowseUsenetCandidates(query, source, offset, limit);
+            const newItems = data.candidates || [];
+            state.torrentsUsenetSearch.candidates = [...state.torrentsUsenetSearch.candidates, ...newItems];
+            state.offset['torrents-usenet-search'] += newItems.length;
+            renderTorrentsUsenetSearchResults();
+            setStatus('torrents', '');
+        } catch (error) {
+            setStatus('torrents', error.message);
+        }
+    }
+    
     async function searchBrowse(){const query=$('#browse-query').value.trim();if(query.length<2){state.browseResults={movie:[],series:[],music:[],torrents:[],usenet:[]};state.browseTorrentSearch={candidates:[],total:0,query:'',kind:'',imdbId:''};state.browseUsenetSearch={candidates:[],total:0,query:''};renderBrowseResults();setStatus('browse','Enter at least 2 characters to search.');return}setStatus('browse','Searching…');try{const sources=[];if($('#source-indexers').checked)sources.push('indexers');if($('#source-usenet').checked)sources.push('usenet');if(sources.length===0){setStatus('browse','Select at least one source.');return}const kind=$('#browse-kind').value;const usenetSource=getUsenetSource();const indexers=getSelectedIndexers();const url=`/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=20&offset=0`;const data=await jsonFetch(url);state.browseResults={movie:data.movies?.items||[],series:data.shows?.items||[],music:data.music?.items||[],torrents:data.torrents?.items||[],usenet:data.usenet?.items||[]};state.total['browse-movies']=data.movies?.total||0;state.total['browse-shows']=data.shows?.total||0;state.total['browse-music']=data.music?.total||0;state.total['browse-torrents']=data.torrents?.total||0;state.total['browse-usenet']=data.usenet?.total||0;state.offset['browse-movies']=data.movies?.items?.length||0;state.offset['browse-shows']=data.shows?.items?.length||0;state.offset['browse-music']=data.music?.items?.length||0;state.offset['browse-torrents']=data.torrents?.items?.length||0;state.offset['browse-usenet']=data.usenet?.items?.length||0;renderBrowseResults();const warnings=[...(data.torrents?.warnings||[]),...(data.usenet?.warnings||[])];const total=data.movies?.total+data.shows?.total+data.music?.total+data.torrents?.total+data.usenet?.total;setStatus('browse',`${total} results${warnings.length?` · ${warnings.join(' · ')}`:''}`)}catch(error){setStatus('browse',error.message)}}
     function renderBrowseResults(){const kind=$('#browse-kind').value;const showAll=kind==='all';$('#browse-movies-section').style.display=(showAll||kind==='movie')&&$('#source-indexers').checked?'block':'none';$('#browse-shows-section').style.display=(showAll||kind==='series')&&$('#source-indexers').checked?'block':'none';$('#browse-music-section').style.display=(showAll||kind==='music')&&$('#source-indexers').checked?'block':'none';$('#browse-torrents-section').style.display=(showAll||kind==='torrents')&&$('#source-indexers').checked?'block':'none';$('#browse-usenet-section').style.display=(showAll||kind==='usenet')&&$('#source-usenet').checked?'block':'none';$('#browse-torrent-search-section').style.display='none';$('#browse-usenet-search-section').style.display='none';if(showAll||kind==='movie'){$('#browse-movies-results').innerHTML=titleCards(state.browseResults.movie.map(item=>({...item,kind:'movie'})));$('#browse-movies-more').classList.toggle('hidden',state.browseResults.movie.length>=state.total['browse-movies']);observeArtwork($('#browse-movies-results'))}if(showAll||kind==='series'){$('#browse-shows-results').innerHTML=titleCards(state.browseResults.series.map(item=>({...item,kind:'series'})));$('#browse-shows-more').classList.toggle('hidden',state.browseResults.series.length>=state.total['browse-shows']);observeArtwork($('#browse-shows-results'))}if(showAll||kind==='music'){$('#browse-music-results').innerHTML=state.browseResults.music.length?musicReleaseCards(state.browseResults.music):'';$('#browse-music-more').classList.toggle('hidden',state.browseResults.music.length>=state.total['browse-music']);observeArtwork($('#browse-music-results'))}if(showAll||kind==='torrents'){$('#browse-torrents-results').innerHTML=state.browseResults.torrents.length?renderBrowseTorrentCandidates(state.browseResults.torrents):empty('No torrent results found.');$('#browse-torrents-more').classList.toggle('hidden',state.browseResults.torrents.length>=state.total['browse-torrents'])}if(showAll||kind==='usenet'){$('#browse-usenet-results').innerHTML=state.browseResults.usenet.length?renderBrowseUsenetCandidates(state.browseResults.usenet):empty('No usenet results found.');$('#browse-usenet-more').classList.toggle('hidden',state.browseResults.usenet.length>=state.total['browse-usenet'])}}
     function renderTorrentCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType=item.kind==='series'?'Show':'Movie';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source,contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<a class="p-button p-button-secondary p-button-small" href="${esc(item.magnet)}">Magnet</a>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}">Add cached</button></div></article>`}).join('')}
@@ -363,11 +606,11 @@ async function searchBrowseUsenetSearch(query) {
     function titleCards(items){return items.map(item=>{const kind=/^tv/i.test(item.titleType)?'series':'movie';const route=`/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';if(item._source==='local-movies'||item._source==='local-shows'){contentType=item._source==='local-movies'?'Movie':'Show'}else if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie'}else if(item._source==='usenet'){contentType='All'}else if(item._source==='local-music'){contentType='Music'};return `<article class="p-card result-row"><a class="result-row-link" href="${route}" aria-label="Open ${esc(item.primaryTitle)} details"><div><div class="result-row-title">${esc(item.primaryTitle)}</div><div class="result-row-meta">${esc(item.startYear||'Year unknown')} · ${esc(item.titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div><div class="result-row-source">${sourceTag(source,contentType)}</div></div><span class="result-row-arrow" aria-hidden="true">›</span></a></article>`}).join('')}
     let activeCandidateSearch=null;
     async function findTorrentCandidates(imdbId,kind,title){activeCandidateSearch={imdbId,kind,title};$('#candidate-sort').value='seeders';$('#candidate-min-seeders').value='';$('#candidate-min-leechers').value='';$('#candidate-title').textContent=`Torrent candidates · ${title}`;$('#candidate-results').innerHTML='';$('#candidate-status').innerHTML='<span class="spinner"></span>Searching torrent sources…';$('#candidate-season-field').classList.toggle('hidden',kind!=='series');$('#candidate-modal').classList.remove('hidden');await fetchTorrentCandidates(imdbId,kind,title)}
-    async function fetchTorrentCandidates(imdbId,kind,title){try{const season=kind==='series'?Math.max(1,Math.min(99,Number($('#candidate-season').value)||1)):1;const data=await jsonFetch(`/torrents/search?imdbId=${encodeURIComponent(imdbId)}&kind=${encodeURIComponent(kind)}&season=${season}&title=${encodeURIComponent(title)}`);$('#candidate-status').textContent=data.total?`${data.total} candidates from ${data.source}. Add checks TorBox cache first.${data.warnings?.length?` Some providers failed: ${data.warnings.join('; ')}`:''}`:data.warnings?.length?data.warnings.join('; '):'No candidates found for this title.';renderCandidateRows(data)}catch(error){$('#candidate-results').innerHTML='';$('#candidate-status').textContent=error.message}}
+    async function fetchTorrentCandidates(imdbId,kind,title){try{const season=kind==='series'?Math.max(1,Math.min(99,Number($('#candidate-season').value)||1)):1;const limit=parseInt($('#candidate-limit').value)||50;const offset=parseInt($('#candidate-offset').value)||0;const data=await jsonFetch(`/torrents/search?imdbId=${encodeURIComponent(imdbId)}&kind=${encodeURIComponent(kind)}&season=${season}&title=${encodeURIComponent(title)}&limit=${limit}&offset=${offset}`);$('#candidate-status').textContent=data.total?`${data.total} candidates from ${data.source}. Add checks TorBox cache first.${data.warnings?.length?` Some providers failed: ${data.warnings.join('; ')}`:''}`:data.warnings?.length?data.warnings.join('; '):'No candidates found for this title.';renderCandidateRows(data)}catch(error){$('#candidate-results').innerHTML='';$('#candidate-status').textContent=error.message}}
     function musicReleaseCards(releases){return releases.map(item=>{const route=`/music/release/${encodeURIComponent(item.id)}?title=${encodeURIComponent(item.title)}&artist=${encodeURIComponent(item.artist||'')}&date=${encodeURIComponent(item.date||'')}&type=${encodeURIComponent(item.type||'')}`;const source=item._source||item.source||'Unknown';let contentType='Music';if(item._source==='local-music'){contentType='Music'}else if(item._source==='torrents'){contentType='Music'}else if(item._source==='usenet'){contentType='All'};return `<article class="p-card result-row"><a class="result-row-link" href="${route}" aria-label="Open ${esc(item.title)} by ${esc(item.artist||'Unknown artist')}"><div><div class="result-row-title">${esc(item.title)}</div><div class="result-row-meta">${esc(item.artist||'Unknown artist')}${item.date?` · ${esc(item.date)}`:''}${item.type?` · ${esc(item.type)}`:''}</div><div class="result-row-source">${sourceTag(source,contentType)}</div></div><span class="result-row-arrow" aria-hidden="true">›</span></a></article>`}).join('')}
     function loadMusicRelease(id,params){const release={id,title:params.get('title')||'Music release',artist:params.get('artist')||'Unknown artist',date:params.get('date')||'',type:params.get('type')||'Release'};$('#page-title').textContent=release.title;$('#detail-content').innerHTML=`<div class="detail-layout"><div class="detail-poster"><img class="loaded" src="/music/artwork?id=${encodeURIComponent(id)}" alt="${esc(release.title)} cover art" onerror="this.remove()"></div><div class="detail-copy"><div class="detail-kicker">Music release · ${esc(release.type)}</div><h2>${esc(release.title)}</h2><div class="detail-subtitle">${esc([release.artist,release.date].filter(Boolean).join(' · '))}</div><div class="detail-actions"><a class="p-button p-button-primary" href="https://musicbrainz.org/release-group/${encodeURIComponent(id)}" target="_blank" rel="noopener noreferrer">Open on MusicBrainz ↗</a></div></div></div><div class="detail-results-link"><div class="tab-row" role="tablist" aria-label="Music search result type"><button class="p-button p-button-secondary active" role="tab" aria-selected="true" data-music-result-tab="torrent">Torrents</button><button class="p-button p-button-secondary" role="tab" aria-selected="false" data-music-result-tab="usenet">Usenet</button></div><div class="status-line" id="music-release-status" role="status">Searching torrent sources…</div><div id="music-release-results"></div></div>`;document.querySelectorAll('[data-music-result-tab]').forEach(tab=>tab.onclick=()=>{document.querySelectorAll('[data-music-result-tab]').forEach(item=>{const active=item===tab;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active))});void searchMusicRelease(release,tab.dataset.musicResultTab)});void searchMusicRelease(release,'torrent')}
     async function searchMusicRelease(release,source){const status=$('#music-release-status'),results=$('#music-release-results');const query=[release.title,release.artist].filter(value=>value&&value!=='Unknown artist').join(' ').slice(0,180);status.innerHTML=`<span class="spinner"></span>Searching ${source==='torrent'?'music torrent indexers':'NZBIndex and Binsearch'}…`;results.innerHTML='';try{const data=source==='torrent'?await jsonFetch(`/music/torrents/search?q=${encodeURIComponent(query)}`):await jsonFetch(`/usenet/search?q=${encodeURIComponent(query)}&source=all`);if(!status.isConnected)return;const candidates=data.candidates||[];status.textContent=`${candidates.length} ${source==='torrent'?'torrent':'Usenet'} results${data.source?` · ${data.source}`:''}${data.warnings?.length?` · ${data.warnings.join(' · ')}`:''}`;if(!candidates.length){results.innerHTML='<div class="empty-state">No matching results found.</div>';return}results.innerHTML=`<div class="candidate-list">${candidates.slice(0,40).map((item,index)=>`<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${source==='torrent'?`${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${item.source?` · ${sourceTag(item.source, 'Music')}`:''}`:`${sourceTag(item.source, 'All')}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}`}</div><div class="candidate-meta" data-music-result-status="${index}" role="status"></div></div><div class="candidate-actions">${source==='torrent'?`${item.magnet?`<a class="p-button p-button-secondary p-button-small" href="${esc(item.magnet)}">Magnet</a>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/music/torrents/download/${encodeURIComponent(item.downloadToken)}" download> .torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-music-add="${index}">Add cached</button>`:`<button class="p-button p-button-primary p-button-small" data-music-add="${index}">Add to TorBox</button>`}</div></article>`).join('')}</div>`;results.querySelectorAll('[data-music-add]').forEach(button=>button.onclick=async()=>{const item=candidates[Number(button.dataset.musicAdd)];const line=button.closest('.candidate-row').querySelector('[data-music-result-status]');button.disabled=true;button.textContent=source==='torrent'?'Adding…':'Sending…';try{const result=source==='torrent'?await jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet:item.magnet,name:item.name,addOnlyIfCached:true})}):await jsonFetch('/torbox/usenet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:item.source,id:item.id,name:item.name,addOnlyIfCached:false})});button.textContent='Added';line.textContent=result.detail||'Added to TorBox';void loadView('torrents',true)}catch(error){button.disabled=false;button.textContent=source==='torrent'?'Add cached':'Add to TorBox';line.textContent=error.message}})}catch(error){if(status.isConnected)status.textContent=error.message}}
-    async function searchUsenet(){const query=$('#usenet-query').value.trim();if(query.length<2){$('#usenet-status').textContent='Enter at least 2 characters to search Usenet.';return}const source=$('#usenet-source').value||'all';$('#usenet-status').innerHTML='<span class="spinner"></span>Searching NZBIndex and Binsearch…';$('#usenet-results').innerHTML='';try{const data=await jsonFetch(`/usenet/search?q=${encodeURIComponent(query)}&source=${encodeURIComponent(source)}`);const candidates=data.candidates||[];$('#usenet-status').textContent=`${candidates.length} results${data.warnings?.length?` · ${data.warnings.join(' · ')}`:''}`;$('#usenet-results').innerHTML=candidates.length?candidates.map((item,index)=>`<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${sourceTag(item.source, 'All')}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}</div><div class="candidate-meta" data-usenet-status="${index}"></div></div><button class="p-button p-button-primary p-button-small" data-usenet-add="${index}">Add to TorBox</button></article>`).join(''):empty(data.warnings?.length?data.warnings.join(' · '):'No results found.');$('#usenet-results').querySelectorAll('[data-usenet-add]').forEach(button=>button.onclick=async()=>{const item=candidates[Number(button.dataset.usenetAdd)];const line=button.closest('.candidate-row').querySelector('[data-usenet-status]');button.disabled=true;button.textContent='Sending…';try{const result=await jsonFetch('/torbox/usenet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:item.source,id:item.id,name:item.name,addOnlyIfCached:$('#usenet-cached-only').checked})});button.textContent='Added';line.textContent=result.detail||'Added to TorBox';void loadView('torrents',true)}catch(error){button.disabled=false;button.textContent='Add to TorBox';line.textContent=error.message}})}catch(error){$('#usenet-status').textContent=error.message}}
+    async function searchUsenet(){const query=$('#usenet-query').value.trim();if(query.length<2){$('#usenet-status').textContent='Enter at least 2 characters to search Usenet.';return}const source=$('#usenet-source').value||'all';const limit=parseInt($('#usenet-limit').value)||50;const offset=parseInt($('#usenet-offset').value)||0;$('#usenet-status').innerHTML='<span class="spinner"></span>Searching NZBIndex and Binsearch…';$('#usenet-results').innerHTML='';try{const data=await jsonFetch(`/usenet/search?q=${encodeURIComponent(query)}&source=${encodeURIComponent(source)}&limit=${limit}&offset=${offset}`);const candidates=data.candidates||[];$('#usenet-status').textContent=`${candidates.length} results${data.warnings?.length?` · ${data.warnings.join(' · ')}`:''}`;$('#usenet-results').innerHTML=candidates.length?candidates.map((item,index)=>`<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${sourceTag(item.source, 'All')}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}</div><div class="candidate-meta" data-usenet-status="${index}"></div></div><button class="p-button p-button-primary p-button-small" data-usenet-add="${index}">Add to TorBox</button></article>`).join(''):empty(data.warnings?.length?data.warnings.join(' · '):'No results found.');$('#usenet-results').querySelectorAll('[data-usenet-add]').forEach(button=>button.onclick=async()=>{const item=candidates[Number(button.dataset.usenetAdd)];const line=button.closest('.candidate-row').querySelector('[data-usenet-status]');button.disabled=true;button.textContent='Sending…';try{const result=await jsonFetch('/torbox/usenet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:item.source,id:item.id,name:item.name,addOnlyIfCached:$('#usenet-cached-only').checked})});button.textContent='Added';line.textContent=result.detail||'Added to TorBox';void loadView('torrents',true)}catch(error){button.disabled=false;button.textContent='Add to TorBox';line.textContent=error.message}})}catch(error){$('#usenet-status').textContent=error.message}}
     async function searchMusicReleases(){const query=$('#music-query').value.trim();if(query.length<2){$('#music-status').textContent='Enter at least 2 characters to search music.';return}$('#music-status').innerHTML='<span class="spinner"></span>Searching MusicBrainz…';$('#music-search-results').innerHTML='';try{const data=await jsonFetch(`/music/search?q=${encodeURIComponent(query)}`);$('#music-search-results').innerHTML=musicReleaseCards(data.releases);$('#music-status').textContent=`${data.total} releases from ${data.source}.`;observeArtwork($('#music-search-results'));}catch(error){$('#music-status').textContent=error.message}}
     async function findMusicTorrentCandidates(query){$('#candidate-sort').value='seeders';$('#candidate-min-seeders').value='';$('#candidate-min-leechers').value='';$('#candidate-title').textContent=`Music torrents · ${query}`;$('#candidate-results').innerHTML='';$('#candidate-status').innerHTML='<span class="spinner"></span>Searching music indexers…';$('#candidate-season-field').classList.add('hidden');$('#candidate-modal').classList.remove('hidden');try{const data=await jsonFetch(`/music/torrents/search?q=${encodeURIComponent(query)}`);$('#candidate-status').textContent=data.total?`${data.total} candidates from ${data.source}. Add checks TorBox cache first.`:'No candidates found.';renderCandidateRows(data)}catch(error){$('#candidate-status').textContent=error.message}}
     let currentCandidateData=null;function renderCandidateRows(data){currentCandidateData=data;const sort=$('#candidate-sort').value;const minSeeders=$('#candidate-min-seeders').value===''?null:Number($('#candidate-min-seeders').value);const minLeechers=$('#candidate-min-leechers').value===''?null:Number($('#candidate-min-leechers').value);const candidates=[...data.candidates].filter(item=>(minSeeders===null||(item.seeders!==null&&Number(item.seeders)>=minSeeders))&&(minLeechers===null||(item.leechers!==null&&Number(item.leechers)>=minLeechers)));candidates.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):((Number(b[sort])||-1)-(Number(a[sort])||-1)));$('#candidate-count').textContent=`Showing ${candidates.length} of ${data.candidates.length} results`;$(`#candidate-results`).innerHTML=candidates.length?candidates.map((item,index)=>`<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${item.source?` · ${sourceTag(item.source, 'Music')}`:''}</div></div><div class="candidate-actions"><button class="p-button p-button-secondary p-button-small" data-copy-magnet="${index}">Copy magnet</button>${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/music/torrents/download/${esc(item.downloadToken)}" download>Download .torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-candidate="${index}">Add cached</button></div></article>`).join(''):'<div class="empty-state">No results match these filters.</div>';$('#candidate-sort').onchange=()=>renderCandidateRows(currentCandidateData);$('#candidate-min-seeders').oninput=()=>renderCandidateRows(currentCandidateData);$('#candidate-min-leechers').oninput=()=>renderCandidateRows(currentCandidateData);$('#candidate-results').querySelectorAll('[data-copy-magnet]').forEach(button=>{button.onclick=async()=>{const item=candidates[Number(button.dataset.copyMagnet)];try{await navigator.clipboard.writeText(item.magnet);button.textContent='Copied';setTimeout(()=>{if(button.isConnected)button.textContent='Copy magnet'},1500)}catch{const field=document.createElement('textarea');field.value=item.magnet;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';document.body.append(field);field.select();const copied=document.execCommand('copy');field.remove();button.textContent=copied?'Copied':'Copy failed';setTimeout(()=>{if(button.isConnected)button.textContent='Copy magnet'},1500)}}});$('#candidate-results').querySelectorAll('[data-add-candidate]').forEach((button,index)=>{button.onclick=async()=>{button.disabled=true;button.textContent='Adding…';try{const item=candidates[index];const result=await jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet:item.magnet,name:item.name,addOnlyIfCached:true})});button.textContent='Added to library';pinRecentTorrent(result.torrent);void loadView('torrents',true);$('#candidate-status').textContent=`${result.detail}${result.torrent?.torrent_id?` · TorBox ID ${result.torrent.torrent_id}`:''}`}catch(error){button.disabled=false;button.textContent='Add cached';$('#candidate-status').textContent=error.message}}})}
@@ -386,7 +629,7 @@ async function searchBrowseUsenetSearch(query) {
     async function loadView(view,reset=false){if(reset&&state.offset[view]!==undefined){state.offset[view]=0;state.items[view]=[]}if(view==='browse')return searchBrowse();const supported=['browse','movies','shows','torrents','local'];if(supported.includes(view)){setStatus(view,'Loading…');try{const limit=view==='torrents'?1000:50,offset=view==='torrents'?0:state.offset[view];let data,rows=[];if(view==='movies'||view==='shows'){const q=$(`#${view}-query`).value;data=await jsonFetch(`/api/${view}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);rows=data.items;state.total[view]=data.total}else if(view==='torrents'){data=await jsonFetch(`/library?limit=${limit}&offset=${offset}`);rows=data.torbox||[];state.total.torrents=rows.length}else{data=await jsonFetch(`/library?limit=${limit}&offset=${offset}`);rows=data.localMedia.items;state.total.local=data.localMedia.total;state.localErrors=data.localMedia.errors}if(view==='torrents'){const recentIds=new Set(state.recentTorrents.map(item=>Number(item.id)));rows=[...state.recentTorrents,...rows.filter(item=>!recentIds.has(Number(item.id)))];}state.items[view]=reset?rows:[...state.items[view],...rows];state.offset[view]=state.items[view].length;const count=$(`#${view}-count`);if(count)count.textContent=`${state.items[view].length}${state.total[view]>state.items[view].length?` of ${state.total[view]}`:''} items`;const results=$(`#${view}-results`);results.innerHTML=state.items[view].length?(view==='torrents'?renderTorboxLibrary(state.items[view]):view==='local'?localCards(state.items[view]):titleCards(state.items[view])):empty(view==='torrents'?'No TorBox items found.':'No results yet. The IMDb catalog may still be importing.');observeArtwork(results);setStatus(view,view==='local'&&state.localErrors?`${state.localErrors} paths could not be scanned.`:view==='torrents'&&data.usenetError?`TorBox Usenet list unavailable: ${data.usenetError}`:'');updateMore(view)}catch(error){setStatus(view,error.message);if(reset)$(`#${view}-results`).innerHTML=empty(error.message)}}else if(view==='music'){setStatus(view,'Loading recent releases…');try{const data=await jsonFetch('/music/recent');$('#music-search-results').innerHTML=data.releases.length?musicReleaseCards(data.releases):empty('No recent releases were found.');observeArtwork($('#music-search-results'));setStatus(view,`${data.total} recent releases from ${data.source} · last ${data.periodDays} days`)}catch(error){$('#music-search-results').innerHTML=empty(error.message);setStatus(view,error.message)}}else if(view==='calendar'){await loadCalendar()}}
     if(location.hash){const legacy=location.hash.slice(1);history.replaceState(null,'',legacy.startsWith('/')?legacy:`/${legacy}`)}if(location.pathname==='/'&&!location.hash)history.replaceState(null,'','/browse');routeFromLocation();
     document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>setRoute(`/${button.dataset.view}`)));
-    document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;if(!target)return;const musicButton=target.closest('[data-music-torrent]');if(musicButton){event.preventDefault();findMusicTorrentCandidates(musicButton.dataset.musicTorrent);return}const button=target.closest('[data-find-torrents],#detail-find-torrents');if(button){event.preventDefault();event.stopImmediatePropagation();let imdbId=button.dataset.imdb,kind=button.dataset.kind,title=button.dataset.title;if(button.id==='detail-find-torrents'){imdbId=(location.pathname.match(/title\/(tt\d+)/)||[])[1];kind=new URLSearchParams(location.search).get('kind')||'movie';title=$('#detail-content .detail-copy h2')?.textContent||'Selected title'}if(imdbId)searchBrowseTorrentSearch(imdbId,kind==='series'?'series':'movie',title||'Selected title')}const addTorrentBtn=target.closest('[data-add-torrent]');if(addTorrentBtn){event.preventDefault();const magnet=decodeURIComponent(addTorrentBtn.dataset.addTorrent);const name=addTorrentBtn.dataset.torrentName||'';addTorrentBtn.disabled=true;addTorrentBtn.textContent='Adding…';jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet,name,addOnlyIfCached:true})}).then(data=>{addTorrentBtn.textContent='Added';setTimeout(()=>{addTorrentBtn.textContent='Add cached';addTorrentBtn.disabled=false},1500);pinRecentTorrent(data.torrent);loadView('torrents',true)}).catch(error=>{addTorrentBtn.textContent='Add cached';addTorrentBtn.disabled=false;alert(error.message)})}const copyMagnetBtn=target.closest('[data-copy-magnet]');if(copyMagnetBtn){event.preventDefault();const index=Number(copyMagnetBtn.dataset.copyMagnet);const magnet=currentCandidateData?.candidates?.[index]?.magnet;if(magnet){navigator.clipboard.writeText(magnet).then(()=>{copyMagnetBtn.textContent='Copied!';setTimeout(()=>{copyMagnetBtn.textContent='Copy magnet'},1500)}).catch(()=>{alert('Failed to copy magnet link')})}}const addUsenetBtn=target.closest('[data-add-usenet]');if(addUsenetBtn){event.preventDefault();const usenetData=JSON.parse(decodeURIComponent(addUsenetBtn.dataset.addUsenet));addUsenetBtn.disabled=true;addUsenetBtn.textContent='Adding…';jsonFetch('/torbox/usenet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...usenetData,addOnlyIfCached:true})}).then(data=>{addUsenetBtn.textContent='Added';setTimeout(()=>{addUsenetBtn.textContent='Add to TorBox';addUsenetBtn.disabled=false},1500);loadView('torrents',true)}).catch(error=>{addUsenetBtn.textContent='Add to TorBox';addUsenetBtn.disabled=false;alert(error.message)})}} ,true);
+    document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;if(!target)return;const musicButton=target.closest('[data-music-torrent]');if(musicButton){event.preventDefault();findMusicTorrentCandidates(musicButton.dataset.musicTorrent);return}const button=target.closest('[data-find-torrents],#detail-find-torrents');if(button){event.preventDefault();event.stopImmediatePropagation();let imdbId=button.dataset.imdb,kind=button.dataset.kind,title=button.dataset.title;if(button.id==='detail-find-torrents'){imdbId=(location.pathname.match(/title\/(tt\d+)/)||[])[1];kind=new URLSearchParams(location.search).get('kind')||'movie';title=$('#detail-content .detail-copy h2')?.textContent||'Selected title'}if(imdbId)searchTitleTorrentSearch(imdbId,kind==='series'?'series':'movie',title||'Selected title')}const addTorrentBtn=target.closest('[data-add-torrent]');if(addTorrentBtn){event.preventDefault();const magnet=decodeURIComponent(addTorrentBtn.dataset.addTorrent);const name=addTorrentBtn.dataset.torrentName||'';addTorrentBtn.disabled=true;addTorrentBtn.textContent='Adding…';jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet,name,addOnlyIfCached:true})}).then(data=>{addTorrentBtn.textContent='Added';setTimeout(()=>{addTorrentBtn.textContent='Add cached';addTorrentBtn.disabled=false},1500);pinRecentTorrent(data.torrent);loadView('torrents',true)}).catch(error=>{addTorrentBtn.textContent='Add cached';addTorrentBtn.disabled=false;alert(error.message)})}const copyMagnetBtn=target.closest('[data-copy-magnet]');if(copyMagnetBtn){event.preventDefault();const index=Number(copyMagnetBtn.dataset.copyMagnet);const magnet=currentCandidateData?.candidates?.[index]?.magnet;if(magnet){navigator.clipboard.writeText(magnet).then(()=>{copyMagnetBtn.textContent='Copied!';setTimeout(()=>{copyMagnetBtn.textContent='Copy magnet'},1500)}).catch(()=>{alert('Failed to copy magnet link')})}}const addUsenetBtn=target.closest('[data-add-usenet]');if(addUsenetBtn){event.preventDefault();const usenetData=JSON.parse(decodeURIComponent(addUsenetBtn.dataset.addUsenet));addUsenetBtn.disabled=true;addUsenetBtn.textContent='Adding…';jsonFetch('/torbox/usenet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...usenetData,addOnlyIfCached:true})}).then(data=>{addUsenetBtn.textContent='Added';setTimeout(()=>{addUsenetBtn.textContent='Add to TorBox';addUsenetBtn.disabled=false},1500);loadView('torrents',true)}).catch(error=>{addUsenetBtn.textContent='Add to TorBox';addUsenetBtn.disabled=false;alert(error.message)})}} ,true);
     $('#candidate-close').onclick=()=>$('#candidate-modal').classList.add('hidden');$('#candidate-modal').addEventListener('click',event=>{if(event.target===$('#candidate-modal'))$('#candidate-modal').classList.add('hidden')});$('#candidate-season').addEventListener('change',()=>{if(activeCandidateSearch?.kind==='series')fetchTorrentCandidates(activeCandidateSearch.imdbId,'series',activeCandidateSearch.title)});
     document.querySelectorAll('[data-search]').forEach(button=>button.addEventListener('click',()=>searchRoute(button.dataset.search)));
     $('#browse-kind').addEventListener('change',updateBrowseSearchMode);

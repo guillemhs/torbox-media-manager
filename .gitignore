@@ -8,6 +8,7 @@ Icon?
 *. thumbs.db
 # Files that might appear on external volumes
 .AppleDB
+.vscode/
 
 # Node
 /node_modules/

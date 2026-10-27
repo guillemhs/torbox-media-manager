@@ -331,6 +331,44 @@ export async function searchIndexerTorrents(
   }
 }
 
-export async function searchMusicTorrents(query: string): Promise<MusicTorrentCandidate[]> {
-  return searchIndexerTorrents(query, 'music', [process.env.TORZNAB_MUSIC_CATEGORY?.trim() || '3000']);
+export async function searchMusicTorrents(query: string, indexers: string[] = ['prowlarr', 'torrentio']): Promise<MusicTorrentCandidate[]> {
+  const results: MusicTorrentCandidate[] = [];
+  const categories = [process.env.TORZNAB_MUSIC_CATEGORY?.trim() || '3000'];
+  
+  // Search Prowlarr if requested
+  if (indexers.includes('prowlarr')) {
+    try {
+      const prowlarrResults = await searchProwlarr(query, 'music', categories);
+      if (prowlarrResults) {
+        results.push(...prowlarrResults);
+      }
+    } catch (error) {
+      console.warn('Prowlarr music search failed:', error instanceof Error ? error.message : 'unknown error');
+    }
+  }
+  
+  // Search Torrentio via Torznab feed if requested
+  if (indexers.includes('torrentio')) {
+    try {
+      const torznabResults = await searchTorznabFeed(query, categories.join(','));
+      results.push(...torznabResults);
+    } catch (error) {
+      console.warn('Torznab music search failed:', error instanceof Error ? error.message : 'unknown error');
+    }
+  }
+  
+  // Deduplicate by hash
+  const unique = new Map<string, MusicTorrentCandidate>();
+  for (const candidate of results) {
+    const existing = unique.get(candidate.hash);
+    unique.set(candidate.hash, existing ? {
+      ...existing,
+      seeders: existing.seeders ?? candidate.seeders,
+      leechers: existing.leechers ?? candidate.leechers,
+      size: existing.size ?? candidate.size,
+      downloadToken: existing.downloadToken ?? candidate.downloadToken
+    } : candidate);
+  }
+  
+  return [...unique.values()].slice(0, 50);
 }

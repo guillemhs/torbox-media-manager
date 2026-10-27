@@ -47,20 +47,216 @@
       </header>
 
       <section class="view active" id="view-browse">
-        <div class="view-heading"><div><h2>Browse media</h2><p>Search movies and shows from IMDb or music releases from MusicBrainz, find torrents, and add cached results to TorBox.</p></div></div>
+        <div class="view-heading"><div><h2>Browse media</h2><p>Search movies and shows from IMDb or music releases from MusicBrainz, find torrents and Usenet content, and add cached results to TorBox.</p></div></div>
         <div class="artwork-hint">Artwork sources: TMDB for movies, TVMaze for shows, and MusicBrainz / Cover Art Archive for music.</div>
-        <div class="search-row"><input class="p-search" id="browse-query" type="search" placeholder="Search movies, shows, or music" aria-label="Search movies, shows, or music"><select id="browse-kind" aria-label="Filter results"><option value="all">All results</option><option value="movie">Movies</option><option value="series">Shows</option><option value="music">Music</option></select><button class="p-button p-button-primary" data-search="browse">Search</button><button class="p-button p-button-secondary hidden" id="browse-indexer-search" type="button">Search indexers</button></div>
-        <div class="status-line" id="browse-status" role="status"></div><div class="result-grid" id="browse-results"></div><div class="toolbar-row"><span class="muted" id="browse-count"></span><button class="p-button p-button-secondary hidden" id="browse-more">Load more</button></div>
+        <div class="search-row"><input class="p-search" id="browse-query" type="search" placeholder="Search movies, shows, or music" aria-label="Search movies, shows, or music"><select id="browse-kind" aria-label="Filter results"><option value="all">All results</option><option value="movie">Movies</option><option value="series">Shows</option><option value="music">Music</option><option value="torrents">Torrents</option><option value="usenet">Usenet</option></select><button class="p-button p-button-primary" data-search="browse">Search</button></div>
+        
+        <!-- Source filters -->
+        <div class="toolbar-row" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="source-local" checked><span>Local (IMDb/MusicBrainz)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="source-indexers"><span>Indexers (Prowlarr/Torrentio)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
+          </div>
+        </div>
+        
+        <!-- Indexer filters -->
+        <div class="toolbar-row" id="indexer-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Indexers:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="indexer-prowlarr" checked><span>Prowlarr</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="indexer-torrentio" checked><span>Torrentio</span></label>
+          </div>
+        </div>
+        
+        <!-- Usenet filters -->
+        <div class="toolbar-row" id="usenet-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Usenet:</span>
+            <select id="usenet-source" style="min-width: 140px;">
+              <option value="all">Both indexers</option>
+              <option value="NZBIndex">NZBIndex</option>
+              <option value="Binsearch">Binsearch</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="status-line" id="browse-status" role="status"></div>
+        
+        <!-- Movies section -->
+        <div id="browse-movies-section" style="display: none;">
+          <h3 style="margin: 20px 0 10px;">Movies</h3>
+          <div class="result-grid" id="browse-movies-results"></div>
+          <div class="toolbar-row"><span class="muted" id="browse-movies-count"></span><button class="p-button p-button-secondary hidden" id="browse-movies-more">Load more</button></div>
+        </div>
+        
+        <!-- Shows section -->
+        <div id="browse-shows-section" style="display: none;">
+          <h3 style="margin: 20px 0 10px;">Shows</h3>
+          <div class="result-grid" id="browse-shows-results"></div>
+          <div class="toolbar-row"><span class="muted" id="browse-shows-count"></span><button class="p-button p-button-secondary hidden" id="browse-shows-more">Load more</button></div>
+        </div>
+        
+        <!-- Music section -->
+        <div id="browse-music-section" style="display: none;">
+          <h3 style="margin: 20px 0 10px;">Music</h3>
+          <div class="result-grid" id="browse-music-results"></div>
+          <div class="toolbar-row"><span class="muted" id="browse-music-count"></span><button class="p-button p-button-secondary hidden" id="browse-music-more">Load more</button></div>
+        </div>
+        
+        <!-- Torrents section -->
+        <div id="browse-torrents-section" style="display: none;">
+          <h3 style="margin: 20px 0 10px;">Torrents</h3>
+          <div class="candidate-list" id="browse-torrents-results"></div>
+          <div class="toolbar-row"><span class="muted" id="browse-torrents-count"></span><button class="p-button p-button-secondary hidden" id="browse-torrents-more">Load more</button></div>
+        </div>
+        
+        <!-- Usenet section -->
+        <div id="browse-usenet-section" style="display: none;">
+          <h3 style="margin: 20px 0 10px;">Usenet</h3>
+          <div class="candidate-list" id="browse-usenet-results"></div>
+          <div class="toolbar-row"><span class="muted" id="browse-usenet-count"></span><button class="p-button p-button-secondary hidden" id="browse-usenet-more">Load more</button></div>
+        </div>
+        
+        <!-- Torrent/Usenet search results (inline, no modal) -->
+        <div id="browse-torrent-search-section" style="display: none;">
+          <h3 style="margin: 20px 0 10px;">Torrent Search Results</h3>
+          <div class="candidate-filterbar" aria-label="Filter and sort torrent candidates">
+            <label>Order by<select id="browse-torrent-sort"><option value="seeders">Most seeders</option><option value="leechers">Most leechers</option><option value="name">Name</option></select></label>
+            <label>Min seeders<input id="browse-torrent-min-seeders" type="number" min="0" inputmode="numeric" placeholder="Any"></label>
+            <label>Min leechers<input id="browse-torrent-min-leechers" type="number" min="0" inputmode="numeric" placeholder="Any"></label>
+          </div>
+          <div class="candidate-count" id="browse-torrent-count" aria-live="polite"></div>
+          <div class="candidate-list" id="browse-torrent-results"></div>
+          <div class="toolbar-row"><span class="muted" id="browse-torrent-total"></span><button class="p-button p-button-secondary hidden" id="browse-torrent-more">Load more</button></div>
+        </div>
+        
+        <div id="browse-usenet-search-section" style="display: none;">
+          <h3 style="margin: 20px 0 10px;">Usenet Search Results</h3>
+          <div class="candidate-filterbar" aria-label="Filter usenet candidates">
+            <label>Source<select id="browse-usenet-search-source"><option value="all">Both indexers</option><option value="NZBIndex">NZBIndex</option><option value="Binsearch">Binsearch</option></select></label>
+          </div>
+          <div class="candidate-count" id="browse-usenet-search-count" aria-live="polite"></div>
+          <div class="candidate-list" id="browse-usenet-search-results"></div>
+          <div class="toolbar-row"><span class="muted" id="browse-usenet-search-total"></span><button class="p-button p-button-secondary hidden" id="browse-usenet-search-more">Load more</button></div>
+        </div>
       </section>
 
-      <section class="view" id="view-movies"><div class="view-heading"><div><h2>Movies</h2><p>Browse titles imported from IMDb.</p></div></div><div class="artwork-hint">Movie posters are matched by IMDb ID using TMDB when configured.</div><div class="search-row"><input class="p-search" id="movies-query" type="search" placeholder="Search movies"><button class="p-button p-button-primary" data-search="movies">Search</button></div><div class="status-line" id="movies-status" role="status"></div><div class="result-grid" id="movies-results"></div><div class="toolbar-row"><span class="muted" id="movies-count"></span><button class="p-button p-button-secondary hidden" id="movies-more">Load more</button></div></section>
+      <section class="view" id="view-movies"><div class="view-heading"><div><h2>Movies</h2><p>Browse titles imported from IMDb.</p></div></div><div class="artwork-hint">Movie posters are matched by IMDb ID using TMDB when configured.</div><div class="search-row"><input class="p-search" id="movies-query" type="search" placeholder="Search movies"><button class="p-button p-button-primary" data-search="movies">Search</button></div>
+        
+        <!-- Source filters for Movies -->
+        <div class="toolbar-row" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-source-local" checked><span>Local (IMDb)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-source-indexers"><span>Indexers (Prowlarr/Torrentio)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
+          </div>
+        </div>
+        
+        <!-- Indexer filters for Movies -->
+        <div class="toolbar-row" id="movies-indexer-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Indexers:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-indexer-prowlarr" checked><span>Prowlarr</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-indexer-torrentio" checked><span>Torrentio</span></label>
+          </div>
+        </div>
+        
+        <!-- Usenet filters for Movies -->
+        <div class="toolbar-row" id="movies-usenet-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Usenet:</span>
+            <select id="movies-usenet-source" style="min-width: 140px;">
+              <option value="all">Both indexers</option>
+              <option value="NZBIndex">NZBIndex</option>
+              <option value="Binsearch">Binsearch</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="status-line" id="movies-status" role="status"></div>
+        <div class="result-grid" id="movies-results"></div>
+        <div class="toolbar-row"><span class="muted" id="movies-count"></span><button class="p-button p-button-secondary hidden" id="movies-more">Load more</button></div></section>
 
-      <section class="view" id="view-shows"><div class="view-heading"><div><h2>Shows</h2><p>Browse series imported from IMDb.</p></div></div><div class="artwork-hint">Show posters are matched by IMDb ID from TVMaze, with TMDB as an optional source.</div><div class="search-row"><input class="p-search" id="shows-query" type="search" placeholder="Search shows"><button class="p-button p-button-primary" data-search="shows">Search</button></div><div class="status-line" id="shows-status" role="status"></div><div class="result-grid" id="shows-results"></div><div class="toolbar-row"><span class="muted" id="shows-count"></span><button class="p-button p-button-secondary hidden" id="shows-more">Load more</button></div></section>
+      <section class="view" id="view-shows"><div class="view-heading"><div><h2>Shows</h2><p>Browse series imported from IMDb.</p></div></div><div class="artwork-hint">Show posters are matched by IMDb ID from TVMaze, with TMDB as an optional source.</div><div class="search-row"><input class="p-search" id="shows-query" type="search" placeholder="Search shows"><button class="p-button p-button-primary" data-search="shows">Search</button></div>
+        
+        <!-- Source filters for Shows -->
+        <div class="toolbar-row" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-local" checked><span>Local (IMDb)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-indexers"><span>Indexers (Prowlarr/Torrentio)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
+          </div>
+        </div>
+        
+        <!-- Indexer filters for Shows -->
+        <div class="toolbar-row" id="shows-indexer-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Indexers:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-indexer-prowlarr" checked><span>Prowlarr</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-indexer-torrentio" checked><span>Torrentio</span></label>
+          </div>
+        </div>
+        
+        <!-- Usenet filters for Shows -->
+        <div class="toolbar-row" id="shows-usenet-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Usenet:</span>
+            <select id="shows-usenet-source" style="min-width: 140px;">
+              <option value="all">Both indexers</option>
+              <option value="NZBIndex">NZBIndex</option>
+              <option value="Binsearch">Binsearch</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="status-line" id="shows-status" role="status"></div>
+        <div class="result-grid" id="shows-results"></div>
+        <div class="toolbar-row"><span class="muted" id="shows-count"></span><button class="p-button p-button-secondary hidden" id="shows-more">Load more</button></div></section>
 
       <section class="view" id="view-torrents"><div class="view-heading"><div><h2>TorBox library</h2><p>Search and sort downloads already in your TorBox account.</p></div><div class="topbar-actions"><button class="p-button p-button-secondary" id="usenet-search-open">Search Usenet</button><button class="p-button p-button-secondary" id="refresh-torrents">↻ Refresh</button></div></div><div class="library-toolbar"><input class="p-search" id="library-query" type="search" placeholder="Search your TorBox library by name, hash, or status" aria-label="Search your TorBox library"><select id="library-filter" aria-label="Filter library by media type"><option value="all">All</option><option value="video">Movies &amp; Shows</option><option value="music">Music</option><option value="other">Other</option></select><select id="library-sort" aria-label="Sort library"><option value="added">Recently added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select></div><div class="status-line" id="torrents-status" role="status"></div><div class="library-summary" id="library-summary"></div><div class="torrent-list" id="torrents-results"></div></section>
 
 
-      <section class="view" id="view-music"><div class="view-heading"><div><h2>Music discovery</h2><p>Explore new releases from MusicBrainz or search artists, albums, and tracks.</p></div></div><div class="search-row"><input class="p-search" id="music-query" type="search" placeholder="Search artists, albums, or tracks"><button class="p-button p-button-primary" data-search="music">Search</button></div><div class="status-line" id="music-status" role="status"></div><h3 id="music-feed-heading">Latest releases</h3><div class="result-grid" id="music-search-results"></div></section>
+      <section class="view" id="view-music"><div class="view-heading"><div><h2>Music discovery</h2><p>Explore new releases from MusicBrainz or search artists, albums, and tracks.</p></div></div><div class="search-row"><input class="p-search" id="music-query" type="search" placeholder="Search artists, albums, or tracks"><button class="p-button p-button-primary" data-search="music">Search</button></div>
+        
+        <!-- Source filters for Music -->
+        <div class="toolbar-row" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-source-local" checked><span>Local (MusicBrainz)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-source-indexers"><span>Indexers (Prowlarr/Torrentio)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
+          </div>
+        </div>
+        
+        <!-- Indexer filters for Music -->
+        <div class="toolbar-row" id="music-indexer-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Indexers:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-indexer-prowlarr" checked><span>Prowlarr</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-indexer-torrentio" checked><span>Torrentio</span></label>
+          </div>
+        </div>
+        
+        <!-- Usenet filters for Music -->
+        <div class="toolbar-row" id="music-usenet-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Usenet:</span>
+            <select id="music-usenet-source" style="min-width: 140px;">
+              <option value="all">Both indexers</option>
+              <option value="NZBIndex">NZBIndex</option>
+              <option value="Binsearch">Binsearch</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="status-line" id="music-status" role="status"></div>
+        <h3 id="music-feed-heading">Latest releases</h3>
+        <div class="result-grid" id="music-search-results"></div>
+        <div class="toolbar-row"><span class="muted" id="music-count"></span><button class="p-button p-button-secondary hidden" id="music-more">Load more</button></div></section>
 
       <section class="view" id="view-calendar"><div class="view-heading"><div><h2>TV calendar</h2><p>Find new episodes from broadcast channels and streaming services.</p></div></div><div class="calendar-toolbar"><div class="calendar-nav"><button class="p-button p-button-secondary" id="calendar-prev" aria-label="Previous day">‹ Previous</button><button class="p-button p-button-secondary" id="calendar-today">Today</button><button class="p-button p-button-secondary" id="calendar-next" aria-label="Next day">Next ›</button></div><input id="calendar-date" type="date" aria-label="Schedule date"><select id="calendar-country" aria-label="Schedule country"><option value="US">United States</option><option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="ES">Spain</option><option value="FR">France</option><option value="DE">Germany</option></select><div class="calendar-type"><button class="p-button p-button-secondary active" data-calendar-type="broadcast">Broadcast</button><button class="p-button p-button-secondary" data-calendar-type="web">Streaming</button></div></div><div class="search-row calendar-filter"><input class="p-search" id="calendar-query" type="search" placeholder="Search shows, episodes, or platforms" aria-label="Search shows, episodes, or platforms"><select id="calendar-platform" aria-label="Filter by channel or streaming service"><option value="">All channels and services</option></select><button class="p-button p-button-primary" id="calendar-search">Search</button></div><div class="calendar-summary"><span id="calendar-summary">Choose a date to see episodes.</span><span id="calendar-source"></span></div><div class="status-line" id="calendar-status" role="status"></div><div class="calendar-grid" id="calendar-results"></div></section>
       <section class="view" id="view-title" aria-live="polite"><button class="p-button p-button-secondary detail-back" id="detail-back">← Back to results</button><div id="detail-content"></div></section>

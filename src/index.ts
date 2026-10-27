@@ -25,6 +25,7 @@ import {
   torrentSearchRoute,
   tvmazeShowRoute,
   triggerLibraryScanRoute,
+  unifiedSearchRoute,
   usenetSearchRoute,
   addUsenetToTorboxRoute,
   downloadUsenetFileRoute
@@ -57,6 +58,7 @@ app.get('/api/movies/:imdbId', titleRoute);
 app.get('/api/shows', showsRoute);
 app.get('/api/shows/:imdbId', titleRoute);
 app.get('/api/browse', browseRoute);
+app.get('/api/search', unifiedSearchRoute);
 app.get('/api/calendar', calendarRoute);
 app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);

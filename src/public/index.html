@@ -49,7 +49,7 @@
       <section class="view active" id="view-browse">
         <div class="view-heading"><div><h2>Browse media</h2><p>Search movies and shows from IMDb or music releases from MusicBrainz, find torrents and Usenet content, and add cached results to TorBox.</p></div></div>
         <div class="artwork-hint">Artwork sources: TMDB for movies, TVMaze for shows, and MusicBrainz / Cover Art Archive for music.</div>
-        <div class="search-row"><input class="p-search" id="browse-query" type="search" placeholder="Search movies, shows, or music" aria-label="Search movies, shows, or music"><select id="browse-kind" aria-label="Filter results"><option value="all">All results</option><option value="movie">Movies</option><option value="series">Shows</option><option value="music">Music</option><option value="torrents">Torrents</option><option value="usenet">Usenet</option></select><button class="p-button p-button-primary" data-search="browse">Search</button></div>
+        <div class="search-row"><input class="p-search" id="browse-query" type="search" placeholder="Search movies, shows, or music" aria-label="Search movies, shows, or music"><select id="browse-kind" aria-label="Filter results"><option value="all">All results</option><option value="movie">Movies</option><option value="series">Shows</option><option value="music">Music</option><option value="torrents">Torrents</option><option value="usenet">Usenet</option></select><button class="p-button p-button-primary" data-search="browse">Search</button><button class="p-button p-button-secondary" id="browse-indexer-search">Indexers</button></div>
         
         <!-- Source filters -->
         <div class="toolbar-row" style="margin-top: 8px;">
@@ -184,6 +184,7 @@
         <div class="toolbar-row" style="margin-top: 8px;">
           <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
             <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-indexers"><span>Indexers (Prowlarr/Torrentio)</span></label>
             <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-local" checked><span>Local (IMDb)</span></label>
             <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
           </div>

@@ -23,10 +23,6 @@ async function searchBrowseTorrentSearch(imdbId, kind, title) {
     state.browseTorrentSearch = { candidates: [], total: 0, query: title, kind, imdbId };
     state.offset['browse-torrent-search'] = 0;
     
-    $('#browse-torrent-search-section').style.display = 'block';
-    $('#browse-torrent-results').innerHTML = '';
-    $('#browse-torrent-more').classList.add('hidden');
-    
     try {
         const data = await searchBrowseTorrentCandidates(imdbId, kind, title, 0, 20);
         state.browseTorrentSearch.candidates = data.candidates || [];
@@ -42,10 +38,6 @@ async function searchBrowseTorrentSearch(imdbId, kind, title) {
 async function searchBrowseUsenetSearch(query) {
     state.browseUsenetSearch = { candidates: [], total: 0, query };
     state.offset['browse-usenet-search'] = 0;
-    
-    $('#browse-usenet-search-section').style.display = 'block';
-    $('#browse-usenet-search-results').innerHTML = '';
-    $('#browse-usenet-search-more').classList.add('hidden');
     
     try {
         const source = $('#browse-usenet-search-source').value || 'all';
@@ -64,11 +56,6 @@ async function searchTitleTorrentSearch(imdbId, kind, title) {
     state.titleTorrentSearch = { candidates: [], total: 0, query: title, kind, imdbId };
     state.offset['title-torrent-search'] = 0;
     
-    $('#title-torrent-search-section').style.display = 'block';
-    $('#title-torrent-results').innerHTML = '';
-    $('#title-torrent-count').textContent = 'Loading…';
-    $('#title-torrent-more').classList.add('hidden');
-    
     try {
         const data = await searchBrowseTorrentCandidates(imdbId, kind, title, 0, 20);
         state.titleTorrentSearch.candidates = data.candidates || [];
@@ -85,11 +72,6 @@ async function searchTitleTorrentSearch(imdbId, kind, title) {
 async function searchTitleUsenetSearch(query) {
     state.titleUsenetSearch = { candidates: [], total: 0, query };
     state.offset['title-usenet-search'] = 0;
-    
-    $('#title-usenet-search-section').style.display = 'block';
-    $('#title-usenet-search-results').innerHTML = '';
-    $('#title-usenet-search-count').textContent = 'Loading…';
-    $('#title-usenet-search-more').classList.add('hidden');
     
     try {
         const source = $('#title-usenet-search-source').value || 'all';
@@ -108,11 +90,6 @@ async function searchTitleUsenetSearch(query) {
 async function searchTorrentsUsenetSearch(query) {
     state.torrentsUsenetSearch = { candidates: [], total: 0, query };
     state.offset['torrents-usenet-search'] = 0;
-    
-    $('#torrents-usenet-search-section').style.display = 'block';
-    $('#torrents-usenet-search-results').innerHTML = '';
-    $('#torrents-usenet-search-count').textContent = 'Loading…';
-    $('#torrents-usenet-search-more').classList.add('hidden');
     
     try {
         const source = $('#torrents-usenet-search-source').value || 'all';

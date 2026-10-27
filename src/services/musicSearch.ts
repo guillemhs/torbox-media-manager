@@ -213,7 +213,7 @@ async function readTorrentDownload(downloadUrl: string, apiUrl: URL, apiKey: str
 async function jsonCandidates(body: unknown, apiUrl: URL, apiKey: string): Promise<MusicTorrentCandidate[]> {
   if (!Array.isArray(body)) return [];
   const results = new Map<string, MusicTorrentCandidate>();
-  const parsed = await Promise.all(body.slice(0, 10).map(async (raw): Promise<MusicTorrentCandidate | null> => {
+  const parsed = await Promise.all(body.map(async (raw): Promise<MusicTorrentCandidate | null> => {
     if (!raw || typeof raw !== 'object') return null;
     const item = raw as Record<string, unknown>;
     const name = text(item.title);
@@ -279,14 +279,15 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
   return jsonCandidates(await response.json(), url, key);
 }
 
-async function searchTorznabFeed(query: string, category: string): Promise<MusicTorrentCandidate[]> {
+async function searchTorznabFeed(query: string, category: string, limit = 50, offset = 0): Promise<MusicTorrentCandidate[]> {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) throw new Error('Torrent search is not configured. Set TORZNAB_URL to a Torznab feed URL.');
   const url = new URL(base);
   url.searchParams.set('t', 'search');
   url.searchParams.set('cat', category);
   url.searchParams.set('q', query);
-  url.searchParams.set('limit', '50');
+  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
+  url.searchParams.set('offset', String(Math.max(0, offset)));
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (key) url.searchParams.set('apikey', key);
   let response: Response;
@@ -316,31 +317,33 @@ async function searchTorznabFeed(query: string, category: string): Promise<Music
 export async function searchIndexerTorrents(
   query: string,
   type: 'search' | 'tvsearch' | 'movie' | 'music',
-  categories: string[]
+  categories: string[],
+  limit = 50,
+  offset = 0
 ): Promise<MusicTorrentCandidate[]> {
   try {
-    const prowlarr = await searchProwlarr(query, type, categories);
+    const prowlarr = await searchProwlarr(query, type, categories, limit, offset);
     if (prowlarr !== null) {
-      if (prowlarr.length || type !== 'music') return prowlarr.slice(0, 50);
-      const unrestrictedMusic = await searchProwlarr(query, 'music', []);
-      if (unrestrictedMusic?.length) return unrestrictedMusic.slice(0, 50);
-      const broadSearch = await searchProwlarr(query, 'search', []);
-      return broadSearch?.slice(0, 50) || [];
+      if (prowlarr.length || type !== 'music') return prowlarr;
+      const unrestrictedMusic = await searchProwlarr(query, 'music', [], limit, offset);
+      if (unrestrictedMusic?.length) return unrestrictedMusic;
+      const broadSearch = await searchProwlarr(query, 'search', [], limit, offset);
+      return broadSearch || [];
     }
-    return await searchTorznabFeed(query, categories.join(','));
+    return await searchTorznabFeed(query, categories.join(','), limit, offset);
   } catch (error) {
     throw new Error(error instanceof Error ? error.message : 'Indexer search failed.');
   }
 }
 
-export async function searchMusicTorrents(query: string, indexers: string[] = ['prowlarr', 'torrentio']): Promise<MusicTorrentCandidate[]> {
+export async function searchMusicTorrents(query: string, indexers: string[] = ['prowlarr', 'torrentio'], limit = 50, offset = 0): Promise<MusicTorrentCandidate[]> {
   const results: MusicTorrentCandidate[] = [];
   const categories = [process.env.TORZNAB_MUSIC_CATEGORY?.trim() || '3000'];
   
   // Search Prowlarr if requested
   if (indexers.includes('prowlarr')) {
     try {
-      const prowlarrResults = await searchProwlarr(query, 'music', categories);
+      const prowlarrResults = await searchProwlarr(query, 'music', categories, limit, offset);
       if (prowlarrResults) {
         results.push(...prowlarrResults);
       }
@@ -352,7 +355,7 @@ export async function searchMusicTorrents(query: string, indexers: string[] = ['
   // Search Torrentio via Torznab feed if requested
   if (indexers.includes('torrentio')) {
     try {
-      const torznabResults = await searchTorznabFeed(query, categories.join(','));
+      const torznabResults = await searchTorznabFeed(query, categories.join(','), limit, offset);
       results.push(...torznabResults);
     } catch (error) {
       console.warn('Torznab music search failed:', error instanceof Error ? error.message : 'unknown error');
@@ -372,5 +375,5 @@ export async function searchMusicTorrents(query: string, indexers: string[] = ['
     } : candidate);
   }
   
-  return [...unique.values()].slice(0, 50);
+  return [...unique.values()].slice(offset, offset + limit);
 }

@@ -199,6 +199,18 @@ async function searchTorrentsUsenetSearch(query) {
         const total = state.browseTorrentSearch.total || 0;
         const offset = state.offset['browse-torrent-search'] || 0;
         
+        // Update section title
+        const titleEl = $('#browse-torrent-search-title');
+        if (candidates.length === 0 && total === 0) {
+            titleEl.style.display = 'none';
+        } else if (candidates.length === 0) {
+            titleEl.style.display = 'block';
+            titleEl.textContent = 'Torrent Search Results - No results found';
+        } else {
+            titleEl.style.display = 'block';
+            titleEl.textContent = `Torrent Search Results (${candidates.length} of ${total})`;
+        }
+        
         $('#browse-torrent-results').innerHTML = candidates.length ? renderBrowseTorrentCandidates(candidates) : empty('No torrent candidates found.');
         $('#browse-torrent-more').classList.toggle('hidden', candidates.length >= total);
         
@@ -236,6 +248,18 @@ async function searchTorrentsUsenetSearch(query) {
         const candidates = state.browseUsenetSearch.candidates || [];
         const total = state.browseUsenetSearch.total || 0;
         
+        // Update section title
+        const titleEl = $('#browse-usenet-search-title');
+        if (candidates.length === 0 && total === 0) {
+            titleEl.style.display = 'none';
+        } else if (candidates.length === 0) {
+            titleEl.style.display = 'block';
+            titleEl.textContent = 'Usenet Search Results - No results found';
+        } else {
+            titleEl.style.display = 'block';
+            titleEl.textContent = `Usenet Search Results (${candidates.length} of ${total})`;
+        }
+        
         $('#browse-usenet-search-results').innerHTML = candidates.length ? renderBrowseUsenetCandidates(candidates) : empty('No usenet results found.');
         $('#browse-usenet-search-more').classList.toggle('hidden', candidates.length >= total);
         
@@ -270,6 +294,18 @@ async function searchTorrentsUsenetSearch(query) {
     function renderTitleTorrentSearchResults() {
         const candidates = state.titleTorrentSearch.candidates || [];
         const total = state.titleTorrentSearch.total || 0;
+        
+        // Update section title
+        const titleEl = $('#title-torrent-search-title');
+        if (candidates.length === 0 && total === 0) {
+            titleEl.style.display = 'none';
+        } else if (candidates.length === 0) {
+            titleEl.style.display = 'block';
+            titleEl.textContent = 'Torrent Search Results - No results found';
+        } else {
+            titleEl.style.display = 'block';
+            titleEl.textContent = `Torrent Search Results (${candidates.length} of ${total})`;
+        }
         
         $('#title-torrent-results').innerHTML = candidates.length ? renderBrowseTorrentCandidates(candidates) : empty('No torrent candidates found.');
         $('#title-torrent-count').textContent = `Showing ${candidates.length} of ${total} results`;
@@ -309,6 +345,18 @@ async function searchTorrentsUsenetSearch(query) {
         const candidates = state.titleUsenetSearch.candidates || [];
         const total = state.titleUsenetSearch.total || 0;
         
+        // Update section title
+        const titleEl = $('#title-usenet-search-title');
+        if (candidates.length === 0 && total === 0) {
+            titleEl.style.display = 'none';
+        } else if (candidates.length === 0) {
+            titleEl.style.display = 'block';
+            titleEl.textContent = 'Usenet Search Results - No results found';
+        } else {
+            titleEl.style.display = 'block';
+            titleEl.textContent = `Usenet Search Results (${candidates.length} of ${total})`;
+        }
+        
         $('#title-usenet-search-results').innerHTML = candidates.length ? renderBrowseUsenetCandidates(candidates) : empty('No usenet results found.');
         $('#title-usenet-search-count').textContent = `Showing ${candidates.length} of ${total} results`;
         $('#title-usenet-search-more').classList.toggle('hidden', candidates.length >= total);
@@ -344,6 +392,18 @@ async function searchTorrentsUsenetSearch(query) {
     function renderTorrentsUsenetSearchResults() {
         const candidates = state.torrentsUsenetSearch.candidates || [];
         const total = state.torrentsUsenetSearch.total || 0;
+        
+        // Update section title
+        const titleEl = $('#torrents-usenet-search-title');
+        if (candidates.length === 0 && total === 0) {
+            titleEl.style.display = 'none';
+        } else if (candidates.length === 0) {
+            titleEl.style.display = 'block';
+            titleEl.textContent = 'Usenet Search Results - No results found';
+        } else {
+            titleEl.style.display = 'block';
+            titleEl.textContent = `Usenet Search Results (${candidates.length} of ${total})`;
+        }
         
         $('#torrents-usenet-search-results').innerHTML = candidates.length ? renderBrowseUsenetCandidates(candidates) : empty('No usenet results found.');
         $('#torrents-usenet-search-count').textContent = `Showing ${candidates.length} of ${total} results`;
@@ -442,7 +502,7 @@ async function searchTorrentsUsenetSearch(query) {
     }
     
     async function searchBrowse(){const query=$('#browse-query').value.trim();if(query.length<2){state.browseResults={movie:[],series:[],music:[],torrents:[],usenet:[]};state.browseTorrentSearch={candidates:[],total:0,query:'',kind:'',imdbId:''};state.browseUsenetSearch={candidates:[],total:0,query:''};renderBrowseResults();setStatus('browse','Enter at least 2 characters to search.');return}setStatus('browse','Searching…');try{const sources=[];if($('#source-indexers').checked)sources.push('indexers');if($('#source-usenet').checked)sources.push('usenet');if(sources.length===0){setStatus('browse','Select at least one source.');return}const kind=$('#browse-kind').value;const usenetSource=getUsenetSource();const indexers=getSelectedIndexers();const url=`/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=20&offset=0`;const data=await jsonFetch(url);state.browseResults={movie:data.movies?.items||[],series:data.shows?.items||[],music:data.music?.items||[],torrents:data.torrents?.items||[],usenet:data.usenet?.items||[]};state.total['browse-movies']=data.movies?.total||0;state.total['browse-shows']=data.shows?.total||0;state.total['browse-music']=data.music?.total||0;state.total['browse-torrents']=data.torrents?.total||0;state.total['browse-usenet']=data.usenet?.total||0;state.offset['browse-movies']=data.movies?.items?.length||0;state.offset['browse-shows']=data.shows?.items?.length||0;state.offset['browse-music']=data.music?.items?.length||0;state.offset['browse-torrents']=data.torrents?.items?.length||0;state.offset['browse-usenet']=data.usenet?.items?.length||0;renderBrowseResults();const warnings=[...(data.torrents?.warnings||[]),...(data.usenet?.warnings||[])];const total=data.movies?.total+data.shows?.total+data.music?.total+data.torrents?.total+data.usenet?.total;setStatus('browse',`${total} results${warnings.length?` · ${warnings.join(' · ')}`:''}`)}catch(error){setStatus('browse',error.message)}}
-    function renderBrowseResults(){const kind=$('#browse-kind').value;const showAll=kind==='all';$('#browse-movies-section').style.display=(showAll||kind==='movie')&&$('#source-indexers').checked?'block':'none';$('#browse-shows-section').style.display=(showAll||kind==='series')&&$('#source-indexers').checked?'block':'none';$('#browse-music-section').style.display=(showAll||kind==='music')&&$('#source-indexers').checked?'block':'none';$('#browse-torrents-section').style.display=(showAll||kind==='torrents')&&$('#source-indexers').checked?'block':'none';$('#browse-usenet-section').style.display=(showAll||kind==='usenet')&&$('#source-usenet').checked?'block':'none';$('#browse-torrent-search-section').style.display='none';$('#browse-usenet-search-section').style.display='none';if(showAll||kind==='movie'){$('#browse-movies-results').innerHTML=titleCards(state.browseResults.movie.map(item=>({...item,kind:'movie'})));$('#browse-movies-more').classList.toggle('hidden',state.browseResults.movie.length>=state.total['browse-movies']);observeArtwork($('#browse-movies-results'))}if(showAll||kind==='series'){$('#browse-shows-results').innerHTML=titleCards(state.browseResults.series.map(item=>({...item,kind:'series'})));$('#browse-shows-more').classList.toggle('hidden',state.browseResults.series.length>=state.total['browse-shows']);observeArtwork($('#browse-shows-results'))}if(showAll||kind==='music'){$('#browse-music-results').innerHTML=state.browseResults.music.length?musicReleaseCards(state.browseResults.music):'';$('#browse-music-more').classList.toggle('hidden',state.browseResults.music.length>=state.total['browse-music']);observeArtwork($('#browse-music-results'))}if(showAll||kind==='torrents'){$('#browse-torrents-results').innerHTML=state.browseResults.torrents.length?renderBrowseTorrentCandidates(state.browseResults.torrents):empty('No torrent results found.');$('#browse-torrents-more').classList.toggle('hidden',state.browseResults.torrents.length>=state.total['browse-torrents'])}if(showAll||kind==='usenet'){$('#browse-usenet-results').innerHTML=state.browseResults.usenet.length?renderBrowseUsenetCandidates(state.browseResults.usenet):empty('No usenet results found.');$('#browse-usenet-more').classList.toggle('hidden',state.browseResults.usenet.length>=state.total['browse-usenet'])}}
+    function renderBrowseResults(){const kind=$('#browse-kind').value;const showAll=kind==='all';const hasIndexers=$('#source-indexers').checked;const hasUsenet=$('#source-usenet').checked;const showMovies=(showAll||kind==='movie')&&hasIndexers;$('#browse-movies-section').style.display=showMovies?'block':'none';if(showMovies){const movies=state.browseResults.movie||[];const totalMovies=state.total['browse-movies']||0;const titleEl=$('#browse-movies-title');if(movies.length===0&&totalMovies===0){titleEl.style.display='none'}else if(movies.length===0){titleEl.style.display='block';titleEl.textContent='Movies - No results found'}else{titleEl.style.display='block';titleEl.textContent=`Movies (${movies.length} of ${totalMovies})`}$('#browse-movies-results').innerHTML=movies.length?titleCards(movies.map(item=>({...item,kind:'movie'}))):empty('No movie results found.');$('#browse-movies-more').classList.toggle('hidden',movies.length>=totalMovies);observeArtwork($('#browse-movies-results'))}const showShows=(showAll||kind==='series')&&hasIndexers;$('#browse-shows-section').style.display=showShows?'block':'none';if(showShows){const shows=state.browseResults.series||[];const totalShows=state.total['browse-shows']||0;const titleEl=$('#browse-shows-title');if(shows.length===0&&totalShows===0){titleEl.style.display='none'}else if(shows.length===0){titleEl.style.display='block';titleEl.textContent='Shows - No results found'}else{titleEl.style.display='block';titleEl.textContent=`Shows (${shows.length} of ${totalShows})`}$('#browse-shows-results').innerHTML=shows.length?titleCards(shows.map(item=>({...item,kind:'series'}))):empty('No show results found.');$('#browse-shows-more').classList.toggle('hidden',shows.length>=totalShows);observeArtwork($('#browse-shows-results'))}const showMusic=(showAll||kind==='music')&&hasIndexers;$('#browse-music-section').style.display=showMusic?'block':'none';if(showMusic){const music=state.browseResults.music||[];const totalMusic=state.total['browse-music']||0;const titleEl=$('#browse-music-title');if(music.length===0&&totalMusic===0){titleEl.style.display='none'}else if(music.length===0){titleEl.style.display='block';titleEl.textContent='Music - No results found'}else{titleEl.style.display='block';titleEl.textContent=`Music (${music.length} of ${totalMusic})`}$('#browse-music-results').innerHTML=music.length?musicReleaseCards(music):empty('No music results found.');$('#browse-music-more').classList.toggle('hidden',music.length>=totalMusic);observeArtwork($('#browse-music-results'))}const showTorrents=(showAll||kind==='torrents')&&hasIndexers;$('#browse-torrents-section').style.display=showTorrents?'block':'none';if(showTorrents){const torrents=state.browseResults.torrents||[];const totalTorrents=state.total['browse-torrents']||0;const titleEl=$('#browse-torrents-title');if(torrents.length===0&&totalTorrents===0){titleEl.style.display='none'}else if(torrents.length===0){titleEl.style.display='block';titleEl.textContent='Torrents - No results found'}else{titleEl.style.display='block';titleEl.textContent=`Torrents (${torrents.length} of ${totalTorrents})`}$('#browse-torrents-results').innerHTML=torrents.length?renderBrowseTorrentCandidates(torrents):empty('No torrent results found.');$('#browse-torrents-more').classList.toggle('hidden',torrents.length>=totalTorrents)}const showUsenet=(showAll||kind==='usenet')&&hasUsenet;$('#browse-usenet-section').style.display=showUsenet?'block':'none';if(showUsenet){const usenet=state.browseResults.usenet||[];const totalUsenet=state.total['browse-usenet']||0;const titleEl=$('#browse-usenet-title');if(usenet.length===0&&totalUsenet===0){titleEl.style.display='none'}else if(usenet.length===0){titleEl.style.display='block';titleEl.textContent='Usenet - No results found'}else{titleEl.style.display='block';titleEl.textContent=`Usenet (${usenet.length} of ${totalUsenet})`}$('#browse-usenet-results').innerHTML=usenet.length?renderBrowseUsenetCandidates(usenet):empty('No usenet results found.');$('#browse-usenet-more').classList.toggle('hidden',usenet.length>=totalUsenet)}$('#browse-torrent-search-section').style.display='none';$('#browse-usenet-search-section').style.display='none'}nts'])}if(showAll||kind==='usenet'){$('#browse-usenet-results').innerHTML=state.browseResults.usenet.length?renderBrowseUsenetCandidates(state.browseResults.usenet):empty('No usenet results found.');$('#browse-usenet-more').classList.toggle('hidden',state.browseResults.usenet.length>=state.total['browse-usenet'])}}
     function renderTorrentCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType=item.kind==='series'?'Show':'Movie';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source,contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<a class="p-button p-button-secondary p-button-small" href="${esc(item.magnet)}">Magnet</a>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}">Add cached</button></div></article>`}).join('')}
     function renderUsenetCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType='All';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${sourceTag(source,contentType)}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}</div></div><div class="candidate-actions"><button class="p-button p-button-primary p-button-small" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name}))}">Add to TorBox</button></div></article>`}).join('')}
     async function loadMoreBrowse(category){const query=$('#browse-query').value.trim();if(query.length<2)return;const kind=$('#browse-kind').value;const sources=[];if($('#source-indexers').checked)sources.push('indexers');if($('#source-usenet').checked)sources.push('usenet');if(sources.length===0)return;const usenetSource=getUsenetSource();const indexers=getSelectedIndexers();const offset=state.offset[`browse-${category}`]||0;const limit=20;setStatus('browse',`Loading more ${category}…`);try{const url=`/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`;const data=await jsonFetch(url);const newItems=category==='movies'?data.movies?.items||[]:category==='shows'?data.shows?.items||[]:category==='music'?data.music?.items||[]:category==='torrents'?data.torrents?.items||[]:data.usenet?.items||[];state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]=[...(state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]||[]),...newItems];state.offset[`browse-${category}`]+=newItems.length;renderBrowseResults();setStatus('browse','')}catch(error){setStatus('browse',error.message)}}

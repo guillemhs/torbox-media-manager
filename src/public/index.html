@@ -85,42 +85,42 @@
         
         <!-- Movies section -->
         <div id="browse-movies-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Movies</h3>
+          <h3 id="browse-movies-title" style="margin: 20px 0 10px;">Movies</h3>
           <div class="result-grid" id="browse-movies-results"></div>
           <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-movies-more">Load more</button></div>
         </div>
         
         <!-- Shows section -->
         <div id="browse-shows-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Shows</h3>
+          <h3 id="browse-shows-title" style="margin: 20px 0 10px;">Shows</h3>
           <div class="result-grid" id="browse-shows-results"></div>
           <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-shows-more">Load more</button></div>
         </div>
         
         <!-- Music section -->
         <div id="browse-music-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Music</h3>
+          <h3 id="browse-music-title" style="margin: 20px 0 10px;">Music</h3>
           <div class="result-grid" id="browse-music-results"></div>
           <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-music-more">Load more</button></div>
         </div>
         
         <!-- Torrents section -->
         <div id="browse-torrents-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Torrents</h3>
+          <h3 id="browse-torrents-title" style="margin: 20px 0 10px;">Torrents</h3>
           <div class="candidate-list" id="browse-torrents-results"></div>
           <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-torrents-more">Load more</button></div>
         </div>
         
         <!-- Usenet section -->
         <div id="browse-usenet-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Usenet</h3>
+          <h3 id="browse-usenet-title" style="margin: 20px 0 10px;">Usenet</h3>
           <div class="candidate-list" id="browse-usenet-results"></div>
           <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-usenet-more">Load more</button></div>
         </div>
         
         <!-- Torrent/Usenet search results (inline, no modal) -->
         <div id="browse-torrent-search-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Torrent Search Results</h3>
+          <h3 id="browse-torrent-search-title" style="margin: 20px 0 10px;">Torrent Search Results</h3>
           <div class="candidate-filterbar" aria-label="Filter and sort torrent candidates">
             <label>Order by<select id="browse-torrent-sort"><option value="seeders">Most seeders</option><option value="leechers">Most leechers</option><option value="name">Name</option></select></label>
             <label>Min seeders<input id="browse-torrent-min-seeders" type="number" min="0" inputmode="numeric" placeholder="Any"></label>
@@ -132,7 +132,7 @@
         </div>
         
         <div id="browse-usenet-search-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Usenet Search Results</h3>
+          <h3 id="browse-usenet-search-title" style="margin: 20px 0 10px;">Usenet Search Results</h3>
           <div class="candidate-filterbar" aria-label="Filter usenet candidates">
             <label>Source<select id="browse-usenet-search-source"><option value="all">Both indexers</option><option value="NZBIndex">NZBIndex</option><option value="Binsearch">Binsearch</option></select></label>
           </div>
@@ -219,7 +219,7 @@
         
         <!-- Usenet search results inline (no modal) -->
         <div id="torrents-usenet-search-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Usenet Search Results</h3>
+          <h3 id="torrents-usenet-search-title" style="margin: 20px 0 10px;">Usenet Search Results</h3>
           <div class="candidate-filterbar" aria-label="Filter usenet candidates">
             <label>Source<select id="torrents-usenet-search-source"><option value="all">Both indexers</option><option value="NZBIndex">NZBIndex</option><option value="Binsearch">Binsearch</option></select></label>
           </div>
@@ -271,7 +271,7 @@
         
         <!-- Torrent search results inline (no modal) -->
         <div id="title-torrent-search-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Torrent Search Results</h3>
+          <h3 id="title-torrent-search-title" style="margin: 20px 0 10px;">Torrent Search Results</h3>
           <div class="candidate-filterbar" aria-label="Filter and sort torrent candidates">
             <label>Order by<select id="title-torrent-sort"><option value="seeders">Most seeders</option><option value="leechers">Most leechers</option><option value="name">Name</option></select></label>
             <label>Min seeders<input id="title-torrent-min-seeders" type="number" min="0" inputmode="numeric" placeholder="Any"></label>
@@ -284,7 +284,7 @@
         
         <!-- Usenet search results inline (no modal) -->
         <div id="title-usenet-search-section" style="display: none;">
-          <h3 style="margin: 20px 0 10px;">Usenet Search Results</h3>
+          <h3 id="title-usenet-search-title" style="margin: 20px 0 10px;">Usenet Search Results</h3>
           <div class="candidate-filterbar" aria-label="Filter usenet candidates">
             <label>Source<select id="title-usenet-search-source"><option value="all">Both indexers</option><option value="NZBIndex">NZBIndex</option><option value="Binsearch">Binsearch</option></select></label>
           </div>

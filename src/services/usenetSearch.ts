@@ -15,10 +15,10 @@ async function readResponse(response: Response): Promise<string> {
   return response.text();
 }
 
-async function searchNzbIndex(query: string): Promise<UsenetCandidate[]> {
+async function searchNzbIndex(query: string, limit = 50, offset = 0): Promise<UsenetCandidate[]> {
   const url = new URL('https://api.nzbindex.com/api/search');
   url.searchParams.set('q', query);
-  url.searchParams.set('max', '50');
+  url.searchParams.set('max', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('complete', '1');
   const payload = JSON.parse(await readResponse(await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15_000) }))) as {
     data?: { content?: Array<Record<string, unknown>> }; error?: boolean; errorMessage?: string;
@@ -30,13 +30,13 @@ async function searchNzbIndex(query: string): Promise<UsenetCandidate[]> {
     return [{ id, name: text(item.name) || 'Unnamed NZB', size: Number(item.size) || undefined,
       posted: Number(item.posted) || undefined, complete: item.complete === true,
       groups: Array.isArray(item.groups) ? item.groups.filter((group): group is string => typeof group === 'string') : [], source: 'NZBIndex' as const }];
-  });
+  }).slice(offset, offset + limit);
 }
 
-async function searchBinsearch(query: string): Promise<UsenetCandidate[]> {
+async function searchBinsearch(query: string, limit = 50, offset = 0): Promise<UsenetCandidate[]> {
   const url = new URL('https://www.binsearch.info/');
   url.searchParams.set('q', query);
-  url.searchParams.set('max', '100');
+  url.searchParams.set('max', String(Math.min(200, Math.max(1, limit))));
   const html = await readResponse(await fetch(url, { headers: { 'User-Agent': 'TorBoxMediaManager/1.0 (+self-hosted media indexer search)', Accept: 'text/html' }, signal: AbortSignal.timeout(15_000) }));
   // Binsearch exposes selected article identifiers as checkbox values. Keep parsing
   // deliberately defensive because the public HTML is not a versioned API.
@@ -51,18 +51,18 @@ async function searchBinsearch(query: string): Promise<UsenetCandidate[]> {
     const name = row.replace(/<[^>]*>/g, ' ').replace(/&(?:nbsp|amp|quot|lt|gt);/g, ' ').replace(/\s+/g, ' ').trim();
     if (!name || candidates.some(candidate => candidate.id === value)) continue;
     candidates.push({ id: value, name: name.slice(-240), source: 'Binsearch' });
-    if (candidates.length >= 50) break;
+    if (candidates.length >= offset + limit) break;
   }
-  return candidates;
+  return candidates.slice(offset, offset + limit);
 }
 
-export async function searchUsenet(query: string, source: 'all' | 'NZBIndex' | 'Binsearch') {
+export async function searchUsenet(query: string, source: 'all' | 'NZBIndex' | 'Binsearch', limit = 50, offset = 0) {
   const sources = source === 'all' ? ['NZBIndex', 'Binsearch'] as const : [source] as const;
-  const results = await Promise.allSettled(sources.map(name => name === 'NZBIndex' ? searchNzbIndex(query) : searchBinsearch(query)));
+  const results = await Promise.allSettled(sources.map(name => name === 'NZBIndex' ? searchNzbIndex(query, limit, offset) : searchBinsearch(query, limit, offset)));
   const candidates = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
   const warnings = results.flatMap((result, index) => result.status === 'rejected'
     ? [`${sources[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`] : []);
-  return { candidates, warnings, configured: { NZBIndex: true, Binsearch: true } };
+  return { candidates: candidates.slice(offset, offset + limit), warnings, configured: { NZBIndex: true, Binsearch: true } };
 }
 
 export async function fetchUsenetNzb(source: 'NZBIndex' | 'Binsearch', id: string): Promise<Buffer> {

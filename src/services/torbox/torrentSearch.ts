@@ -35,7 +35,7 @@ function encodeQueryValue(value: string): string {
   return encodeURIComponent(wellFormed);
 }
 
-export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1): Promise<TorrentCandidate[]> {
+export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
   if (!/^tt\d+$/.test(imdbId)) throw new Error('A valid IMDb ID is required for torrent search.');
   if (kind === 'series' && (!Number.isSafeInteger(season) || season < 1 || season > 99)) {
     throw new Error('Season must be between 1 and 99.');
@@ -88,5 +88,7 @@ export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 's
       source: 'Torrentio'
     });
   }
-  return [...candidates.values()].slice(0, 40);
+  const clampedLimit = Math.min(100, Math.max(1, limit));
+  const clampedOffset = Math.max(0, offset);
+  return [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);
 }

@@ -65,8 +65,9 @@ export const usenetSearchRoute: RequestHandler = async (req, res) => {
   const sourceValue = scalar(req.query.source) || 'all';
   if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Usenet search must be between 2 and 180 characters.' });
   if (!['all', 'NZBIndex', 'Binsearch'].includes(sourceValue)) return res.status(400).json({ error: 'source must be all, NZBIndex, or Binsearch.' });
+  const page = pagination(req.query as Record<string, unknown>);
   try {
-    const data = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch');
+    const data = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
     res.setHeader('Cache-Control', 'private, no-store');
     return res.json(data);
   } catch (error) { return sendError(res, error); }
@@ -194,12 +195,13 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
   const storedTitle = await getTitle(imdbId) as { primaryTitle?: string } | null;
   const title = (scalar(req.query.title)?.trim() || storedTitle?.primaryTitle || '').slice(0, 180);
   if (!title) return res.status(404).json({ error: 'A title is required for indexer search.' });
+  const page = pagination(req.query as Record<string, unknown>);
   try {
     const season = Number(seasonValue);
     const torznabQuery = kind === 'series' ? `${title} S${String(season).padStart(2, '0')}` : title;
     const searches = await Promise.allSettled([
-      searchTorrentCandidates(imdbId, kind, season),
-      searchIndexerTorrents(torznabQuery, kind === 'series' ? 'tvsearch' : 'movie', [kind === 'series' ? '5000' : '2000'])
+      searchTorrentCandidates(imdbId, kind, season, page.limit, page.offset),
+      searchIndexerTorrents(torznabQuery, kind === 'series' ? 'tvsearch' : 'movie', [kind === 'series' ? '5000' : '2000'], page.limit, page.offset)
     ]);
     const providerNames = ['Torrentio', 'Prowlarr'];
     const successful: TorrentCandidate[] = searches.flatMap((result) => result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []);
@@ -247,8 +249,9 @@ export const recentMusicReleasesRoute: RequestHandler = async (_req, res) => {
 export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
   const query = scalar(req.query.q)?.trim() || '';
   if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Music torrent search must be between 2 and 180 characters.' });
+  const page = pagination(req.query as Record<string, unknown>);
   try {
-    const candidates = await searchMusicTorrents(query);
+    const candidates = await searchMusicTorrents(query, undefined, page.limit, page.offset);
     res.setHeader('Cache-Control', 'private, no-store');
     return res.json({ candidates, total: candidates.length, source: 'Torznab' });
   } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music torrent search failed.' }); }
@@ -401,7 +404,7 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
 
             if (kind === 'music' || kind === 'all') {
               // Music torrent search
-              const musicTorrents = await searchMusicTorrents(query, indexers);
+              const musicTorrents = await searchMusicTorrents(query, indexers, page.limit, page.offset);
               torrentCandidates.push(...musicTorrents);
               if (indexers.includes('prowlarr')) sourceNames.push('Prowlarr');
               if (indexers.includes('torrentio')) sourceNames.push('Torrentio');
@@ -419,14 +422,16 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
                 const providerNames: string[] = [];
                 
                 if (indexers.includes('torrentio')) {
-                  searches.push(searchTorrentCandidates(imdbId, mediaKind, 1));
+                  searches.push(searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset));
                   providerNames.push('Torrentio');
                 }
                 if (indexers.includes('prowlarr')) {
                   searches.push(searchIndexerTorrents(
                     mediaKind === 'series' ? `${firstResult.primaryTitle} S01` : firstResult.primaryTitle,
                     mediaKind === 'series' ? 'tvsearch' : 'movie',
-                    [mediaKind === 'series' ? '5000' : '2000']
+                    [mediaKind === 'series' ? '5000' : '2000'],
+                    page.limit,
+                    page.offset
                   ));
                   providerNames.push('Prowlarr');
                 }
@@ -455,10 +460,8 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
               }
             }
 
-            const start = page.offset;
-            const end = Math.min(start + page.limit, torrentCandidates.length);
             results.torrents = {
-              items: torrentCandidates.slice(start, end),
+              items: torrentCandidates,
               total: torrentCandidates.length,
               limit: page.limit,
               offset: page.offset,
@@ -488,12 +491,10 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
             if (!['all', 'NZBIndex', 'Binsearch'].includes(sourceValue)) {
               throw new Error('usenetSource must be all, NZBIndex, or Binsearch.');
             }
-            const usenetResult = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch');
+            const usenetResult = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
             const candidates = usenetResult.candidates || [];
-            const start = page.offset;
-            const end = Math.min(start + page.limit, candidates.length);
             results.usenet = {
-              items: candidates.slice(start, end),
+              items: candidates,
               total: candidates.length,
               limit: page.limit,
               offset: page.offset,

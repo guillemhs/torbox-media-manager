@@ -49,7 +49,7 @@
       <section class="view active" id="view-browse">
         <div class="view-heading"><div><h2>Browse media</h2><p>Search movies and shows from IMDb or music releases from MusicBrainz, find torrents and Usenet content, and add cached results to TorBox.</p></div></div>
         <div class="artwork-hint">Artwork sources: TMDB for movies, TVMaze for shows, and MusicBrainz / Cover Art Archive for music.</div>
-        <div class="search-row"><input class="p-search" id="browse-query" type="search" placeholder="Search movies, shows, or music" aria-label="Search movies, shows, or music"><select id="browse-kind" aria-label="Filter results"><option value="all">All results</option><option value="movie">Movies</option><option value="series">Shows</option><option value="music">Music</option><option value="torrents">Torrents</option><option value="usenet">Usenet</option></select><button class="p-button p-button-primary" data-search="browse">Search</button><button class="p-button p-button-secondary" id="browse-indexer-search">Indexers</button></div>
+        <div class="search-row"><input class="p-search" id="browse-query" type="search" placeholder="Search movies, shows, or music" aria-label="Search movies, shows, or music"><select id="browse-kind" aria-label="Filter results"><option value="all">All results</option><option value="movie">Movies</option><option value="series">Shows</option><option value="music">Music</option></select><button class="p-button p-button-primary" data-search="browse">Search</button></div>
         
         <!-- Source filters -->
         <div class="toolbar-row" style="margin-top: 8px;">
@@ -87,35 +87,35 @@
         <div id="browse-movies-section" style="display: none;">
           <h3 style="margin: 20px 0 10px;">Movies</h3>
           <div class="result-grid" id="browse-movies-results"></div>
-          <div class="toolbar-row"><span class="muted" id="browse-movies-count"></span><button class="p-button p-button-secondary hidden" id="browse-movies-more">Load more</button></div>
+          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-movies-more">Load more</button></div>
         </div>
         
         <!-- Shows section -->
         <div id="browse-shows-section" style="display: none;">
           <h3 style="margin: 20px 0 10px;">Shows</h3>
           <div class="result-grid" id="browse-shows-results"></div>
-          <div class="toolbar-row"><span class="muted" id="browse-shows-count"></span><button class="p-button p-button-secondary hidden" id="browse-shows-more">Load more</button></div>
+          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-shows-more">Load more</button></div>
         </div>
         
         <!-- Music section -->
         <div id="browse-music-section" style="display: none;">
           <h3 style="margin: 20px 0 10px;">Music</h3>
           <div class="result-grid" id="browse-music-results"></div>
-          <div class="toolbar-row"><span class="muted" id="browse-music-count"></span><button class="p-button p-button-secondary hidden" id="browse-music-more">Load more</button></div>
+          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-music-more">Load more</button></div>
         </div>
         
         <!-- Torrents section -->
         <div id="browse-torrents-section" style="display: none;">
           <h3 style="margin: 20px 0 10px;">Torrents</h3>
           <div class="candidate-list" id="browse-torrents-results"></div>
-          <div class="toolbar-row"><span class="muted" id="browse-torrents-count"></span><button class="p-button p-button-secondary hidden" id="browse-torrents-more">Load more</button></div>
+          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-torrents-more">Load more</button></div>
         </div>
         
         <!-- Usenet section -->
         <div id="browse-usenet-section" style="display: none;">
           <h3 style="margin: 20px 0 10px;">Usenet</h3>
           <div class="candidate-list" id="browse-usenet-results"></div>
-          <div class="toolbar-row"><span class="muted" id="browse-usenet-count"></span><button class="p-button p-button-secondary hidden" id="browse-usenet-more">Load more</button></div>
+          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-usenet-more">Load more</button></div>
         </div>
         
         <!-- Torrent/Usenet search results (inline, no modal) -->
@@ -128,7 +128,7 @@
           </div>
           <div class="candidate-count" id="browse-torrent-count" aria-live="polite"></div>
           <div class="candidate-list" id="browse-torrent-results"></div>
-          <div class="toolbar-row"><span class="muted" id="browse-torrent-total"></span><button class="p-button p-button-secondary hidden" id="browse-torrent-more">Load more</button></div>
+          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-torrent-more">Load more</button></div>
         </div>
         
         <div id="browse-usenet-search-section" style="display: none;">
@@ -138,7 +138,7 @@
           </div>
           <div class="candidate-count" id="browse-usenet-search-count" aria-live="polite"></div>
           <div class="candidate-list" id="browse-usenet-search-results"></div>
-          <div class="toolbar-row"><span class="muted" id="browse-usenet-search-total"></span><button class="p-button p-button-secondary hidden" id="browse-usenet-search-more">Load more</button></div>
+          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-usenet-search-more">Load more</button></div>
         </div>
       </section>
 

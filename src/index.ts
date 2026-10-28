@@ -9,7 +9,6 @@ import {
   addTorrentToTorboxRoute,
   getLibraryRoute,
   getLibraryStatusRoute,
-  getTorboxMusicLibraryRoute,
   imdbImportRoute,
   musicArtworkRoute,
   musicMetadataSearchRoute,
@@ -42,7 +41,6 @@ app.get('/health', async (_req, res) => {
   res.json({ status: 'ok', mode: process.env.TORBOX_API_KEY?.trim() ? 'torbox-integrated' : 'local-offline' });
 });
 app.get('/library', getLibraryRoute);
-app.get('/library/music', getTorboxMusicLibraryRoute);
 app.get('/library/status', getLibraryStatusRoute);
 app.post('/library/scan', triggerLibraryScanRoute);
 app.post('/library/sync', syncLibraryTorboxRoute);
@@ -62,7 +60,6 @@ app.get('/api/search', unifiedSearchRoute);
 app.get('/api/calendar', calendarRoute);
 app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);
-app.get('/api/music', getTorboxMusicLibraryRoute);
 app.get('/music/search', musicMetadataSearchRoute);
 app.get('/music/torrents/search', musicTorrentSearchRoute);
 app.get('/music/torrents/download/:token', musicTorrentDownloadRoute);
@@ -87,7 +84,7 @@ app.get('/admin/imdb/status', async (_req, res) => {
 
 // Serve the SPA for its real, bookmarkable URLs. API endpoints live under
 // /api where a UI route would otherwise have the same path.
-app.get(['/', '/browse', '/movies', '/shows', '/torrents', '/local', '/music', '/calendar', '/title/:imdbId', '/tvmaze/:id', '/music/release/:id'], (_req, res) => {
+app.get(['/', '/browse', '/movies', '/shows', '/torrents', '/local', '/calendar', '/title/:imdbId', '/tvmaze/:id'], (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

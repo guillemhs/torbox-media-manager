@@ -97,24 +97,6 @@ export const downloadUsenetFileRoute: RequestHandler = async (req, res) => {
   catch (error) { return sendError(res, error); }
 };
 
-export const getTorboxMusicLibraryRoute: RequestHandler = async (req, res) => {
-  if (!process.env.TORBOX_API_KEY?.trim()) {
-    return res.status(503).json({ error: { code: 'torbox_not_configured', message: 'TORBOX_API_KEY is required for music features.' } });
-  }
-  try {
-    const response = await getTorrentList(undefined, { limit: 1000 });
-    const data = response.data;
-    const items = Array.isArray(data) ? data : data ? [data] : [];
-    const q = scalar(req.query.q)?.trim().toLocaleLowerCase();
-    const albums = normalizeTorBoxMusicLibrary(items)
-      .map(album => ({ ...album, tracks: q ? album.tracks.filter(track => `${album.name} ${track.name} ${track.path}`.toLocaleLowerCase().includes(q)) : album.tracks }))
-      .filter(album => album.tracks.length > 0 && (!q || album.name.toLocaleLowerCase().includes(q) || album.tracks.length > 0));
-    res.setHeader('Cache-Control', 'private, no-store');
-    return res.json({ albums, totalAlbums: albums.length, totalTracks: albums.reduce((total, album) => total + album.tracks.length, 0) });
-  } catch (error) {
-    return sendError(res, error);
-  }
-};
 
 export const streamTorboxTrackRoute: RequestHandler = async (req, res) => {
   if (!process.env.TORBOX_API_KEY?.trim()) return res.status(503).json({ error: 'TORBOX_API_KEY is required for TorBox streaming.' });

@@ -9,14 +9,14 @@ user-invocable: true
 tools: 
   - execute/terminal
   - execute/getTerminalOutput
+  - execute/runInTerminal
+  - execute/sendToTerminal
   - read_file
   - file_search
   - grep_search
   - list_dir
   - manage_todo_list
   - agent
-agents:
-  - Explore
 ---
 # AGENT DIRECTIVE: TORBOX MEDIA MANAGER MAINTAINER
 
@@ -31,6 +31,7 @@ You are the lead maintainer and autonomous developer for **guillemhs/torbox-medi
 3. **USE LOCAL TERMINAL FOR EVERYTHING:** Run all file reads, searches, code patches, and test suites directly in the integrated terminal using Python or shell commands.
 4. **NO CONVERSATIONAL FILLER:** Never output repetitive planning text or meta-commentary like *"Let me try..."*. Execute your commands immediately.
 5. **ANTI-LOOP GUARD (MAX 2 ATTEMPTS):** You have a strict limit of **2 build/patch attempts**. If `npm run build` fails twice after patching, **stop immediately**, output the exact terminal error output, and ask the user for guidance.
+6. **ALWAYS OPERATE FROM THE REPOSITORY ROOT:** Anchor all terminal commands, Python scripts, file paths, and build operations strictly to the root directory of the `torbox-media-manager` repository workspace. Never assume a nested working directory.
 
 ---
 

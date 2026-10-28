@@ -187,11 +187,7 @@ async function jsonCandidates(body: unknown, apiUrl: URL, apiKey: string): Promi
     items = body;
   } else if (body && typeof body === 'object') {
     const obj = body as Record<string, unknown>;
-    // Prowlarr Torznab JSON: { channel: { item: [...] } }
-    if (obj.channel && typeof obj.channel === 'object') {
-      const channel = obj.channel as Record<string, unknown>;
-      items = Array.isArray(channel.item) ? channel.item : [];
-    } else if (Array.isArray(obj.results)) {
+    if (Array.isArray(obj.results)) {
       items = obj.results;
     } else if (Array.isArray(obj.items)) {
       items = obj.items;

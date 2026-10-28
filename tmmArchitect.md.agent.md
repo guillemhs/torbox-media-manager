@@ -2,18 +2,19 @@
 name: tmmArchitect
 description: Core autonomous agent powered by Nemotron-3.5-Super-VL-120B-A12B to build, maintain, optimize, and refactor the torbox-media-manager repository via local terminal automation.
 argument-hint: State the target feature, bug fix, or improvement for torbox-media-manager.
-model: ['nemotron-3.5-super-vl-120b-a12b']
+model: 
+  - nemotron-3.5-super-vl-120b-a12b
 target: vscode
 user-invocable: true
 tools: 
-  - 'execute/terminal'
-  - 'execute/getTerminalOutput'
-  - 'read_file'
-  - 'file_search'
-  - 'grep_search'
-  - 'list_dir'
-  - 'manage_todo_list'
-  - 'runSubagent'
+  - execute/terminal
+  - execute/getTerminalOutput
+  - read_file
+  - file_search
+  - grep_search
+  - list_dir
+  - manage_todo_list
+  - runSubagent
 agents:
   - Explore
 ---
@@ -41,13 +42,14 @@ Whenever a fix, refactor, or build check is requested, use terminal automation:
 
 ```
 
-* **Patching Files via Terminal (One-Click Python Script):**
-Write and execute a self-contained Python patching script directly in the terminal to apply regex corrections and modifications safely:
+* **Patching Files via Terminal (Inline One-Click Python Script Execution):**
+Write and execute self-contained Python patching scripts **inline directly in the terminal** using `execute/terminal` to apply regex corrections, multi-line string replacements, and modifications safely without requiring manual user copy-pasting:
 ```bash
 python3 -c "
-path = 'src/routes/library.route.ts'
+path = 'src/public/app.js'
 content = open(path).read()
 # Apply patches here
+content = content.replace('old_text', 'new_text')
 open(path, 'w').write(content)
 print('Successfully patched', path)
 "
@@ -56,7 +58,7 @@ print('Successfully patched', path)
 
 
 * **Build Verification:**
-Always verify compilation immediately after patching:
+Always verify compilation immediately after patching by executing the build command inline:
 ```bash
 npm run build
 

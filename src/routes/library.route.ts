@@ -278,7 +278,8 @@ export const moviesRoute: RequestHandler = async (req, res) => {
   try {
     const page = pagination(req.query as Record<string, unknown>);
     const result = await searchTitles({ ...page, q: scalar(req.query.q), kind: 'movie' });
-    return res.json({ ...result, importStatus: await getImportStatus() });
+    const itemsWithSource = result.items.map(item => ({ ...item, _source: 'local-movies' }));
+    return res.json({ ...result, items: itemsWithSource, importStatus: await getImportStatus() });
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
 
@@ -286,7 +287,8 @@ export const showsRoute: RequestHandler = async (req, res) => {
   try {
     const page = pagination(req.query as Record<string, unknown>);
     const result = await searchTitles({ ...page, q: scalar(req.query.q), kind: 'series' });
-    return res.json({ ...result, importStatus: await getImportStatus() });
+    const itemsWithSource = result.items.map(item => ({ ...item, _source: 'local-shows' }));
+    return res.json({ ...result, items: itemsWithSource, importStatus: await getImportStatus() });
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
 

@@ -232,6 +232,32 @@ export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
   } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music torrent search failed.' }); }
 };
 
+export const musicRoute: RequestHandler = async (req, res) => {
+  try {
+    const page = pagination(req.query as Record<string, unknown>);
+    const q = scalar(req.query.q) || '';
+    // If coming from /browse with a category filter, preserve it
+    const kind = scalar(req.query.kind) || 'music';
+    const result = await searchMusicMetadata(q);
+    const releasesWithSource = result.map((release: any) => ({
+      ...release,
+      _source: 'local-music'
+    }));
+    
+    // Build browse link with category filter
+    const browseLink = kind === 'music'
+      ? '/browse?q=' + encodeURIComponent(q || '') + '&kind=music'
+      : '/browse';
+    
+    return res.json({ 
+      releases: releasesWithSource,
+      total: releasesWithSource.length,
+      source: 'MusicBrainz',
+      browseLink: '/browse?q=' + encodeURIComponent(q || '') + '&kind=music'
+    });
+  } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
+};
+
 export const musicTorrentDownloadRoute: RequestHandler = async (req, res) => {
   const token = scalar(req.params.token) || '';
   if (!/^[a-f0-9-]{36}$/i.test(token)) return res.status(400).json({ error: 'Torrent download link is invalid or expired.' });
@@ -252,18 +278,46 @@ export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(get
 export const moviesRoute: RequestHandler = async (req, res) => {
   try {
     const page = pagination(req.query as Record<string, unknown>);
-    const result = await searchTitles({ ...page, q: scalar(req.query.q), kind: 'movie' });
+    const q = scalar(req.query.q);
+    // If coming from /browse with a category filter, preserve it
+    const kind = scalar(req.query.kind) || 'movie';
+    const result = await searchTitles({ ...page, q, kind: 'movie' });
     const itemsWithSource = result.items.map(item => ({ ...item, _source: 'local-movies' }));
-    return res.json({ ...result, items: itemsWithSource, importStatus: await getImportStatus() });
+    
+    // Build browse link with category filter
+    const browseLink = kind === 'movie'
+      ? '/browse?q=' + encodeURIComponent(q || '') + '&kind=movie'
+      : '/browse';
+    
+    return res.json({ 
+      ...result, 
+      items: itemsWithSource, 
+      importStatus: await getImportStatus(),
+      browseLink: '/browse?q=' + encodeURIComponent(q || '') + '&kind=movie'
+    });
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
 
 export const showsRoute: RequestHandler = async (req, res) => {
   try {
     const page = pagination(req.query as Record<string, unknown>);
-    const result = await searchTitles({ ...page, q: scalar(req.query.q), kind: 'series' });
+    const q = scalar(req.query.q);
+    // If coming from /browse with a category filter, preserve it
+    const kind = scalar(req.query.kind) || 'series';
+    const result = await searchTitles({ ...page, q, kind: 'series' });
     const itemsWithSource = result.items.map(item => ({ ...item, _source: 'local-shows' }));
-    return res.json({ ...result, items: itemsWithSource, importStatus: await getImportStatus() });
+    
+    // Build browse link with category filter
+    const browseLink = kind === 'series'
+      ? '/browse?q=' + encodeURIComponent(q || '') + '&kind=series'
+      : '/browse';
+    
+    return res.json({ 
+      ...result, 
+      items: itemsWithSource, 
+      importStatus: await getImportStatus(),
+      browseLink: '/browse?q=' + encodeURIComponent(q || '') + '&kind=series'
+    });
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
 
@@ -294,9 +348,150 @@ export const browseRoute: RequestHandler = async (req, res) => {
     const page = pagination(req.query as Record<string, unknown>);
     const kindValue = scalar(req.query.kind);
     const kind = kindValue === 'movie' || kindValue === 'series' ? kindValue : 'all';
-    return res.json({ ...(await searchTitles({ ...page, q: scalar(req.query.q), kind })), torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()) });
-  } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
+    const query = scalar(req.query.q) || '';
+    
+    // Search local titles
+    const localResult = await searchTitles({ ...page, q: query, kind });
+    
+    // Search torrents and usenet
+    const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+    const torrentUsenetResults: Array<Record<string, unknown>> = [];
+    
+    if (hasIndexerConfig) {
+      // Search torrents via Torrentio/Prowlarr
+      const torrentCandidates = await searchTorrentCandidates(
+        '', // We don't have imdbId for general search
+        'movie' // default kind
+      );
+      
+      // Convert torrent candidates to result format
+      for (const candidate of torrentCandidates) {
+        torrentUsenetResults.push({
+          name: candidate.name,
+          _type: 'torrent',
+          seeders: candidate.seeders,
+          leechers: candidate.leechers,
+          size: candidate.size,
+          source: candidate.source,
+          // Try to determine category from the name or use default
+          _category: extractCategoryFromName(candidate.name)
+        });
+      }
+    }
+    
+    // Search usenet
+    if (hasIndexerConfig) {
+      const usenetResult = await searchUsenet(query, 'all', 50, 0);
+      for (const candidate of usenetResult.candidates) {
+        torrentUsenetResults.push({
+          name: candidate.name,
+          _type: 'usenet',
+          _category: extractCategoryFromName(candidate.name)
+        });
+      }
+    }
+    
+    // Combine results: local titles first, then torrents, then usenet
+    const allResults = [
+      ...localResult.items.map((item: any) => ({
+        ...item,
+        _type: 'local',
+        _category: extractCategoryFromTitle(item.primaryTitle, item.titleType)
+      })),
+      ...torrentUsenetResults
+    ];
+    
+    // Separate by type for display
+    const torrents = allResults.filter(r => r._type === 'torrent');
+    const usenet = allResults.filter(r => r._type === 'usenet');
+    const local = allResults.filter(r => r._type === 'local');
+    
+    // Format torrent metadata
+    const formattedTorrents = torrents.map((t: any) => ({
+      ...t,
+      _metadata: formatTorrentMetadata(t.seeders, t.leechers, t.size)
+    }));
+    
+    const formattedUsenet = usenet.map((u: any) => ({
+      ...u,
+      _metadata: formatUsenetMetadata(u)
+    }));
+    
+    return res.json({
+      query,
+      kind,
+      results: {
+        local: { items: localResult.items.slice(page.offset, page.offset + page.limit), total: localResult.total },
+        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
+        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+      },
+      torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim())
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' });
+  }
 };
+
+// Helper function to extract category from a title
+function extractCategoryFromTitle(title: string, titleType: string): string {
+  if (!title) return '';
+  const lowerTitle = title.toLowerCase();
+  // Movie categories
+  if (titleType === 'movie') {
+    if (/\\b(?:action|adventure|comedy|drama|horror|thriller|sci-fi|fantasy|animation)\\b/.test(lowerTitle)) {
+      return 'Movie';
+    }
+  }
+  // Series categories
+  if (titleType === 'tvSeries' || titleType === 'tvMiniSeries') {
+    if (/\\b(?:drama|comedy|action|sci-fi|fantasy|horror|mystery|crime)\\b/.test(lowerTitle)) {
+      return 'Series';
+    }
+  }
+  return '';
+}
+
+// Helper function to extract category from a torrent/usenet name
+function extractCategoryFromName(name: string): string {
+  if (!name) return '';
+  const lowerName = name.toLowerCase();
+  // Common category keywords
+  const categories: [string, RegExp][] = [
+    ['Movies', /\\b(movie|film|hd|bluray|dvd)\\b/],
+    ['Series', /\\b(?:tv|series|season|episode)\\b/],
+    ['Music', /\\b(?:music|album|single|track)\\b/],
+    ['Games', /\\b(?:game|pc|ps|xbox|nintendo)\\b/],
+    ['Software', /\\b(?:software|app|windows|mac|linux)\\b/],
+    ['Ebooks', /\\b(?:ebook|book|novel)\\b/],
+    ['XXX', /\\b(?:porn|sex|xxx)\\b/]
+  ];
+  
+  for (const [category, pattern] of categories) {
+    if (pattern.test(lowerName)) {
+      return category;
+    }
+  }
+  return '';
+}
+
+// Helper function to format torrent metadata
+function formatTorrentMetadata(seeders: number | null, leechers: number | null, size: number | null): string {
+  const seedersStr = seeders !== null ? String(seeders) : '0';
+  const leechersStr = leechers !== null ? String(leechers) : '0';
+  const sizeStr = size !== null ? `${(size / (1024 * 1024 * 1024)).toFixed(1)} GB` : 'Unknown size';
+  
+  return `${seedersStr} seeders · ${leechersStr} leechers · ${sizeStr} · Torrentio`;
+}
+
+// Helper function to format usenet metadata
+function formatUsenetMetadata(candidate: { posted?: number; complete?: boolean }): string {
+  const seedersStr = '0'; // Usenet doesn't have seeders/leechers in the same way
+  const leechersStr = '0';
+  const postedStr = candidate.posted ? new Date(candidate.posted * 1000).toLocaleDateString() : 'Unknown';
+  const completeStr = candidate.complete ? 'Complete' : 'Partial';
+  
+  return `${seedersStr} seeders · ${leechersStr} leechers · ${postedStr} · ${completeStr}`;
+}
 
 // Unified search endpoint - combines all sources into a single tagged list with pagination
 export const unifiedSearchRoute: RequestHandler = async (req, res) => {

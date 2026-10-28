@@ -308,7 +308,12 @@ export async function searchIndexerTorrents(
     }
     return await searchTorznabFeed(query, categories.join(','), limit, offset);
   } catch (error) {
-    throw new Error(error instanceof Error ? error.message : 'Indexer search failed.');
+    const message = error instanceof Error ? error.message : 'Indexer search failed.';
+    // If Prowlarr is not configured (missing API key or URL), fall back to Torznab feed
+    if (message.includes('TORZNAB_API_KEY is required') || message.includes('Torrent search is not configured')) {
+      return await searchTorznabFeed(query, categories.join(','), limit, offset);
+    }
+    throw new Error(message);
   }
 }
 

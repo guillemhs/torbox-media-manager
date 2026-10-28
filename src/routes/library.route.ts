@@ -7,7 +7,7 @@ import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow, getTvmazeShowByImdb, getTvmazeMonthlyCalendar } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork, getTitleMetadata } from '../services/artwork.service';
 import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
-import { getMusicTorrentDownload, getRecentMusicReleases, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
+import { getMusicTorrentDownload, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
 
 function sendError(res: Parameters<RequestHandler>[1], error: unknown) {
@@ -238,13 +238,6 @@ export const musicMetadataSearchRoute: RequestHandler = async (req, res) => {
   } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music metadata search failed.' }); }
 };
 
-export const recentMusicReleasesRoute: RequestHandler = async (_req, res) => {
-  try {
-    const releases = await getRecentMusicReleases();
-    res.setHeader('Cache-Control', 'public, max-age=1800');
-    return res.json({ releases, total: releases.length, source: 'MusicBrainz', periodDays: 60 });
-  } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Recent music releases are unavailable.' }); }
-};
 
 export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
   const query = scalar(req.query.q)?.trim() || '';
@@ -347,22 +340,6 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
   try {
     const combined: Array<Record<string, unknown> & { _source: string }> = [];
     const warnings: string[] = [];
-
-    // Local IMDb search (movies/shows)
-    if (sources.includes('local') && (kind === 'all' || kind === 'movie' || kind === 'series')) {
-      if (kind === 'all' || kind === 'movie') {
-        const movieResult = await searchTitles({ limit: 200, offset: 0, q: query, kind: 'movie' });
-        for (const item of movieResult.items) {
-          combined.push({ ...item, _source: 'local-movies' });
-        }
-      }
-      if (kind === 'all' || kind === 'series') {
-        const showResult = await searchTitles({ limit: 200, offset: 0, q: query, kind: 'series' });
-        for (const item of showResult.items) {
-          combined.push({ ...item, _source: 'local-shows' });
-        }
-      }
-    }
 
     // Local MusicBrainz search
     if (sources.includes('local') && (kind === 'all' || kind === 'music')) {

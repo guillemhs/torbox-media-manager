@@ -1,0 +1,31 @@
+{
+  "chat.permissions.default": "allow",
+  "chat.tools.eligibleForAutoApproval": true,
+  "chat.tools.urls.autoApprove": true,
+  "chat.tools.terminal.autoApprove": true,
+  "chat.tools.terminal.autoApproveWorkspaceNpmScripts": true,
+  "chat.tools.terminal.ignoreDefaultAutoApproveRules": false,
+  "terminal.integrated.profiles.osx": {
+    "TMM Agent Terminal": {
+      "path": "zsh",
+      "args": ["-l"],
+      "icon": "terminal-gear",
+      "color": "terminal.ansiCyan"
+    }
+  },
+  "terminal.integrated.profiles.linux": {
+    "TMM Agent Terminal": {
+      "path": "bash",
+      "icon": "terminal-gear",
+      "color": "terminal.ansiCyan"
+    }
+  },
+  "terminal.integrated.profiles.windows": {
+    "TMM Agent Terminal": {
+      "path": "pwsh.exe",
+      "icon": "terminal-gear",
+      "color": "terminal.ansiCyan"
+    }
+  },
+  "terminal.integrated.defaultProfile.osx": "TMM Agent Terminal"
+}

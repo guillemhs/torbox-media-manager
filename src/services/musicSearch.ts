@@ -182,19 +182,37 @@ async function readTorrentDownload(downloadUrl: string, apiUrl: URL, apiKey: str
 }
 
 async function jsonCandidates(body: unknown, apiUrl: URL, apiKey: string): Promise<MusicTorrentCandidate[]> {
-  if (!Array.isArray(body)) return [];
+  let items: unknown[];
+  if (Array.isArray(body)) {
+    items = body;
+  } else if (body && typeof body === 'object') {
+    const obj = body as Record<string, unknown>;
+    // Prowlarr Torznab JSON: { channel: { item: [...] } }
+    if (obj.channel && typeof obj.channel === 'object') {
+      const channel = obj.channel as Record<string, unknown>;
+      items = Array.isArray(channel.item) ? channel.item : [];
+    } else if (Array.isArray(obj.results)) {
+      items = obj.results;
+    } else if (Array.isArray(obj.items)) {
+      items = obj.items;
+    } else {
+      return [];
+    }
+  } else {
+    return [];
+  }
   const results = new Map<string, MusicTorrentCandidate>();
-  const parsed = await Promise.all(body.map(async (raw): Promise<MusicTorrentCandidate | null> => {
+  const parsed = await Promise.all(items.map(async (raw): Promise<MusicTorrentCandidate | null> => {
     if (!raw || typeof raw !== 'object') return null;
     const item = raw as Record<string, unknown>;
     const name = text(item.title);
-    const downloadUrl = text(item.downloadUrl);
+    const downloadUrl = text(item.downloadUrl) || text(item.link) || '';
     const magnetUrl = text(item.magnetUrl) || text(item.magnet) || (/^magnet:/i.test(downloadUrl) ? downloadUrl : '');
     const hash = magnetHash(magnetUrl) || text(item.infoHash || item.infohash || item.hash).toLowerCase()
       || (downloadUrl ? await readTorrentDownload(downloadUrl, apiUrl, apiKey) || '' : '');
     if (!name || !/^[a-f0-9]{40}$/.test(hash)) return null;
     const magnet = magnetUrl.startsWith('magnet:') ? magnetUrl : `magnet:?xt=urn:btih:${hash}&dn=${encodeQueryValue(name.slice(0, 180))}`;
-    const indexer = text(item.indexer) || 'Prowlarr';
+    const indexer = text(item.indexer) || text(item.jackettindexer) || text(item.prowlarrindexer) || 'Prowlarr';
     const number = (value: unknown): number | null => {
       const n = typeof value === 'number' ? value : Number(value);
       return Number.isFinite(n) && n >= 0 ? n : null;

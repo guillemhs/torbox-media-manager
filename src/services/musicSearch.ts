@@ -228,6 +228,8 @@ async function jsonCandidates(body: unknown, apiUrl: URL, apiKey: string): Promi
       ...(downloadToken ? { downloadToken } : {})
     };
   }));
+  const validCount = parsed.filter(Boolean).length;
+  console.log('[DEBUG jsonCandidates] Total items:', items.length, 'Valid candidates:', validCount);
   for (const candidate of parsed) if (candidate) results.set(candidate.hash, candidate);
   return [...results.values()];
 }
@@ -261,7 +263,12 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
   try { response = await fetch(url, { headers: { Accept: 'application/json', 'X-Api-Key': key }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.'); }
   if (!response.ok) throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
-  return jsonCandidates(await response.json(), url, key);
+  const rawData = await response.json();
+  console.log('[DEBUG Prowlarr] URL:', url.toString());
+  console.log('[DEBUG Prowlarr] Response type:', Array.isArray(rawData) ? 'array' : typeof rawData);
+  console.log('[DEBUG Prowlarr] Item count:', Array.isArray(rawData) ? rawData.length : 'N/A');
+  console.log('[DEBUG Prowlarr] Sample:', JSON.stringify(Array.isArray(rawData) ? rawData.slice(0, 2) : rawData).slice(0, 500));
+  return jsonCandidates(rawData, url, key);
 }
 
 async function searchTorznabFeed(query: string, category: string, limit = 50, offset = 0): Promise<MusicTorrentCandidate[]> {

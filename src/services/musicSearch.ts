@@ -38,35 +38,6 @@ export async function searchMusicMetadata(query: string, limit = 25, offset = 0)
   });
 }
 
-export async function getRecentMusicReleases(): Promise<MusicRelease[]> {
-  const now = new Date();
-  const end = now.toISOString().slice(0, 10);
-  const startDate = new Date(now);
-  startDate.setDate(startDate.getDate() - 60);
-  const start = startDate.toISOString().slice(0, 10);
-  const url = new URL('https://musicbrainz.org/ws/2/release-group');
-  url.searchParams.set('query', `firstreleasedate:[${start} TO ${end}] AND status:official`);
-  url.searchParams.set('fmt', 'json');
-  url.searchParams.set('limit', '100');
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },
-    signal: AbortSignal.timeout(15_000)
-  });
-  if (!response.ok) throw new Error(`MusicBrainz returned HTTP ${response.status}.`);
-  const body = await response.json() as Record<string, unknown>;
-  const groups = body['release-groups'];
-  if (!Array.isArray(groups)) return [];
-  return groups.flatMap((raw): MusicRelease[] => {
-    if (!raw || typeof raw !== 'object') return [];
-    const group = raw as Record<string, unknown>;
-    const id = text(group.id), date = text(group['first-release-date']);
-    if (!/^[a-f0-9-]{36}$/i.test(id) || !date || date < start || date > end) return [];
-    const credits = Array.isArray(group['artist-credit']) ? group['artist-credit'] as Record<string, unknown>[] : [];
-    const artist = credits.map(credit => text(credit.name) || text((credit.artist as Record<string, unknown> | undefined)?.name)).filter(Boolean).join(' ');
-    return [{ id, title: text(group.title) || 'Unknown release', artist, date, type: text(group['primary-type']), cover: `https://coverartarchive.org/release-group/${id}/front-250` }];
-  }).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 60);
-}
-
 function decodeXml(value: string): string {
   return value.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'");
 }

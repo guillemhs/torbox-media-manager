@@ -438,13 +438,13 @@ function extractCategoryFromTitle(title: string, titleType: string): string {
   const lowerTitle = title.toLowerCase();
   // Movie categories
   if (titleType === 'movie') {
-    if (/\\b(?:action|adventure|comedy|drama|horror|thriller|sci-fi|fantasy|animation)\\b/.test(lowerTitle)) {
+    if (/\b(?:action|adventure|comedy|drama|horror|thriller|sci-fi|fantasy|animation)\b/.test(lowerTitle)) {
       return 'Movie';
     }
   }
   // Series categories
   if (titleType === 'tvSeries' || titleType === 'tvMiniSeries') {
-    if (/\\b(?:drama|comedy|action|sci-fi|fantasy|horror|mystery|crime)\\b/.test(lowerTitle)) {
+    if (/\b(?:drama|comedy|action|sci-fi|fantasy|horror|mystery|crime)\b/.test(lowerTitle)) {
       return 'Series';
     }
   }
@@ -457,13 +457,13 @@ function extractCategoryFromName(name: string): string {
   const lowerName = name.toLowerCase();
   // Common category keywords
   const categories: [string, RegExp][] = [
-    ['Movies', /\\b(movie|film|hd|bluray|dvd)\\b/],
-    ['Series', /\\b(?:tv|series|season|episode)\\b/],
-    ['Music', /\\b(?:music|album|single|track)\\b/],
-    ['Games', /\\b(?:game|pc|ps|xbox|nintendo)\\b/],
-    ['Software', /\\b(?:software|app|windows|mac|linux)\\b/],
-    ['Ebooks', /\\b(?:ebook|book|novel)\\b/],
-    ['XXX', /\\b(?:porn|sex|xxx)\\b/]
+    ['Movies', /\b(movie|film|hd|bluray|dvd)\b/],
+    ['Series', /\b(?:tv|series|season|episode)\b/],
+    ['Music', /\b(?:music|album|single|track)\b/],
+    ['Games', /\b(?:game|pc|ps|xbox|nintendo)\b/],
+    ['Software', /\b(?:software|app|windows|mac|linux)\b/],
+    ['Ebooks', /\b(?:ebook|book|novel)\b/],
+    ['XXX', /\b(?:porn|sex|xxx)\b/]
   ];
   
   for (const [category, pattern] of categories) {

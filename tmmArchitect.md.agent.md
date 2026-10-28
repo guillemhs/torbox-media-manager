@@ -14,7 +14,7 @@ tools:
   - grep_search
   - list_dir
   - manage_todo_list
-  - runSubagent
+  - agent
 agents:
   - Explore
 ---

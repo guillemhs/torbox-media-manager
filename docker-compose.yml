@@ -63,7 +63,7 @@ services:
         max-file: "3"
 
   prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
+    image: lscr.io/linuxserver/prowlarr:2.7.0
     restart: unless-stopped
     depends_on:
       flaresolverr:

@@ -10,6 +10,8 @@ Icon?
 .AppleDB
 .vscode/
 
+data/
+
 # Node
 /node_modules/
 /*.tgz

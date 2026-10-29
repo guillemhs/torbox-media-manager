@@ -901,34 +901,43 @@ async function searchTorrentsUsenetSearch(query) {
             
             // Store results based on view
             if(view==='movies'){
-                state.items.movies=data.movies?.items||[];
-                state.total.movies=data.movies?.total||0;
-                state.offset.movies=data.movies?.items?.length||0;
-                const container=$('#movies-results');
-                if(container) container.innerHTML=state.items.movies.length?titleCards(state.items.movies.map(item=>({...item,kind:'movie'}))):'';
-                $('#movies-more')?.classList.toggle('hidden',state.items.movies.length>=state.total.movies);
+                // Combine movie metadata and torrent results for movies view
+                const movieMetadata = data.movies?.items || [];
+                const movieTorrents = data.torrents?.items || [];
+                state.items.movies = [...movieMetadata, ...movieTorrents];
+                state.total.movies = (data.movies?.total || 0) + (data.torrents?.total || 0);
+                state.offset.movies = state.items.movies.length;
+                const container = $('#movies-results');
+                if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map(item => ({...item, kind: 'movie'}))) : '';
+                $('#movies-more')?.classList.toggle('hidden', state.items.movies.length >= state.total.movies);
                 observeArtwork(container);
                 // Render pagination
                 state.currentPage.movies = 1;
                 renderPagination('movies', 'movies-pagination');
             }else if(view==='shows'){
-                state.items.shows=data.shows?.items||[];
-                state.total.shows=data.shows?.total||0;
-                state.offset.shows=data.shows?.items?.length||0;
-                const container=$('#shows-results');
-                if(container) container.innerHTML=state.items.shows.length?titleCards(state.items.shows.map(item=>({...item,kind:'series'}))):'';
-                $('#shows-more')?.classList.toggle('hidden',state.items.shows.length>=state.total.shows);
+                // Combine show metadata and torrent results for shows view
+                const showMetadata = data.shows?.items || [];
+                const showTorrents = data.torrents?.items || [];
+                state.items.shows = [...showMetadata, ...showTorrents];
+                state.total.shows = (data.shows?.total || 0) + (data.torrents?.total || 0);
+                state.offset.shows = state.items.shows.length;
+                const container = $('#shows-results');
+                if (container) container.innerHTML = state.items.shows.length ? titleCards(state.items.shows.map(item => ({...item, kind: 'series'}))) : '';
+                $('#shows-more')?.classList.toggle('hidden', state.items.shows.length >= state.total.shows);
                 observeArtwork(container);
                 // Render pagination
                 state.currentPage.shows = 1;
                 renderPagination('shows', 'shows-pagination');
             }else if(view==='music'){
-                state.items.music=data.music?.items||[];
-                state.total.music=data.music?.total||0;
-                state.offset.music=data.music?.items?.length||0;
-                const container=$('#music-search-results');
-                if(container) container.innerHTML=state.items.music.length?musicReleaseCards(state.items.music):'';
-                $('#music-more')?.classList.toggle('hidden',state.items.music.length>=state.total.music);
+                // Combine music metadata and torrent results for music view
+                const musicMetadata = data.music?.items || [];
+                const musicTorrents = data.torrents?.items || [];
+                state.items.music = [...musicMetadata, ...musicTorrents];
+                state.total.music = (data.music?.total || 0) + (data.torrents?.total || 0);
+                state.offset.music = state.items.music.length;
+                const container = $('#music-search-results');
+                if (container) container.innerHTML = state.items.music.length ? musicReleaseCards(state.items.music) : '';
+                $('#music-more')?.classList.toggle('hidden', state.items.music.length >= state.total.music);
                 observeArtwork(container);
                 // Render pagination
                 state.currentPage.music = 1;
@@ -1049,16 +1058,34 @@ async function loadPageUnified(view, page) {
         state.offset[view] = offset + newItems.length;
         
         if (view === 'movies') {
+            // Combine movie metadata and torrent results for movies view
+            const movieMetadata = data.movies?.items || [];
+            const movieTorrents = data.torrents?.items || [];
+            state.items.movies = [...movieMetadata, ...movieTorrents];
+            state.total.movies = (data.movies?.total || 0) + (data.torrents?.total || 0);
+            state.offset[view] = offset + state.items.movies.length;
             const container = $('#movies-results');
             if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map(item => ({...item, kind: 'movie'}))) : '';
             observeArtwork(container);
             renderPagination('movies', 'movies-pagination');
         } else if (view === 'shows') {
+            // Combine show metadata and torrent results for shows view
+            const showMetadata = data.shows?.items || [];
+            const showTorrents = data.torrents?.items || [];
+            state.items.shows = [...showMetadata, ...showTorrents];
+            state.total.shows = (data.shows?.total || 0) + (data.torrents?.total || 0);
+            state.offset[view] = offset + state.items.shows.length;
             const container = $('#shows-results');
             if (container) container.innerHTML = state.items.shows.length ? titleCards(state.items.shows.map(item => ({...item, kind: 'series'}))) : '';
             observeArtwork(container);
             renderPagination('shows', 'shows-pagination');
         } else if (view === 'music') {
+            // Combine music metadata and torrent results for music view
+            const musicMetadata = data.music?.items || [];
+            const musicTorrents = data.torrents?.items || [];
+            state.items.music = [...musicMetadata, ...musicTorrents];
+            state.total.music = (data.music?.total || 0) + (data.torrents?.total || 0);
+            state.offset[view] = offset + state.items.music.length;
             const container = $('#music-search-results');
             if (container) container.innerHTML = state.items.music.length ? musicReleaseCards(state.items.music) : '';
             observeArtwork(container);
@@ -1150,6 +1177,7 @@ if(location.hash){const legacy=location.hash.slice(1);history.replaceState(null,
     $('#shows-usenet-source')?.addEventListener('change',()=>{});
     
     // Music view filter controls
+    $('#music-source-indexers')?.addEventListener('change',()=>{const uF=$('#music-usenet-filters');if(uF)uF.style.display='none';const iF=$('#music-indexer-filters');if(iF)iF.style.display=$('#music-source-indexers')?.checked?'block':'none'});
     $('#music-source-usenet')?.addEventListener('change',()=>{const uF=$('#music-usenet-filters');if(uF)uF.style.display=$('#music-source-usenet')?.checked?'block':'none';const iF=$('#music-indexer-filters');if(iF)iF.style.display='none'});
     $('#music-indexer-prowlarr')?.addEventListener('change',()=>{});
     $('#music-indexer-torrentio')?.addEventListener('change',()=>{});

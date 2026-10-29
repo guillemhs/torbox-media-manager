@@ -637,6 +637,33 @@
           <input class="p-search" id="music-query" type="search" placeholder="Search artists, albums, or tracks" aria-label="Search music">
           <button class="p-button p-button-primary" data-search="music">Search</button>
         </div>
+        <!-- Source filters -->
+        <div class="toolbar-row" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-source-indexers" checked><span>Indexers (Prowlarr/Torrentio)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
+          </div>
+        </div>
+        <!-- Indexer filters -->
+        <div class="toolbar-row" id="music-indexer-filters" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Indexers:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-indexer-prowlarr" checked><span>Prowlarr</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="music-indexer-torrentio" checked><span>Torrentio</span></label>
+          </div>
+        </div>
+        <!-- Usenet filters -->
+        <div class="toolbar-row" id="music-usenet-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Usenet:</span>
+            <select id="music-usenet-source" style="min-width: 140px;">
+              <option value="all">Both indexers</option>
+              <option value="NZBIndex">NZBIndex</option>
+              <option value="Binsearch">Binsearch</option>
+            </select>
+          </div>
+        </div>
         <div class="status-line" id="music-status" role="status"></div>
         <div class="result-grid" id="music-search-results"></div>
         <div class="toolbar-row"><span class="muted" id="music-count"></span><div class="pagination hidden" id="music-pagination"></div></div>

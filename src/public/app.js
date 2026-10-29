@@ -115,7 +115,7 @@ async function goToPage(viewKey, page) {
         case 'movies':
         case 'shows':
         case 'music':
-            await loadMoreUnified(viewKey);
+            await loadPageUnified(viewKey, page);
             break;
         case 'browse-torrents':
             await loadMoreBrowse('torrents');
@@ -1007,6 +1007,73 @@ async function searchTorrentsUsenetSearch(query) {
             setStatus(view,error.message)
         }
     }
+
+
+// Load a specific page for unified search (replaces items instead of appending)
+async function loadPageUnified(view, page) {
+    const query = $(`#${view}-query`)?.value.trim() || '';
+    if (query.length < 2) return;
+    
+    const sources = [];
+    const indexersCheckbox = $(`#${view}-source-indexers`);
+    const usenetCheckbox = $(`#${view}-source-usenet`);
+    
+    if (indexersCheckbox && indexersCheckbox.checked) sources.push('indexers');
+    if (usenetCheckbox && usenetCheckbox.checked) sources.push('usenet');
+    
+    if (sources.length === 0) return;
+    
+    const kind = view === 'movies' ? 'movie' : view === 'shows' ? 'series' : 'music';
+    const usenetSource = $(`#${view}-usenet-source`)?.value || 'all';
+    const indexers = getSelectedIndexers(view + '-');
+    const limit = 20;
+    const offset = (page - 1) * limit;
+    
+    // Update state
+    state.offset[view] = offset;
+    state.currentPage[view] = page;
+    
+    setStatus(view, `Loading page ${page}...`);
+    try {
+        const url = `/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`;
+        const data = await jsonFetch(url);
+        
+        let newItems = [];
+        if (view === 'movies') newItems = data.movies?.items || [];
+        else if (view === 'shows') newItems = data.shows?.items || [];
+        else if (view === 'music') newItems = data.music?.items || [];
+        
+        // REPLACE items instead of appending (for pagination)
+        state.items[view] = newItems;
+        state.total[view] = view === 'movies' ? data.movies?.total || 0 : view === 'shows' ? data.shows?.total || 0 : data.music?.total || 0;
+        state.offset[view] = offset + newItems.length;
+        
+        if (view === 'movies') {
+            const container = $('#movies-results');
+            if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map(item => ({...item, kind: 'movie'}))) : '';
+            observeArtwork(container);
+            renderPagination('movies', 'movies-pagination');
+        } else if (view === 'shows') {
+            const container = $('#shows-results');
+            if (container) container.innerHTML = state.items.shows.length ? titleCards(state.items.shows.map(item => ({...item, kind: 'series'}))) : '';
+            observeArtwork(container);
+            renderPagination('shows', 'shows-pagination');
+        } else if (view === 'music') {
+            const container = $('#music-search-results');
+            if (container) container.innerHTML = state.items.music.length ? musicReleaseCards(state.items.music) : '';
+            observeArtwork(container);
+            renderPagination('music', 'music-pagination');
+        }
+        
+        const warnings = [...(data.torrents?.warnings || []), ...(data.usenet?.warnings || [])];
+        const total = (data.movies?.total || 0) + (data.shows?.total || 0) + (data.music?.total || 0) + (data.torrents?.total || 0) + (data.usenet?.total || 0);
+        setStatus(view, `${total} results${warnings.length ? ` · ${warnings.join(' · ')}` : ''}`);
+    } catch (error) {
+        setStatus(view, error.message);
+    }
+}
+
+
     function titleCards(items){return items.map(item=>{const kind=/^tv/i.test(item.titleType)?'series':'movie';const route=`/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';let categoryTag='';if(item._source==='local-movies'||item._source==='local-shows'){contentType=item._source==='local-movies'?'Movie':'Show';categoryTag=contentType}else if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie';categoryTag=contentType}else if(item._source==='usenet'){contentType='All';categoryTag='Usenet'}else if(item._source==='local-music'){contentType='Music';categoryTag='Music'};const metaParts=[];if(item.seeders!==null&&item.seeders!==undefined)metaParts.push(`${Number(item.seeders).toLocaleString()} seeders`);if(item.leechers!==null&&item.leechers!==undefined)metaParts.push(`${Number(item.leechers).toLocaleString()} leechers`);if(item.size)metaParts.push(fmtBytes(item.size));if(source)metaParts.push(source);const metaLine=metaParts.length?`<div class="result-row-meta-line">${esc(metaParts.join(' · '))}</div>`:'';const categoryTagHtml=categoryTag?`<span class="category-tag">${esc(categoryTag)}</span>`:'';return `<article class="p-card result-row"><a class="result-row-link" href="${route}" aria-label="Open ${esc(item.primaryTitle)} details"><div><div class="result-row-title">${esc(item.primaryTitle)}</div>${metaLine}<div class="result-row-meta">${esc(item.startYear||'Year unknown')} · ${esc(item.titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div><div class="result-row-source">${categoryTagHtml}${sourceTag(source,contentType)}</div></div><span class="result-row-arrow" aria-hidden="true">›</span></a></article>`}).join('')}
     let activeCandidateSearch=null;
     async function findTorrentCandidates(imdbId,kind,title){

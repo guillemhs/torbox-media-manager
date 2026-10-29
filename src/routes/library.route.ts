@@ -536,8 +536,8 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
           if (indexers.includes('torrentio')) sourceNames.push('Torrentio');
         }
 
-        if ((kind === 'movie' || kind === 'series' || kind === 'all') && (kind !== 'all' || !torrentCandidates.length)) {
-          const localResults = await searchTitles({ limit: 5, q: query, kind: kind === 'all' ? 'movie' : kind });
+        if (kind === 'movie' || kind === 'series' || kind === 'all') {
+          const localResults = await searchTitles({ limit: 5, q: query, kind: kind === 'all' ? 'all' : kind });
           if (localResults.items.length > 0) {
             const firstResult = localResults.items[0] as { imdbId: string; titleType: string; primaryTitle: string };
             const imdbId = firstResult.imdbId;
@@ -555,8 +555,8 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
                 mediaKind === 'series' ? `${firstResult.primaryTitle} S01` : firstResult.primaryTitle,
                 mediaKind === 'series' ? 'tvsearch' : 'movie',
                 [mediaKind === 'series' ? '5000' : '2000'],
-                200,
-                0
+                page.limit,
+                page.offset
               ));
               providerNames.push('Prowlarr');
             }
@@ -582,6 +582,17 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
               } : candidate);
             }
             torrentCandidates.push(...[...unique.values()]);
+          } else if (kind === 'all' && hasIndexerConfig) {
+            // Fallback: search for movie/series torrents directly via Prowlarr when no local title match
+            try {
+              const prowlarrResults = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
+              for (const candidate of prowlarrResults) {
+                torrentCandidates.push(candidate);
+              }
+              if (indexers.includes('prowlarr')) sourceNames.push('Prowlarr');
+            } catch (error) {
+              warnings.push(error instanceof Error ? error.message : 'Prowlarr fallback search failed');
+            }
           }
         }
 

@@ -530,7 +530,7 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
         const sourceNames: string[] = [];
 
         if (kind === 'music' || kind === 'all') {
-          const musicTorrents = await searchMusicTorrents(query, indexers, 200, 0);
+          const musicTorrents = await searchMusicTorrents(query, indexers, page.limit, page.offset);
           torrentCandidates.push(...musicTorrents);
           if (indexers.includes('prowlarr')) sourceNames.push('Prowlarr');
           if (indexers.includes('torrentio')) sourceNames.push('Torrentio');
@@ -547,7 +547,7 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
             const providerNames: string[] = [];
             
             if (indexers.includes('torrentio')) {
-              searches.push(searchTorrentCandidates(imdbId, mediaKind, 1, 200, 0));
+              searches.push(searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset));
               providerNames.push('Torrentio');
             }
             if (indexers.includes('prowlarr')) {

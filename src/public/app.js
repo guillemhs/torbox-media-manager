@@ -904,7 +904,22 @@ async function searchTorrentsUsenetSearch(query) {
                 // Combine movie metadata and torrent results for movies view
                 const movieMetadata = data.movies?.items || [];
                 const movieTorrents = data.torrents?.items || [];
-                state.items.movies = [...movieMetadata, ...movieTorrents];
+                // Transform torrent items to have movie metadata structure for rendering
+                const transformedTorrents = movieTorrents.map(t => ({
+                    imdbId: t.hash,
+                    primaryTitle: t.name,
+                    titleType: 'movie',
+                    startYear: '',
+                    seeders: t.seeders,
+                    leechers: t.leechers,
+                    size: t.size,
+                    source: t.source,
+                    _source: t._source || 'torrents',
+                    hash: t.hash,
+                    magnet: t.magnet,
+                    downloadToken: t.downloadToken
+                }));
+                state.items.movies = [...movieMetadata, ...transformedTorrents];
                 state.total.movies = (data.movies?.total || 0) + (data.torrents?.total || 0);
                 state.offset.movies = state.items.movies.length;
                 const container = $('#movies-results');
@@ -918,7 +933,22 @@ async function searchTorrentsUsenetSearch(query) {
                 // Combine show metadata and torrent results for shows view
                 const showMetadata = data.shows?.items || [];
                 const showTorrents = data.torrents?.items || [];
-                state.items.shows = [...showMetadata, ...showTorrents];
+                // Transform torrent items to have show metadata structure for rendering
+                const transformedTorrents = showTorrents.map(t => ({
+                    imdbId: t.hash,
+                    primaryTitle: t.name,
+                    titleType: 'tvSeries',
+                    startYear: '',
+                    seeders: t.seeders,
+                    leechers: t.leechers,
+                    size: t.size,
+                    source: t.source,
+                    _source: t._source || 'torrents',
+                    hash: t.hash,
+                    magnet: t.magnet,
+                    downloadToken: t.downloadToken
+                }));
+                state.items.shows = [...showMetadata, ...transformedTorrents];
                 state.total.shows = (data.shows?.total || 0) + (data.torrents?.total || 0);
                 state.offset.shows = state.items.shows.length;
                 const container = $('#shows-results');
@@ -932,7 +962,23 @@ async function searchTorrentsUsenetSearch(query) {
                 // Combine music metadata and torrent results for music view
                 const musicMetadata = data.music?.items || [];
                 const musicTorrents = data.torrents?.items || [];
-                state.items.music = [...musicMetadata, ...musicTorrents];
+                // Transform torrent items to have music metadata structure for rendering
+                const transformedTorrents = musicTorrents.map(t => ({
+                    id: t.hash,
+                    title: t.name,
+                    artist: t.source || 'Unknown',
+                    date: '',
+                    type: 'Torrent',
+                    _source: t._source || 'torrents',
+                    hash: t.hash,
+                    magnet: t.magnet,
+                    seeders: t.seeders,
+                    leechers: t.leechers,
+                    size: t.size,
+                    source: t.source,
+                    downloadToken: t.downloadToken
+                }));
+                state.items.music = [...musicMetadata, ...transformedTorrents];
                 state.total.music = (data.music?.total || 0) + (data.torrents?.total || 0);
                 state.offset.music = state.items.music.length;
                 const container = $('#music-search-results');
@@ -1061,7 +1107,22 @@ async function loadPageUnified(view, page) {
             // Combine movie metadata and torrent results for movies view
             const movieMetadata = data.movies?.items || [];
             const movieTorrents = data.torrents?.items || [];
-            state.items.movies = [...movieMetadata, ...movieTorrents];
+            // Transform torrent items to have movie metadata structure for rendering
+            const transformedTorrents = movieTorrents.map(t => ({
+                imdbId: t.hash,
+                primaryTitle: t.name,
+                titleType: 'movie',
+                startYear: '',
+                seeders: t.seeders,
+                leechers: t.leechers,
+                size: t.size,
+                source: t.source,
+                _source: t._source || 'torrents',
+                hash: t.hash,
+                magnet: t.magnet,
+                downloadToken: t.downloadToken
+            });
+            state.items.movies = [...movieMetadata, ...transformedTorrents];
             state.total.movies = (data.movies?.total || 0) + (data.torrents?.total || 0);
             state.offset[view] = offset + state.items.movies.length;
             const container = $('#movies-results');
@@ -1072,7 +1133,22 @@ async function loadPageUnified(view, page) {
             // Combine show metadata and torrent results for shows view
             const showMetadata = data.shows?.items || [];
             const showTorrents = data.torrents?.items || [];
-            state.items.shows = [...showMetadata, ...showTorrents];
+            // Transform torrent items to have show metadata structure for rendering
+            const transformedTorrents = showTorrents.map(t => ({
+                imdbId: t.hash,
+                primaryTitle: t.name,
+                titleType: 'tvSeries',
+                startYear: '',
+                seeders: t.seeders,
+                leechers: t.leechers,
+                size: t.size,
+                source: t.source,
+                _source: t._source || 'torrents',
+                hash: t.hash,
+                magnet: t.magnet,
+                downloadToken: t.downloadToken
+            });
+            state.items.shows = [...showMetadata, ...transformedTorrents];
             state.total.shows = (data.shows?.total || 0) + (data.torrents?.total || 0);
             state.offset[view] = offset + state.items.shows.length;
             const container = $('#shows-results');
@@ -1083,7 +1159,23 @@ async function loadPageUnified(view, page) {
             // Combine music metadata and torrent results for music view
             const musicMetadata = data.music?.items || [];
             const musicTorrents = data.torrents?.items || [];
-            state.items.music = [...musicMetadata, ...musicTorrents];
+            // Transform torrent items to have music metadata structure for rendering
+            const transformedTorrents = musicTorrents.map(t => ({
+                id: t.hash,
+                title: t.name,
+                artist: t.source || 'Unknown',
+                date: '',
+                type: 'Torrent',
+                _source: t._source || 'torrents',
+                hash: t.hash,
+                magnet: t.magnet,
+                seeders: t.seeders,
+                leechers: t.leechers,
+                size: t.size,
+                source: t.source,
+                downloadToken: t.downloadToken
+            });
+            state.items.music = [...musicMetadata, ...transformedTorrents];
             state.total.music = (data.music?.total || 0) + (data.torrents?.total || 0);
             state.offset[view] = offset + state.items.music.length;
             const container = $('#music-search-results');

@@ -433,6 +433,33 @@
           <input class="p-search" id="movies-query" type="search" placeholder="Search movies" aria-label="Search movies">
           <button class="p-button p-button-primary" data-search="movies">Search</button>
         </div>
+        <!-- Source filters -->
+        <div class="toolbar-row" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-source-indexers" checked><span>Indexers (Prowlarr/Torrentio)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
+          </div>
+        </div>
+        <!-- Indexer filters -->
+        <div class="toolbar-row" id="movies-indexer-filters" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Indexers:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-indexer-prowlarr" checked><span>Prowlarr</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="movies-indexer-torrentio" checked><span>Torrentio</span></label>
+          </div>
+        </div>
+        <!-- Usenet filters -->
+        <div class="toolbar-row" id="movies-usenet-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Usenet:</span>
+            <select id="movies-usenet-source" style="min-width: 140px;">
+              <option value="all">Both indexers</option>
+              <option value="NZBIndex">NZBIndex</option>
+              <option value="Binsearch">Binsearch</option>
+            </select>
+          </div>
+        </div>
         <div class="status-line" id="movies-status" role="status"></div>
         <div class="result-grid" id="movies-results"></div>
         <div class="toolbar-row"><span class="muted" id="movies-count"></span><div class="pagination hidden" id="movies-pagination"></div></div>
@@ -444,6 +471,33 @@
         <div class="search-row">
           <input class="p-search" id="shows-query" type="search" placeholder="Search shows" aria-label="Search shows">
           <button class="p-button p-button-primary" data-search="shows">Search</button>
+        </div>
+        <!-- Source filters -->
+        <div class="toolbar-row" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Sources:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-indexers" checked><span>Indexers (Prowlarr/Torrentio)</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-source-usenet"><span>Usenet (NZBIndex/Binsearch)</span></label>
+          </div>
+        </div>
+        <!-- Indexer filters -->
+        <div class="toolbar-row" id="shows-indexer-filters" style="margin-top: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Indexers:</span>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-indexer-prowlarr" checked><span>Prowlarr</span></label>
+            <label class="toggle-row" style="margin: 0;"><input type="checkbox" id="shows-indexer-torrentio" checked><span>Torrentio</span></label>
+          </div>
+        </div>
+        <!-- Usenet filters -->
+        <div class="toolbar-row" id="shows-usenet-filters" style="margin-top: 8px; display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 12px; color: #85858a;">Usenet:</span>
+            <select id="shows-usenet-source" style="min-width: 140px;">
+              <option value="all">Both indexers</option>
+              <option value="NZBIndex">NZBIndex</option>
+              <option value="Binsearch">Binsearch</option>
+            </select>
+          </div>
         </div>
         <div class="status-line" id="shows-status" role="status"></div>
         <div class="result-grid" id="shows-results"></div>

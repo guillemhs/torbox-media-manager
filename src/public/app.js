@@ -1275,10 +1275,12 @@ function initHamburgerMenu() {
       hamburgerBtn.setAttribute('aria-expanded', 'false');
     }
   });
+  // Initialize hamburger menu
+  initHamburgerMenu();
 }
 
-// Initialize hamburger menu when DOM is ready
-document.addEventListener('DOMContentLoaded', initHamburgerMenu);
+// Initialize import status refresh
+void refreshImportStatus();
 
 
     void refreshImportStatus();

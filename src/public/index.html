@@ -260,7 +260,74 @@
     /* Focus visible for keyboard navigation */
     .p-button:focus-visible, .p-sidebar-row:focus-visible, .p-search:focus-visible, select:focus-visible, input:focus-visible, .result-row-link:focus-visible, .poster-card-link:focus-visible, .candidate-row:focus-visible, .episode-link:focus-visible, .brand:focus-visible, .detail-back:focus-visible, .tab-row button:focus-visible, .calendar-nav button:focus-visible, .calendar-type button:focus-visible { outline: 3px solid #087eff; outline-offset: 2px; border-radius: 6px; }
     .p-button:focus-visible:not(:focus-visible) { outline: none; }
-  </style>
+  
+    /* Pagination styles */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        margin: 16px 0;
+        flex-wrap: wrap;
+    }
+    .pagination-btn {
+        min-width: 36px;
+        height: 36px;
+        padding: 0 8px;
+        border: 1px solid rgba(127,127,127,0.3);
+        background: var(--surface, #fff);
+        color: var(--text, #1d1d1f);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .pagination-btn:hover:not(:disabled) {
+        background: var(--hover, #f5f5f7);
+        border-color: rgba(127,127,127,0.5);
+    }
+    .pagination-btn:focus-visible {
+        outline: 3px solid #087eff;
+        outline-offset: 2px;
+    }
+    .pagination-btn.active {
+        background: #087eff;
+        border-color: #087eff;
+        color: white;
+    }
+    .pagination-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    .pagination-ellipsis {
+        color: var(--muted, #85858a);
+        padding: 0 4px;
+    }
+    .pagination-info {
+        font-size: 13px;
+        color: var(--muted, #85858a);
+        margin-right: 12px;
+        white-space: nowrap;
+    }
+    @media (max-width: 760px) {
+        .pagination-btn {
+            min-width: 40px;
+            height: 40px;
+            font-size: 13px;
+        }
+        .pagination-info {
+            width: 100%;
+            text-align: center;
+            margin-right: 0;
+            margin-bottom: 8px;
+        }
+    }
+
+</style>
 </head>
 <body class="p-type p-auto-dark-mode">
   <div class="app-shell">
@@ -325,14 +392,14 @@
         <div id="browse-torrents-section" style="display: none;">
           <h3 id="browse-torrents-title" style="margin: 20px 0 10px;">Torrents</h3>
           <div class="candidate-list" id="browse-torrents-results"></div>
-          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-torrents-more">Load more</button></div>
+          <div class="toolbar-row"><div class="pagination hidden" id="browse-torrents-pagination"></div></div>
         </div>
         
         <!-- Usenet section -->
         <div id="browse-usenet-section" style="display: none;">
           <h3 id="browse-usenet-title" style="margin: 20px 0 10px;">Usenet</h3>
           <div class="candidate-list" id="browse-usenet-results"></div>
-          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-usenet-more">Load more</button></div>
+          <div class="toolbar-row"><div class="pagination hidden" id="browse-usenet-pagination"></div></div>
         </div>
         
         <!-- Torrent/Usenet search results (inline, no modal) -->
@@ -345,7 +412,7 @@
           </div>
           <div class="candidate-count" id="browse-torrent-count" aria-live="polite"></div>
           <div class="candidate-list" id="browse-torrent-results"></div>
-          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-torrent-more">Load more</button></div>
+          <div class="toolbar-row"><div class="pagination hidden" id="browse-torrent-pagination"></div></div>
         </div>
         
         <div id="browse-usenet-search-section" style="display: none;">
@@ -355,7 +422,7 @@
           </div>
           <div class="candidate-count" id="browse-usenet-search-count" aria-live="polite"></div>
           <div class="candidate-list" id="browse-usenet-search-results"></div>
-          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="browse-usenet-search-more">Load more</button></div>
+          <div class="toolbar-row"><div class="pagination hidden" id="browse-usenet-search-pagination"></div></div>
         </div>
       </section>
 
@@ -368,7 +435,7 @@
         </div>
         <div class="status-line" id="movies-status" role="status"></div>
         <div class="result-grid" id="movies-results"></div>
-        <div class="toolbar-row"><span class="muted" id="movies-count"></span><button class="p-button p-button-secondary hidden" id="movies-more">Load more</button></div>
+        <div class="toolbar-row"><span class="muted" id="movies-count"></span><div class="pagination hidden" id="movies-pagination"></div></div>
       </section>
 
       <section class="view" id="view-shows">
@@ -380,7 +447,7 @@
         </div>
         <div class="status-line" id="shows-status" role="status"></div>
         <div class="result-grid" id="shows-results"></div>
-        <div class="toolbar-row"><span class="muted" id="shows-count"></span><button class="p-button p-button-secondary hidden" id="shows-more">Load more</button></div>
+        <div class="toolbar-row"><span class="muted" id="shows-count"></span><div class="pagination hidden" id="shows-pagination"></div></div>
       </section>
 
       <section class="view" id="view-torrents"><div class="view-heading"><div><h2>TorBox library</h2><p>Search and sort downloads already in your TorBox account.</p></div><div class="topbar-actions"><button class="p-button p-button-secondary" id="usenet-search-open">Search Usenet</button><button class="p-button p-button-secondary" id="refresh-torrents">↻ Refresh</button></div></div><div class="library-toolbar"><input class="p-search" id="library-query" type="search" placeholder="Search your TorBox library by name, hash, or status" aria-label="Search your TorBox library"><select id="library-filter" aria-label="Filter library by media type"><option value="all">All</option><option value="video">Movies &amp; Shows</option><option value="music">Music</option><option value="other">Other</option></select><select id="library-sort" aria-label="Sort library"><option value="added">Recently added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select></div><div class="status-line" id="torrents-status" role="status"></div><div class="library-summary" id="library-summary"></div><div class="torrent-list" id="torrents-results"></div>
@@ -393,7 +460,7 @@
           </div>
           <div class="candidate-count" id="torrents-usenet-search-count" aria-live="polite"></div>
           <div class="candidate-list" id="torrents-usenet-search-results"></div>
-          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="torrents-usenet-search-more">Load more</button></div>
+          <div class="toolbar-row"><div class="pagination hidden" id="torrents-usenet-search-pagination"></div></div>
         </div>
       </section>
 
@@ -406,7 +473,7 @@
         </div>
         <div class="status-line" id="music-status" role="status"></div>
         <div class="result-grid" id="music-search-results"></div>
-        <div class="toolbar-row"><span class="muted" id="music-count"></span><button class="p-button p-button-secondary hidden" id="music-more">Load more</button></div>
+        <div class="toolbar-row"><span class="muted" id="music-count"></span><div class="pagination hidden" id="music-pagination"></div></div>
       </section>
 
       <section class="view" id="view-calendar"><div class="view-heading"><div><h2>TV calendar</h2><p>Find new episodes from broadcast channels and streaming services.</p></div></div><div class="calendar-toolbar"><div class="calendar-nav"><button class="p-button p-button-secondary" id="calendar-prev" aria-label="Previous day">‹ Previous</button><button class="p-button p-button-secondary" id="calendar-today">Today</button><button class="p-button p-button-secondary" id="calendar-next" aria-label="Next day">Next ›</button></div><input id="calendar-date" type="date" aria-label="Schedule date"><select id="calendar-country" aria-label="Schedule country"><option value="US">United States</option><option value="GB">United Kingdom</option><option value="CA">Canada</option><option value="AU">Australia</option><option value="ES">Spain</option><option value="FR">France</option><option value="DE">Germany</option></select><div class="calendar-type"><button class="p-button p-button-secondary active" data-calendar-type="broadcast">Broadcast</button><button class="p-button p-button-secondary" data-calendar-type="web">Streaming</button></div></div><div class="search-row calendar-filter"><input class="p-search" id="calendar-query" type="search" placeholder="Search shows, episodes, or platforms" aria-label="Search shows, episodes, or platforms"><select id="calendar-platform" aria-label="Filter by channel or streaming service"><option value="">All channels and services</option></select><button class="p-button p-button-primary" id="calendar-search">Search</button></div><div class="calendar-summary"><span id="calendar-summary">Choose a date to see episodes.</span><span id="calendar-source"></span></div><div class="status-line" id="calendar-status" role="status"></div><div class="calendar-grid" id="calendar-results"></div></section>
@@ -422,7 +489,7 @@
           </div>
           <div class="candidate-count" id="title-torrent-count" aria-live="polite"></div>
           <div class="candidate-list" id="title-torrent-results"></div>
-          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="title-torrent-more">Load more</button></div>
+          <div class="toolbar-row"><div class="pagination hidden" id="title-torrent-pagination"></div></div>
         </div>
         
         <!-- Usenet search results inline (no modal) -->
@@ -433,7 +500,7 @@
           </div>
           <div class="candidate-count" id="title-usenet-search-count" aria-live="polite"></div>
           <div class="candidate-list" id="title-usenet-search-results"></div>
-          <div class="toolbar-row"><button class="p-button p-button-secondary hidden" id="title-usenet-search-more">Load more</button></div>
+          <div class="toolbar-row"><div class="pagination hidden" id="title-usenet-search-pagination"></div></div>
         </div>
       </section>
       <footer class="credits" aria-label="Data source credits">

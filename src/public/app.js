@@ -1,4 +1,4 @@
-const state={view:'browse',calendarType:'broadcast',calendarData:null,calendarKey:'',offset:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0, 'title-torrent-search':0, 'title-usenet-search':0, 'torrents-usenet-search':0},total:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0, 'title-torrent-search':0, 'title-usenet-search':0, 'torrents-usenet-search':0},items:{browse:[],movies:[],shows:[],torrents:[],local:[]},browseResults:{movie:[],series:[],music:[],torrents:[],usenet:[]},recentTorrents:[],browseTorrentSearch:{candidates:[],total:0,query:'',kind:'',imdbId:''},browseUsenetSearch:{candidates:[],total:0,query:''},titleTorrentSearch:{candidates:[],total:0,query:'',kind:'',imdbId:''},titleUsenetSearch:{candidates:[],total:0,query:''},torrentsUsenetSearch:{candidates:[],total:0,query:''},browseSearchInProgress:false};
+const state={view:'browse',calendarType:'broadcast',calendarData:null,calendarKey:'',offset:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0, 'title-torrent-search':0, 'title-usenet-search':0, 'torrents-usenet-search':0},total:{browse:0,movies:0,shows:0,torrents:0,local:0, 'browse-movies':0, 'browse-shows':0, 'browse-music':0, 'browse-torrents':0, 'browse-usenet':0, 'browse-torrent-search':0, 'browse-usenet-search':0, 'title-torrent-search':0, 'title-usenet-search':0, 'torrents-usenet-search':0},currentPage:{browse:1,movies:1,shows:1,torrents:1,local:1, 'browse-movies':1, 'browse-shows':1, 'browse-music':1, 'browse-torrents':1, 'browse-usenet':1, 'browse-torrent-search':1, 'browse-usenet-search':1, 'title-torrent-search':1, 'title-usenet-search':1, 'torrents-usenet-search':1},totalPages:{browse:1,movies:1,shows:1,torrents:1,local:1, 'browse-movies':1, 'browse-shows':1, 'browse-music':1, 'browse-torrents':1, 'browse-usenet':1, 'browse-torrent-search':1, 'browse-usenet-search':1, 'title-torrent-search':1, 'title-usenet-search':1, 'torrents-usenet-search':1},items:{browse:[],movies:[],shows:[],torrents:[],local:[]},browseResults:{movie:[],series:[],music:[],torrents:[],usenet:[]},recentTorrents:[],browseTorrentSearch:{candidates:[],total:0,query:'',kind:'',imdbId:''},browseUsenetSearch:{candidates:[],total:0,query:''},titleTorrentSearch:{candidates:[],total:0,query:'',kind:'',imdbId:''},titleUsenetSearch:{candidates:[],total:0,query:''},torrentsUsenetSearch:{candidates:[],total:0,query:''},browseSearchInProgress:false};
     const $=selector=>document.querySelector(selector);
     const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const fmtBytes=value=>{const bytes=Number(value)||0;if(bytes<1024)return `${bytes} B`;const units=['KB','MB','GB','TB'];let n=bytes/1024,i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return `${n.toFixed(1)} ${units[i]}`};
@@ -17,6 +17,131 @@ function sourceTag(source, contentType) {
     const tooltipText = contentType || 'All';
     return `<span class="source-tag" title="${esc(tooltipText)}">${esc(sourceLabel)}</span>`;
 }
+
+
+// Pagination rendering function
+function renderPagination(viewKey, paginationId) {
+    const container = document.getElementById(paginationId);
+    if (!container) return;
+    
+    const total = state.total[viewKey] || 0;
+    const limit = 20;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const currentPage = state.currentPage[viewKey] || 1;
+    
+    // Update state
+    state.totalPages[viewKey] = totalPages;
+    state.currentPage[viewKey] = currentPage;
+    
+    // Hide if only one page
+    if (totalPages <= 1) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.classList.remove('hidden');
+    
+    // Generate page numbers
+    let pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+        // Show all pages
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
+        }
+    } else {
+        // Show first, last, current, and neighbors
+        pages.push(1);
+        
+        if (currentPage > 3) {
+            pages.push('...');
+        }
+        
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        
+        if (currentPage < totalPages - 2) {
+            pages.push('...');
+        }
+        
+        pages.push(totalPages);
+    }
+    
+    // Build pagination HTML
+    let html = '<span class="pagination-info">Page ' + currentPage + ' of ' + totalPages + ' (' + total + ' results)</span>';
+    
+    // Previous button
+    html += '<button class="pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" data-page="' + (currentPage - 1) + '"' + (currentPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">&laquo;</button>';
+    
+    // Page numbers
+    for (const page of pages) {
+        if (page === '...') {
+            html += '<span class="pagination-ellipsis">...</span>';
+        } else {
+            html += '<button class="pagination-btn' + (page === currentPage ? ' active' : '') + '" data-page="' + page + '">' + page + '</button>';
+        }
+    }
+    
+    // Next button
+    html += '<button class="pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" data-page="' + (currentPage + 1) + '"' + (currentPage === totalPages ? ' disabled' : '') + ' aria-label="Next page">&raquo;</button>';
+    
+    container.innerHTML = html;
+    
+    // Add click handlers
+    container.querySelectorAll('.pagination-btn[data-page]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const page = parseInt(btn.dataset.page);
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                goToPage(viewKey, page);
+            }
+        });
+    });
+}
+
+// Navigate to a specific page
+async function goToPage(viewKey, page) {
+    state.currentPage[viewKey] = page;
+    const offset = (page - 1) * 20;
+    state.offset[viewKey] = offset;
+    
+    // Call the appropriate load more function based on viewKey
+    switch (viewKey) {
+        case 'movies':
+        case 'shows':
+        case 'music':
+            await loadMoreUnified(viewKey);
+            break;
+        case 'browse-torrents':
+            await loadMoreBrowse('torrents');
+            break;
+        case 'browse-usenet':
+            await loadMoreBrowse('usenet');
+            break;
+        case 'browse-torrent-search':
+            await loadMoreBrowseTorrentSearch();
+            break;
+        case 'browse-usenet-search':
+            await loadMoreBrowseUsenetSearch();
+            break;
+        case 'torrents-usenet-search':
+            await loadMoreTorrentsUsenetSearch();
+            break;
+        case 'title-torrent-search':
+            await loadMoreTitleTorrentSearch();
+            break;
+        case 'title-usenet-search':
+            await loadMoreTitleUsenetSearch();
+            break;
+    }
+}
+
+
 
 // Search torrent candidates for a specific title (inline, no modal)
 async function searchBrowseTorrentSearch(imdbId, kind, title) {
@@ -174,6 +299,8 @@ async function searchTorrentsUsenetSearch(query) {
             state.offset['browse-torrent-search'] += newItems.length;
             renderBrowseTorrentSearchResults();
             setStatus('browse', '');
+            // Render pagination for torrent search
+            renderPagination('browse-torrent-search', 'browse-torrent-pagination');
         } catch (error) {
             setStatus('browse', error.message);
         }
@@ -254,6 +381,8 @@ async function searchTorrentsUsenetSearch(query) {
         }
         
         $('#browse-torrent-more')?.classList.toggle('hidden', candidates.length >= total);
+        // Render pagination for torrent search
+        renderPagination('browse-torrent-search', 'browse-torrent-pagination');
     }
     
     // Render usenet search results inline
@@ -307,6 +436,8 @@ async function searchTorrentsUsenetSearch(query) {
         }
         
         $('#browse-usenet-search-more')?.classList.toggle('hidden', candidates.length >= total);
+        // Render pagination for usenet search
+        renderPagination('browse-usenet-search', 'browse-usenet-search-pagination');
     }
     
     // Render torrent search results inline - for title detail page
@@ -364,6 +495,8 @@ async function searchTorrentsUsenetSearch(query) {
         const countEl = $('#title-torrent-count');
         if (countEl) countEl.textContent = `Showing ${candidates.length} of ${total} results`;
         $('#title-torrent-more')?.classList.toggle('hidden', candidates.length >= total);
+        // Render pagination for title torrent search
+        renderPagination('title-torrent-search', 'title-torrent-pagination');
     }
     
     // Render usenet search results inline - for title detail page
@@ -419,6 +552,8 @@ async function searchTorrentsUsenetSearch(query) {
         const countEl = $('#title-usenet-search-count');
         if (countEl) countEl.textContent = `Showing ${candidates.length} of ${total} results`;
         $('#title-usenet-search-more')?.classList.toggle('hidden', candidates.length >= total);
+        // Render pagination for title usenet search
+        renderPagination('title-usenet-search', 'title-usenet-search-pagination');
     }
     
     // Render usenet search results inline - for torrents view
@@ -474,6 +609,8 @@ async function searchTorrentsUsenetSearch(query) {
         const countEl = $('#torrents-usenet-search-count');
         if (countEl) countEl.textContent = `Showing ${candidates.length} of ${total} results`;
         $('#torrents-usenet-search-more')?.classList.toggle('hidden', candidates.length >= total);
+        // Render pagination for torrents usenet search
+        renderPagination('torrents-usenet-search', 'torrents-usenet-search-pagination');
     }
     
     // Load more torrent search results - for title detail page
@@ -578,6 +715,8 @@ async function searchTorrentsUsenetSearch(query) {
                 observeArtwork(container);
             }
             $('#browse-movies-more')?.classList.toggle('hidden', movies.length >= totalMovies);
+            // Render pagination for movies
+            renderPagination('browse-movies', 'browse-torrents-pagination');
         }
 
         // Shows
@@ -604,6 +743,8 @@ async function searchTorrentsUsenetSearch(query) {
                 observeArtwork(container);
             }
             $('#browse-shows-more')?.classList.toggle('hidden', shows.length >= totalShows);
+            // Render pagination for shows
+            renderPagination('browse-shows', 'browse-usenet-pagination');
         }
 
         // Music
@@ -630,6 +771,8 @@ async function searchTorrentsUsenetSearch(query) {
                 observeArtwork(container);
             }
             $('#browse-music-more')?.classList.toggle('hidden', music.length >= totalMusic);
+            // Render pagination for music
+            renderPagination('browse-music', 'browse-torrent-pagination');
         }
 
         // Torrents
@@ -655,6 +798,8 @@ async function searchTorrentsUsenetSearch(query) {
                 container.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : empty('No torrent results found.');
             }
             $('#browse-torrents-more')?.classList.toggle('hidden', torrents.length >= totalTorrents);
+            // Render pagination for torrents
+            renderPagination('browse-torrents', 'browse-torrents-pagination');
         }
 
         // Usenet
@@ -680,6 +825,8 @@ async function searchTorrentsUsenetSearch(query) {
                 container.innerHTML = usenet.length ? renderBrowseUsenetCandidates(usenet) : empty('No usenet results found.');
             }
             $('#browse-usenet-more')?.classList.toggle('hidden', usenet.length >= totalUsenet);
+            // Render pagination for usenet
+            renderPagination('browse-usenet', 'browse-usenet-pagination');
         }
 
         if ($('#browse-torrent-search-section')) $('#browse-torrent-search-section').style.display = 'none';
@@ -688,7 +835,17 @@ async function searchTorrentsUsenetSearch(query) {
 
     function renderTorrentCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType=item.kind==='series'?'Show':'Movie';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source,contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<a class="p-button p-button-secondary p-button-small" href="${esc(item.magnet)}">Magnet</a>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}">Add cached</button></div></article>`}).join('')}
     function renderUsenetCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType='All';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${sourceTag(source,contentType)}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}</div></div><div class="candidate-actions"><button class="p-button p-button-primary p-button-small" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name}))}">Add to TorBox</button></div></article>`}).join('')}
-    async function loadMoreBrowse(category){const input=$('#browse-query');if(!input)return;const query=input.value.trim();if(query.length<2)return;const kind=$('#browse-kind')?.value||'all';const sources=[];if($('#source-indexers')?.checked)sources.push('indexers');if($('#source-usenet')?.checked)sources.push('usenet');if(sources.length===0)return;const usenetSource=getUsenetSource();const indexers=getSelectedIndexers();const offset=state.offset[`browse-${category}`]||0;const limit=20;setStatus('browse',`Loading more ${category}…`);try{const url=`/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`;const data=await jsonFetch(url);const newItems=category==='movies'?data.movies?.items||[]:category==='shows'?data.shows?.items||[]:category==='music'?data.music?.items||[]:category==='torrents'?data.torrents?.items||[]:data.usenet?.items||[];state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]=[...(state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]||[]),...newItems];state.offset[`browse-${category}`]+=newItems.length;renderBrowseResults();setStatus('browse','')}catch(error){setStatus('browse',error.message)}}
+    async function loadMoreBrowse(category){const input=$('#browse-query');if(!input)return;const query=input.value.trim();if(query.length<2)return;const kind=$('#browse-kind')?.value||'all';const sources=[];if($('#source-indexers')?.checked)sources.push('indexers');if($('#source-usenet')?.checked)sources.push('usenet');if(sources.length===0)return;const usenetSource=getUsenetSource();const indexers=getSelectedIndexers();const offset=state.offset[`browse-${category}`]||0;const limit=20;setStatus('browse',`Loading more ${category}…`);try{const url=`/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`;const data=await jsonFetch(url);const newItems=category==='movies'?data.movies?.items||[]:category==='shows'?data.shows?.items||[]:category==='music'?data.music?.items||[]:category==='torrents'?data.torrents?.items||[]:data.usenet?.items||[];state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]=[...(state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]||[]),...newItems];state.offset[`browse-${category}`]+=newItems.length;renderBrowseResults();setStatus('browse','');// Render pagination for the category
+        const paginationMap = {
+            'movies': ['browse-movies', 'browse-torrents-pagination'],
+            'shows': ['browse-shows', 'browse-usenet-pagination'],
+            'music': ['browse-music', 'browse-torrent-pagination'],
+            'torrents': ['browse-torrents', 'browse-torrents-pagination'],
+            'usenet': ['browse-usenet', 'browse-usenet-pagination']
+        };
+        if (paginationMap[category]) {
+            renderPagination(paginationMap[category][0], paginationMap[category][1]);
+        }}catch(error){setStatus('browse',error.message)}}
     function showView(view){state.view=view;document.querySelectorAll('.view').forEach(node=>node.classList.toggle('active',node.id===`view-${view}`));document.querySelectorAll('[data-view]').forEach(node=>{const active=node.dataset.view===view;node.classList.toggle('p-selected',active);if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current')});const labels={browse:'Browse',movies:'Movies',shows:'Shows',torrents:'TorBox Library',local:'Local Media',music:'Music',calendar:'Calendar',title:'Title details'};const titleEl=$('#page-title');if(titleEl)titleEl.textContent=labels[view]||'TorBox Media Manager';if(view==='browse')updateBrowseSearchMode();loadView(view,true)}
     async function loadTitle(imdbId,kind){const pageTitle=$('#page-title');if(pageTitle)pageTitle.textContent='Loading title…';const detailContent=$('#detail-content');if(detailContent)detailContent.innerHTML='<div class="detail-layout"><div class="detail-poster"></div><div><div class="skeleton" style="width:38%"></div><div class="skeleton" style="width:78%;height:34px;margin:14px 0"></div><div class="skeleton" style="width:52%"></div></div></div>';try{const endpoint=kind==='series'?'shows':'movies';const title=await jsonFetch(`/api/${endpoint}/${encodeURIComponent(imdbId)}`);
     if (!title.imdbId) title.imdbId = imdbId;const actualKind=/^tv/i.test(title.titleType)?'series':'movie';const genres=String(title.genres||'').split(',').map(value=>value.trim()).filter(Boolean);if(pageTitle)pageTitle.textContent=title.primaryTitle;const poster=title.artwork?.url?`<img class="loaded" src="${esc(title.artwork.url)}" alt="${esc(`${title.primaryTitle} poster`)}">`:`<img loading="eager" alt="${esc(`${title.primaryTitle} poster`)}" data-artwork-id="${esc(title.imdbId)}" data-artwork-kind="${actualKind}">`;const extra=actualKind==='series'?`${title.seasonCount?`${title.seasonCount} ${title.seasonCount===1?'season':'seasons'}`:''}${title.showStatus?` · ${title.showStatus}`:''}`:`${title.releaseDate?`Released ${esc(new Date(`${title.releaseDate}T12:00:00`).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}))}`:''}`;if(detailContent)detailContent.innerHTML=`<div class="detail-layout"><div class="detail-poster">${poster}</div><div class="detail-copy"><div class="detail-kicker">${actualKind==='series'?'TV series':'Movie'}</div><h2>${esc(title.primaryTitle)}</h2><div class="detail-subtitle">${esc([title.startYear||'Year unknown',extra,title.runtimeMinutes?`${title.runtimeMinutes} min`:null].filter(Boolean).join(' · '))}</div>${title.averageRating?`<div class="detail-tags"><span class="detail-tag">★ ${Number(title.averageRating).toFixed(1)} IMDb</span>${title.numVotes?`<span class="detail-tag">${Number(title.numVotes).toLocaleString()} votes</span>`:''}</div>`:''}<div class="detail-tags">${genres.length?genres.map(genre=>`<span class="detail-tag">${esc(genre)}</span>`).join(''):'<span class="detail-tag">Genres unavailable</span>'}</div><div class="detail-actions"><a class="p-button p-button-primary" href="https://www.imdb.com/title/${encodeURIComponent(title.imdbId)}/" target="_blank" rel="noopener noreferrer">Open on IMDb ↗</a></div></div></div>${title.overview?`<p class="detail-description">${esc(title.overview.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim())}</p>`:''}<div class="detail-results-link"><div class="tab-row" role="tablist" aria-label="Search result type"><button class="p-button p-button-secondary active" role="tab" aria-selected="true" data-title-search-tab="torrent">Torrents</button><button class="p-button p-button-secondary" role="tab" aria-selected="false" data-title-search-tab="usenet">Usenet</button></div><div class="status-line" id="title-search-status" role="status">Choose a tab to search.</div><div id="title-search-results"></div></div>`;observeArtwork(detailContent);document.querySelectorAll('[data-title-search-tab]').forEach(tab=>tab.onclick=()=>{document.querySelectorAll('[data-title-search-tab]').forEach(item=>{const active=item===tab;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active))});void loadTitleSearchResults(title,actualKind,tab.dataset.titleSearchTab)}); }catch(error){if(pageTitle)pageTitle.textContent='Title details';if(detailContent)detailContent.innerHTML=`<div class="empty-state detail-error">${esc(error.message)}<p>This title may not be in the local IMDb catalog yet.</p></div>`}}
@@ -751,6 +908,9 @@ async function searchTorrentsUsenetSearch(query) {
                 if(container) container.innerHTML=state.items.movies.length?titleCards(state.items.movies.map(item=>({...item,kind:'movie'}))):'';
                 $('#movies-more')?.classList.toggle('hidden',state.items.movies.length>=state.total.movies);
                 observeArtwork(container);
+                // Render pagination
+                state.currentPage.movies = 1;
+                renderPagination('movies', 'movies-pagination');
             }else if(view==='shows'){
                 state.items.shows=data.shows?.items||[];
                 state.total.shows=data.shows?.total||0;
@@ -759,6 +919,9 @@ async function searchTorrentsUsenetSearch(query) {
                 if(container) container.innerHTML=state.items.shows.length?titleCards(state.items.shows.map(item=>({...item,kind:'series'}))):'';
                 $('#shows-more')?.classList.toggle('hidden',state.items.shows.length>=state.total.shows);
                 observeArtwork(container);
+                // Render pagination
+                state.currentPage.shows = 1;
+                renderPagination('shows', 'shows-pagination');
             }else if(view==='music'){
                 state.items.music=data.music?.items||[];
                 state.total.music=data.music?.total||0;
@@ -767,6 +930,9 @@ async function searchTorrentsUsenetSearch(query) {
                 if(container) container.innerHTML=state.items.music.length?musicReleaseCards(state.items.music):'';
                 $('#music-more')?.classList.toggle('hidden',state.items.music.length>=state.total.music);
                 observeArtwork(container);
+                // Render pagination
+                state.currentPage.music = 1;
+                renderPagination('music', 'music-pagination');
             }
             
             const warnings=[...(data.torrents?.warnings||[]),...(data.usenet?.warnings||[])];
@@ -815,16 +981,25 @@ async function searchTorrentsUsenetSearch(query) {
                 if(container) container.innerHTML=state.items.movies.length?titleCards(state.items.movies.map(item=>({...item,kind:'movie'}))):'';
                 $('#movies-more')?.classList.toggle('hidden',state.items.movies.length>=state.total.movies);
                 observeArtwork(container);
+                // Render pagination
+                state.currentPage.movies = 1;
+                renderPagination('movies', 'movies-pagination');
             }else if(view==='shows'){
                 const container=$('#shows-results');
                 if(container) container.innerHTML=state.items.shows.length?titleCards(state.items.shows.map(item=>({...item,kind:'series'}))):'';
                 $('#shows-more')?.classList.toggle('hidden',state.items.shows.length>=state.total.shows);
                 observeArtwork(container);
+                // Render pagination
+                state.currentPage.shows = 1;
+                renderPagination('shows', 'shows-pagination');
             }else if(view==='music'){
                 const container=$('#music-search-results');
                 if(container) container.innerHTML=state.items.music.length?musicReleaseCards(state.items.music):'';
                 $('#music-more')?.classList.toggle('hidden',state.items.music.length>=state.total.music);
                 observeArtwork(container);
+                // Render pagination
+                state.currentPage.music = 1;
+                renderPagination('music', 'music-pagination');
             }
             
             setStatus(view,'')

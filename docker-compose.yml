@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
     ports:
-      - "6666:6666"
+      - "8066:8066"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://user:change-me@db:5432/torbox_mediamanager}
       LOCAL_MEDIA_PATH: ${LOCAL_MEDIA_PATH:-/data/media}
@@ -28,7 +28,7 @@ services:
       - ${HOST_MEDIA_PATH:-./media}:/data/media:ro
       - ./data:/app/data:rw
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:6666/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8066/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3

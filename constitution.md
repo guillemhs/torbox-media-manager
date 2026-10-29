@@ -126,7 +126,7 @@ services:
   app:
     build: .
     ports:
-      - "6666:6666"
+      - "8066:8066"
     environment:
       - TORBOX_API_KEY=${TORBOX_API_KEY}
       - DATABASE_URL=${DATABASE_URL}

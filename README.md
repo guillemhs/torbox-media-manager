@@ -6,7 +6,7 @@ A self-hosted, local-first media catalog. Movie and series metadata comes from I
 
 1. Copy `.env.example` to `.env` and optionally set `TORBOX_API_KEY`.
 2. Set `HOST_MEDIA_PATH` to the media directory on the host.
-3. Run `docker compose up --build -d` and open <http://localhost:6666>.
+3. Run `docker compose up --build -d` and open <http://localhost:8066>.
 
 PostgreSQL and IMDb downloads persist under `./data`. Compose waits for PostgreSQL's health check before starting the app. On an empty or incomplete database, the app starts and begins/resumes its IMDb import in the background; the catalog fills as streaming batches are ingested. Large public datasets can take a while to download and import. Set `IMDB_AUTO_IMPORT=false` to disable startup import, then use `POST /admin/imdb/import` when ready. Compose restarts the app after failures, checks `/health`, and rotates container logs.
 
@@ -24,7 +24,7 @@ The previous Compose file used a named volume called `postgres_data`. If you alr
 
 ## Check it in the browser
 
-After Compose reports the app as healthy, open <http://localhost:6666>. Use the sidebar to switch between Browse, Movies, Shows, TorBox, Local Media, Music, and Calendar. Try searching a title, using **Load more**, and checking that music tracks open through TorBox.
+After Compose reports the app as healthy, open <http://localhost:8066>. Use the sidebar to switch between Browse, Movies, Shows, TorBox, Local Media, Music, and Calendar. Try searching a title, using **Load more**, and checking that music tracks open through TorBox.
 
 Movie and TV posters are matched from IMDb IDs through TMDB when `TMDB_API_READ_ACCESS_TOKEN` is configured in `.env`; TVMaze supplies a fallback for series posters and artwork in the calendar. TMDB credentials stay on the server. Music cover art is searched lazily from MusicBrainz and Cover Art Archive using album/torrent names, so ambiguous torrent names may not match. Artwork requests are cached in memory for 24 hours. The interface includes source credits; TMDB attribution is required by its API terms.
 
@@ -36,7 +36,7 @@ To check adding a torrent, choose **Add to TorBox**, paste a magnet URI or info 
 
 The TorBox library view lists torrent downloads from your account and lets you search and sort the current list locally by name, hash, status, size, or date added. Search does not issue a new TorBox query.
 
-For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:6666/health` and `curl -fsS http://localhost:6666/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.
+For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:8066/health` and `curl -fsS http://localhost:8066/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.
 
 ## Routes
 

@@ -31,7 +31,7 @@ import {
 import { getImdbImportProgress, importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
 
 const app = express();
-const PORT = Number(process.env.PORT || 6666);
+const PORT = Number(process.env.PORT || 8066);
 app.use(express.json({ limit: '32kb' }));
 app.use(express.urlencoded({ extended: true, limit: '32kb' }));
 app.use('/vendor/puppertino', express.static(path.join(__dirname, '../node_modules/@codedgar/puppertino/dist/css')));

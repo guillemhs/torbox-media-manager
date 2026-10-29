@@ -35,6 +35,26 @@ function encodeQueryValue(value: string): string {
   return encodeURIComponent(wellFormed);
 }
 
+function magnetHash(value: string): string {
+  return (/xt=urn:btih:([a-f0-9]{40})/i.exec(value)?.[1] || '').toLowerCase();
+}
+
+function prowlarrSearchUrl(): URL | null {
+  const base = process.env.TORZNAB_URL?.trim();
+  if (!base) return null;
+  const url = new URL(base);
+  // Convert to /api/v1/search endpoint if it's an indexer feed URL
+  if (/\/api\/v1\/search\/?$/.test(url.pathname)) {
+    url.pathname = url.pathname.replace(/\/$/, '');
+    return url;
+  }
+  const indexerFeed = /^(.*)\/\d+\/api\/?$/.exec(url.pathname);
+  if (!indexerFeed) return null;
+  url.pathname = `${indexerFeed[1].replace(/\/+$/, '')}/api/v1/search`;
+  url.search = '';
+  return url;
+}
+
 export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
   if (!/^tt\d+$/.test(imdbId)) throw new Error('A valid IMDb ID is required for torrent search.');
   if (kind === 'series' && (!Number.isSafeInteger(season) || season < 1 || season > 99)) {
@@ -88,6 +108,91 @@ export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 's
       source: 'Torrentio'
     });
   }
+  const clampedLimit = Math.min(100, Math.max(1, limit));
+  const clampedOffset = Math.max(0, offset);
+  return [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);
+}
+
+/**
+ * Search torrents via Prowlarr's Torznab API for general queries (without IMDb ID).
+ * This is used for general search where we don't have an IMDb ID.
+ */
+export async function searchTorrentsViaProwlarr(query: string, limit = 50, offset = 0): Promise<TorrentCandidate[]> {
+  const url = prowlarrSearchUrl();
+  if (!url) {
+    throw new Error('Prowlarr is not configured. Set TORZNAB_URL to a Prowlarr Torznab feed URL.');
+  }
+
+  url.searchParams.set('q', query);
+  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
+  url.searchParams.set('offset', String(Math.max(0, offset)));
+
+  const key = process.env.TORZNAB_API_KEY?.trim();
+  if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { Accept: 'application/json', 'X-Api-Key': key },
+      signal: AbortSignal.timeout(20_000)
+    });
+  } catch {
+    throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.');
+  }
+  if (!response.ok) throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
+
+  const rawData = await response.json();
+  
+  // Handle both array response and object with results/items
+  let items: unknown[];
+  if (Array.isArray(rawData)) {
+    items = rawData;
+  } else if (rawData && typeof rawData === 'object') {
+    const obj = rawData as Record<string, unknown>;
+    if (Array.isArray(obj.results)) {
+      items = obj.results;
+    } else if (Array.isArray(obj.items)) {
+      items = obj.items;
+    } else {
+      return [];
+    }
+  } else {
+    return [];
+  }
+
+  const candidates = new Map<string, TorrentCandidate>();
+  
+  for (const raw of items) {
+    if (!raw || typeof raw !== 'object') continue;
+    const item = raw as Record<string, unknown>;
+    
+    const name = typeof item.title === 'string' ? item.title : '';
+    const downloadUrl = typeof item.downloadUrl === 'string' ? item.downloadUrl : '';
+    const magnetUrl = typeof item.magnetUrl === 'string' ? item.magnetUrl : '';
+    const hash = magnetHash(magnetUrl) || (typeof item.infoHash === 'string' ? item.infoHash.toLowerCase() : '') || (typeof item.infohash === 'string' ? item.infohash.toLowerCase() : '') || (typeof item.hash === 'string' ? item.hash.toLowerCase() : '');
+    
+    if (!name || !/^[a-f0-9]{40}$/.test(hash)) continue;
+    
+    const magnet = magnetUrl.startsWith('magnet:') ? magnetUrl : `magnet:?xt=urn:btih:${hash}&dn=${encodeQueryValue(name.slice(0, 180))}`;
+    const indexer = typeof item.indexer === 'string' ? item.indexer : 
+                    typeof item.prowlarrindexer === 'string' ? item.prowlarrindexer :
+                    typeof item.jackettindexer === 'string' ? item.jackettindexer : 'Prowlarr';
+    
+    const size = positiveNumber(item.size);
+    const seeders = countNumber(item.seeders);
+    const leechers = countNumber(item.leechers ?? item.peers);
+    
+    candidates.set(hash, {
+      hash,
+      magnet,
+      name,
+      seeders,
+      leechers,
+      size,
+      source: indexer
+    });
+  }
+  
   const clampedLimit = Math.min(100, Math.max(1, limit));
   const clampedOffset = Math.max(0, offset);
   return [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);

@@ -6,7 +6,7 @@ import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, getTorrentList, g
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { getTvmazeSchedule, getTvmazeShow, getTvmazeShowByImdb, getTvmazeMonthlyCalendar } from '../services/tvmaze/schedule.service';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup, getTitleArtwork, getTitleMetadata } from '../services/artwork.service';
-import { searchTorrentCandidates, type TorrentCandidate } from '../services/torbox/torrentSearch';
+import { searchTorrentCandidates, searchTorrentsViaProwlarr, type TorrentCandidate } from '../services/torbox/torrentSearch';
 import { getMusicTorrentDownload, searchIndexerTorrents, searchMusicMetadata, searchMusicTorrents } from '../services/musicSearch';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
 
@@ -358,11 +358,8 @@ export const browseRoute: RequestHandler = async (req, res) => {
     const torrentUsenetResults: Array<Record<string, unknown>> = [];
     
     if (hasIndexerConfig) {
-      // Search torrents via Torrentio/Prowlarr
-      const torrentCandidates = await searchTorrentCandidates(
-        '', // We don't have imdbId for general search
-        'movie' // default kind
-      );
+      // Search torrents via Prowlarr for general queries
+      const torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
       
       // Convert torrent candidates to result format
       for (const candidate of torrentCandidates) {

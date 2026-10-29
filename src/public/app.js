@@ -1121,7 +1121,7 @@ async function loadPageUnified(view, page) {
                 hash: t.hash,
                 magnet: t.magnet,
                 downloadToken: t.downloadToken
-            });
+            }));
             state.items.movies = [...movieMetadata, ...transformedTorrents];
             state.total.movies = (data.movies?.total || 0) + (data.torrents?.total || 0);
             state.offset[view] = offset + state.items.movies.length;

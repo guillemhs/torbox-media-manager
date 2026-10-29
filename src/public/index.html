@@ -327,11 +327,115 @@
         }
     }
 
+
+    /* Hamburger Menu Styles */
+    .hamburger-menu {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background-color 0.2s ease;
+    }
+    .hamburger-menu:hover {
+      background: rgba(127, 127, 127, 0.1);
+    }
+    .hamburger-menu:focus-visible {
+      outline: 3px solid #087eff;
+      outline-offset: 2px;
+    }
+    .hamburger-menu svg {
+      width: 24px;
+      height: 24px;
+      color: inherit;
+    }
+
+    /* Sidebar Overlay */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 40;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .sidebar-overlay.visible {
+      display: block;
+      opacity: 1;
+    }
+
+    /* Mobile Sidebar Styles */
+    @media (max-width: 760px) {
+      .hamburger-menu {
+        display: flex;
+      }
+      
+      .app-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        max-width: 85vw;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        z-index: 50;
+        box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.1), 0 4px 24px rgba(0, 0, 0, 0.15);
+      }
+      
+      .app-sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .sidebar-overlay.visible {
+        display: block;
+      }
+      
+      /* Prevent body scroll when sidebar is open */
+      body.sidebar-open {
+        overflow: hidden;
+      }
+      
+      /* Adjust topbar for mobile */
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 12px;
+      }
+      
+      .topbar h1 {
+        flex: 1;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .topbar-actions {
+        flex-shrink: 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-sidebar {
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+
 </style>
 </head>
 <body class="p-type p-auto-dark-mode">
   <div class="app-shell">
-    <aside class="p-sidebar p-sidebar-floating app-sidebar" aria-label="Main navigation">
+    <aside class="p-sidebar p-sidebar-floating app-sidebar" id="app-sidebar" aria-label="Main navigation">
       <a class="brand" href="/browse" aria-label="TorBox Manager home"><span class="brand-mark">T</span><span>TorBox Manager</span></a>
       <div class="sidebar-group">Discover</div>
       <button class="p-sidebar-row p-selected" data-view="browse" aria-current="page"><span class="p-sidebar-icon">⌕</span>Browse</button>
@@ -344,9 +448,17 @@
       <button class="p-sidebar-row" data-view="calendar"><span class="p-sidebar-icon">▦</span>Calendar</button>
       <div class="sidebar-bottom" id="import-status">IMDb catalog status loading…</div>
     </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
 
     <main class="workspace">
       <header class="topbar">
+        <button class="p-button p-button-secondary hamburger-menu" id="hamburger-menu" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="app-sidebar">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
         <h1 id="page-title">Browse</h1>
         <div class="topbar-actions"><span class="mode-pill" id="mode-pill">Connecting…</span><button class="p-button p-button-primary" id="add-open">＋ Add to TorBox</button></div>
       </header>

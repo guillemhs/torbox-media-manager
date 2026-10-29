@@ -1129,5 +1129,62 @@ if(location.hash){const legacy=location.hash.slice(1);history.replaceState(null,
     $('#add-form')?.addEventListener('submit',async event=>{event.preventDefault();const button=$('#add-submit');if(button)button.disabled=true;const addStat=$('#add-status');if(addStat)addStat.innerHTML='<span class="spinner"></span>Sending to TorBox…';try{const magInput=$('#magnet-input')?.value.trim()||'';const torName=$('#torrent-name')?.value.trim()||'';const cachedOnly=$('#cached-only')?.checked||false;const data=await jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet:magInput,name:torName,addOnlyIfCached:cachedOnly})});if(addStat)addStat.textContent=`${data.detail}${data.torrent?.torrent_id?` · TorBox ID ${data.torrent.torrent_id}`:''}`;const mIn=$('#magnet-input');if(mIn)mIn.value='';const tIn=$('#torrent-name');if(tIn)tIn.value='';pinRecentTorrent(data.torrent);void loadView('torrents',true);setTimeout(()=>{$('#add-modal')?.classList.add('hidden')},1800)}catch(error){if(addStat)addStat.textContent=error.message}finally{if(button)button.disabled=false}});
     async function pollHealth(){try{const data=await jsonFetchWithTimeout('/health',5000);const modePill=$('#mode-pill');if(modePill)modePill.textContent=data.mode==='torbox-integrated'?'TorBox configured':'Local mode'}catch{const modePill=$('#mode-pill');if(modePill)modePill.textContent='TorBox status unavailable'}}pollHealth();setInterval(pollHealth,30000);
     async function refreshImportStatus(retries=0){const MAX_RETRIES=12;try{const data=await jsonFetchWithTimeout('/admin/imdb/status',10000);const progress=data.progress||{};const impStat=$('#import-status');if(!impStat)return;if(progress.running)impStat.textContent=`Importing IMDb ${progress.dataset.includes('ratings')?'ratings':'titles'} · ${Number(progress.importedRows||0).toLocaleString()} processed`;else if(progress.error)impStat.textContent=`IMDb import failed · ${progress.error}`;else if(data.datasets.length>=2)impStat.textContent=`${Number(data.titles).toLocaleString()} IMDb titles · catalog ready`;else impStat.textContent=`IMDb catalog waiting to import · ${Number(data.titles).toLocaleString()} titles`;if((progress.running||data.datasets.length<2)&&retries<MAX_RETRIES)setTimeout(()=>refreshImportStatus(retries+1),5000);else if(retries>=MAX_RETRIES)impStat.textContent='IMDb catalog status unavailable · stopped polling'}catch{const impStat=$('#import-status');if(impStat)impStat.textContent='IMDb status unavailable · retrying';if(retries<MAX_RETRIES)setTimeout(()=>refreshImportStatus(retries+1),10000);else if(impStat)impStat.textContent='IMDb status unavailable · stopped polling'}}
+
+
+// Hamburger menu toggle functionality
+function initHamburgerMenu() {
+  const hamburgerBtn = document.getElementById('hamburger-menu');
+  const sidebar = document.getElementById('app-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  
+  if (!hamburgerBtn || !sidebar || !overlay) return;
+  
+  function toggleSidebar() {
+    const isOpen = sidebar.classList.toggle('open');
+    overlay.classList.toggle('visible', isOpen);
+    document.body.classList.toggle('sidebar-open', isOpen);
+    hamburgerBtn.setAttribute('aria-expanded', isOpen);
+  }
+  
+  hamburgerBtn.addEventListener('click', toggleSidebar);
+  overlay.addEventListener('click', toggleSidebar);
+  
+  // Close sidebar when a navigation item is clicked
+  sidebar.querySelectorAll('[data-view]').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 760) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+        document.body.classList.remove('sidebar-open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+  
+  // Close sidebar on window resize if desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 760) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+      document.body.classList.remove('sidebar-open');
+      hamburgerBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // Close sidebar on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('visible');
+      document.body.classList.remove('sidebar-open');
+      hamburgerBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
+// Initialize hamburger menu when DOM is ready
+document.addEventListener('DOMContentLoaded', initHamburgerMenu);
+
+
     void refreshImportStatus();
 });

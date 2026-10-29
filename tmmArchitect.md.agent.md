@@ -42,7 +42,8 @@ Whenever a fix, refactor, or build check is requested, execute in the local term
 
 - **Environment Setup & Docker Socket Fix:**
   ```bash
-  export DOCKER_HOST="unix://${HOME}/.docker/run/docker.sock"
+  export DOCKER_HOST="unix://${HOME}/.lima/docker/sock/docker.sock"
+  export DOCKER_BUILDKIT=1
 
 ```
 
@@ -55,22 +56,17 @@ Inspect the repository root and initialize the appropriate isolated environment 
 
 ```
 
-
 * **Node.js Projects (`package.json`):**
 ```bash
 [ -d "node_modules" ] || (npm ci || npm install)
 
 ```
 
-
-
-
 * **Inspecting Files via Terminal:**
 ```bash
 python3 -c "print(open('path/to/target/file').read())"
 
 ```
-
 
 * **Patching Files via Terminal (Inline Python Execution):**
 ```bash
@@ -83,7 +79,6 @@ print('Successfully patched', path)
 "
 
 ```
-
 
 * **Universal Build & Test Verification:**
 Run the appropriate validation command based on the project manifest (`npm run build`, `pytest`, `cargo build`, etc.) immediately after patching.

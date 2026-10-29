@@ -1174,7 +1174,7 @@ async function loadPageUnified(view, page) {
                 size: t.size,
                 source: t.source,
                 downloadToken: t.downloadToken
-            });
+            }));
             state.items.music = [...musicMetadata, ...transformedTorrents];
             state.total.music = (data.music?.total || 0) + (data.torrents?.total || 0);
             state.offset[view] = offset + state.items.music.length;

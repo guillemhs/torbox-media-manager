@@ -235,25 +235,82 @@ export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
 export const musicRoute: RequestHandler = async (req, res) => {
   try {
     const page = pagination(req.query as Record<string, unknown>);
-    const q = scalar(req.query.q) || '';
-    // If coming from /browse with a category filter, preserve it
-    const kind = scalar(req.query.kind) || 'music';
-    const result = await searchMusicMetadata(q);
-    const releasesWithSource = result.map((release: any) => ({
-      ...release,
-      _source: 'local-music'
+    const query = scalar(req.query.q) || '';
+    
+    // Search local music metadata
+    const localResult = await searchMusicMetadata(query);
+    const localItems = localResult.slice(page.offset, page.offset + page.limit).map((item: any) => ({
+      ...item,
+      _type: 'local',
+      _category: 'Music'
     }));
     
-    // Build browse link with category filter
-    const browseLink = kind === 'music'
-      ? '/browse?q=' + encodeURIComponent(q || '') + '&kind=music'
-      : '/browse';
+    // Search torrents with Audio categories
+    const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+    let torrentResults: Array<Record<string, unknown>> = [];
     
-    return res.json({ 
-      releases: releasesWithSource,
-      total: releasesWithSource.length,
-      source: 'MusicBrainz',
-      browseLink: '/browse?q=' + encodeURIComponent(q || '') + '&kind=music'
+    if (hasIndexerConfig) {
+      const audioCategories = ['3000', '3010', '3020', '3030', '3040', '3050', '3060'];
+      const torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, audioCategories);
+      
+      for (const candidate of torrentCandidates) {
+        torrentResults.push({
+          name: candidate.name,
+          _type: 'torrent',
+          seeders: candidate.seeders,
+          leechers: candidate.leechers,
+          size: candidate.size,
+          source: candidate.source,
+          _category: 'Music'
+        });
+      }
+    }
+    
+    // Search usenet
+    let usenetResults: Array<Record<string, unknown>> = [];
+    if (hasIndexerConfig) {
+      const usenetResult = await searchUsenet(query, 'all', 50, 0);
+      for (const candidate of usenetResult.candidates) {
+        usenetResults.push({
+          name: candidate.name,
+          _type: 'usenet',
+          _category: 'Music'
+        });
+      }
+    }
+    
+    // Combine results: local titles first, then torrents, then usenet
+    const allResults = [
+      ...localItems,
+      ...torrentResults,
+      ...usenetResults
+    ];
+    
+    // Separate by type for display
+    const torrents = allResults.filter(r => r._type === 'torrent');
+    const usenet = allResults.filter(r => r._type === 'usenet');
+    const local = allResults.filter(r => r._type === 'local');
+    
+    // Format torrent metadata
+    const formattedTorrents = torrents.map((t: any) => ({
+      ...t,
+      _metadata: formatTorrentMetadata(t.seeders, t.leechers, t.size)
+    }));
+    
+    const formattedUsenet = usenet.map((u: any) => ({
+      ...u,
+      _metadata: formatUsenetMetadata(u)
+    }));
+    
+    return res.json({
+      query,
+      kind: 'music',
+      results: {
+        local: { items: localItems, total: localResult.length },
+        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
+        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+      },
+      torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim())
     });
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
@@ -278,22 +335,81 @@ export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(get
 export const moviesRoute: RequestHandler = async (req, res) => {
   try {
     const page = pagination(req.query as Record<string, unknown>);
-    const q = scalar(req.query.q);
-    // If coming from /browse with a category filter, preserve it
-    const kind = scalar(req.query.kind) || 'movie';
-    const result = await searchTitles({ ...page, q, kind: 'movie' });
-    const itemsWithSource = result.items.map(item => ({ ...item, _source: 'local-movies' }));
+    const query = scalar(req.query.q) || '';
     
-    // Build browse link with category filter
-    const browseLink = kind === 'movie'
-      ? '/browse?q=' + encodeURIComponent(q || '') + '&kind=movie'
-      : '/browse';
+    // Search local titles
+    const localResult = await searchTitles({ ...page, q: query, kind: 'movie' });
     
-    return res.json({ 
-      ...result, 
-      items: itemsWithSource, 
-      importStatus: await getImportStatus(),
-      browseLink: '/browse?q=' + encodeURIComponent(q || '') + '&kind=movie'
+    // Search torrents with movie categories
+    const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+    let torrentResults: Array<Record<string, unknown>> = [];
+    
+    if (hasIndexerConfig) {
+      const movieCategories = ['2000', '2010', '2020', '2030', '2040', '2045', '2050', '2060', '2070', '2080', '2090'];
+      const torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, movieCategories);
+      
+      for (const candidate of torrentCandidates) {
+        torrentResults.push({
+          name: candidate.name,
+          _type: 'torrent',
+          seeders: candidate.seeders,
+          leechers: candidate.leechers,
+          size: candidate.size,
+          source: candidate.source,
+          _category: 'Movies'
+        });
+      }
+    }
+    
+    // Search usenet
+    let usenetResults: Array<Record<string, unknown>> = [];
+    if (hasIndexerConfig) {
+      const usenetResult = await searchUsenet(query, 'all', 50, 0);
+      for (const candidate of usenetResult.candidates) {
+        usenetResults.push({
+          name: candidate.name,
+          _type: 'usenet',
+          _category: 'Movies'
+        });
+      }
+    }
+    
+    // Combine results: local titles first, then torrents, then usenet
+    const allResults = [
+      ...localResult.items.map((item: any) => ({
+        ...item,
+        _type: 'local',
+        _category: extractCategoryFromTitle(item.primaryTitle, item.titleType)
+      })),
+      ...torrentResults,
+      ...usenetResults
+    ];
+    
+    // Separate by type for display
+    const torrents = allResults.filter(r => r._type === 'torrent');
+    const usenet = allResults.filter(r => r._type === 'usenet');
+    const local = allResults.filter(r => r._type === 'local');
+    
+    // Format torrent metadata
+    const formattedTorrents = torrents.map((t: any) => ({
+      ...t,
+      _metadata: formatTorrentMetadata(t.seeders, t.leechers, t.size)
+    }));
+    
+    const formattedUsenet = usenet.map((u: any) => ({
+      ...u,
+      _metadata: formatUsenetMetadata(u)
+    }));
+    
+    return res.json({
+      query,
+      kind: 'movie',
+      results: {
+        local: { items: localResult.items.slice(page.offset, page.offset + page.limit), total: localResult.total },
+        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
+        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+      },
+      torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim())
     });
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
@@ -301,22 +417,81 @@ export const moviesRoute: RequestHandler = async (req, res) => {
 export const showsRoute: RequestHandler = async (req, res) => {
   try {
     const page = pagination(req.query as Record<string, unknown>);
-    const q = scalar(req.query.q);
-    // If coming from /browse with a category filter, preserve it
-    const kind = scalar(req.query.kind) || 'series';
-    const result = await searchTitles({ ...page, q, kind: 'series' });
-    const itemsWithSource = result.items.map(item => ({ ...item, _source: 'local-shows' }));
+    const query = scalar(req.query.q) || '';
     
-    // Build browse link with category filter
-    const browseLink = kind === 'series'
-      ? '/browse?q=' + encodeURIComponent(q || '') + '&kind=series'
-      : '/browse';
+    // Search local titles
+    const localResult = await searchTitles({ ...page, q: query, kind: 'series' });
     
-    return res.json({ 
-      ...result, 
-      items: itemsWithSource, 
-      importStatus: await getImportStatus(),
-      browseLink: '/browse?q=' + encodeURIComponent(q || '') + '&kind=series'
+    // Search torrents with TV categories
+    const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+    let torrentResults: Array<Record<string, unknown>> = [];
+    
+    if (hasIndexerConfig) {
+      const tvCategories = ['5000', '5010', '5020', '5030', '5040', '5045', '5050', '5060', '5070', '5080', '5090'];
+      const torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, tvCategories);
+      
+      for (const candidate of torrentCandidates) {
+        torrentResults.push({
+          name: candidate.name,
+          _type: 'torrent',
+          seeders: candidate.seeders,
+          leechers: candidate.leechers,
+          size: candidate.size,
+          source: candidate.source,
+          _category: 'Series'
+        });
+      }
+    }
+    
+    // Search usenet
+    let usenetResults: Array<Record<string, unknown>> = [];
+    if (hasIndexerConfig) {
+      const usenetResult = await searchUsenet(query, 'all', 50, 0);
+      for (const candidate of usenetResult.candidates) {
+        usenetResults.push({
+          name: candidate.name,
+          _type: 'usenet',
+          _category: 'Series'
+        });
+      }
+    }
+    
+    // Combine results: local titles first, then torrents, then usenet
+    const allResults = [
+      ...localResult.items.map((item: any) => ({
+        ...item,
+        _type: 'local',
+        _category: extractCategoryFromTitle(item.primaryTitle, item.titleType)
+      })),
+      ...torrentResults,
+      ...usenetResults
+    ];
+    
+    // Separate by type for display
+    const torrents = allResults.filter(r => r._type === 'torrent');
+    const usenet = allResults.filter(r => r._type === 'usenet');
+    const local = allResults.filter(r => r._type === 'local');
+    
+    // Format torrent metadata
+    const formattedTorrents = torrents.map((t: any) => ({
+      ...t,
+      _metadata: formatTorrentMetadata(t.seeders, t.leechers, t.size)
+    }));
+    
+    const formattedUsenet = usenet.map((u: any) => ({
+      ...u,
+      _metadata: formatUsenetMetadata(u)
+    }));
+    
+    return res.json({
+      query,
+      kind: 'series',
+      results: {
+        local: { items: localResult.items.slice(page.offset, page.offset + page.limit), total: localResult.total },
+        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
+        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+      },
+      torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim())
     });
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };

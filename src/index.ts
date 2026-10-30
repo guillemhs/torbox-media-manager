@@ -12,6 +12,7 @@ import {
   imdbImportRoute,
   musicArtworkRoute,
   musicMetadataSearchRoute,
+  musicRoute,
   musicTorrentDownloadRoute,
   musicTorrentSearchRoute,
   moviesRoute,
@@ -60,6 +61,7 @@ app.get('/api/search', unifiedSearchRoute);
 app.get('/api/calendar', calendarRoute);
 app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);
+app.get('/api/music', musicRoute);
 app.get('/music/search', musicMetadataSearchRoute);
 app.get('/music/torrents/search', musicTorrentSearchRoute);
 app.get('/music/torrents/download/:token', musicTorrentDownloadRoute);

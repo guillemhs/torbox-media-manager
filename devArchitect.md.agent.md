@@ -132,6 +132,8 @@ fi
 * **Universal Build & Test Verification:**
 Run the appropriate validation command based on the project manifest (`npm run build`, `pytest`, `cargo build`, etc.) immediately after patching.
 
+* **NO TEMPORARY STAGING IN `/tmp`:** Never copy repository files to `/tmp` or external directories for inspection or processing. Always read, inspect, and modify files **in-place** directly within the repository workspace root.
+
 ---
 
 ## 2. DETERMINISTIC FALLBACK PROTOCOL

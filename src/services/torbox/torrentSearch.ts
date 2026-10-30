@@ -117,7 +117,7 @@ export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 's
  * Search torrents via Prowlarr's Torznab API for general queries (without IMDb ID).
  * This is used for general search where we don't have an IMDb ID.
  */
-export async function searchTorrentsViaProwlarr(query: string, limit = 50, offset = 0): Promise<TorrentCandidate[]> {
+export async function searchTorrentsViaProwlarr(query: string, limit = 50, offset = 0, categories?: string[]): Promise<TorrentCandidate[]> {
   const url = prowlarrSearchUrl();
   if (!url) {
     throw new Error('Prowlarr is not configured. Set TORZNAB_URL to a Prowlarr Torznab feed URL.');
@@ -126,6 +126,11 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   url.searchParams.set('q', query);
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('offset', String(Math.max(0, offset)));
+  
+  // Add category filtering if provided
+  if (categories && categories.length > 0) {
+    url.searchParams.set('cat', categories.join(','));
+  }
 
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');

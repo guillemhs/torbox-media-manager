@@ -942,6 +942,33 @@ async function searchTorrentsUsenetSearch(query) {
                 if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map(item => ({...item, kind: 'movie'}))) : '';
                 $('#movies-more')?.classList.toggle('hidden', state.items.movies.length >= state.total.movies);
                 observeArtwork(container);
+                // Add event listener for copy magnet buttons
+                container.querySelectorAll('[data-copy-magnet]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.movies[Number(button.dataset.copyMagnet)];
+                        try {
+                            await navigator.clipboard.writeText(item.magnet);
+                            button.textContent = 'Copied into the clipboard';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        } catch {
+                            const field = document.createElement('textarea');
+                            field.value = item.magnet;
+                            field.setAttribute('readonly', '');
+                            field.style.position = 'fixed';
+                            field.style.opacity = '0';
+                            document.body.append(field);
+                            field.select();
+                            const copied = document.execCommand('copy');
+                            field.remove();
+                            button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        }
+                    };
+                });
                 // Render pagination
                 state.currentPage.movies = 1;
                 renderPagination('movies', 'movies-pagination');
@@ -987,6 +1014,33 @@ async function searchTorrentsUsenetSearch(query) {
                 if (container) container.innerHTML = state.items.shows.length ? titleCards(state.items.shows.map(item => ({...item, kind: 'series'}))) : '';
                 $('#shows-more')?.classList.toggle('hidden', state.items.shows.length >= state.total.shows);
                 observeArtwork(container);
+                // Add event listener for copy magnet buttons
+                container.querySelectorAll('[data-copy-magnet]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.shows[Number(button.dataset.copyMagnet)];
+                        try {
+                            await navigator.clipboard.writeText(item.magnet);
+                            button.textContent = 'Copied into the clipboard';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        } catch {
+                            const field = document.createElement('textarea');
+                            field.value = item.magnet;
+                            field.setAttribute('readonly', '');
+                            field.style.position = 'fixed';
+                            field.style.opacity = '0';
+                            document.body.append(field);
+                            field.select();
+                            const copied = document.execCommand('copy');
+                            field.remove();
+                            button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        }
+                    };
+                });
                 // Render pagination
                 state.currentPage.shows = 1;
                 renderPagination('shows', 'shows-pagination');
@@ -1175,6 +1229,32 @@ async function loadPageUnified(view, page) {
             const container = $('#movies-results');
             if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map(item => ({...item, kind: 'movie'}))) : '';
             observeArtwork(container);
+            // Add event listener for copy magnet buttons
+            container.querySelectorAll('[data-copy-magnet]').forEach(button => {
+                button.onclick = async () => {
+                    const item = state.items.movies[Number(button.dataset.copyMagnet)];
+                    try {
+                        await navigator.clipboard.writeText(item.magnet);
+                        button.textContent = 'Copied into the clipboard';
+                        setTimeout(() => {
+                            if (button.isConnected) button.textContent = 'Copy magnet';
+                        }, 1500);
+                    } catch {
+                        const field = document.createElement('textarea');
+                        field.value = item.magnet;
+                        field.setAttribute('readonly', '');
+                        field.style.position = 'fixed';
+                        field.style.opacity = '0';
+                        document.body.append(field);
+                        field.select();
+                        const copied = document.execCommand('copy');
+                        field.remove();
+                        button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
+                        setTimeout(() => {
+                            if (button.isConnected) button.textContent = 'Copy magnet';
+                        }, 1500);
+                    }
+                });
             renderPagination('movies', 'movies-pagination');
         } else if (view === 'shows') {
             // Combine show metadata and torrent results for shows view
@@ -1240,7 +1320,7 @@ async function loadPageUnified(view, page) {
 }
 
 
-    function titleCards(items){return items.map(item=>{const kind=/^tv/i.test(item.titleType)?'series':'movie';const route=`/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';let categoryTag='';if(item._source==='local-movies'||item._source==='local-shows'){contentType=item._source==='local-movies'?'Movie':'Show';categoryTag=contentType}else if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie';categoryTag=contentType}else if(item._source==='usenet'){contentType='All';categoryTag='Usenet'}else if(item._source==='local-music'){contentType='Music';categoryTag='Music'};const metaParts=[];if(item.seeders!==null&&item.seeders!==undefined)metaParts.push(`${Number(item.seeders).toLocaleString()} seeders`);if(item.leechers!==null&&item.leechers!==undefined)metaParts.push(`${Number(item.leechers).toLocaleString()} leechers`);if(item.size)metaParts.push(fmtBytes(item.size));if(source)metaParts.push(source);const metaLine=metaParts.length?`<div class="result-row-meta-line">${esc(metaParts.join(' · '))}</div>`:'';const categoryTagHtml=categoryTag?`<span class="category-tag">${esc(categoryTag)}</span>`:'';const isTorrent = item._source === 'torrents';const actionButtons = isTorrent ? `<div class="candidate-actions">${item.magnet?`<button class="p-button p-button-secondary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.primaryTitle)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.primaryTitle)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.primaryTitle)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div>` : '';return `<article class="p-card result-row"><a class="result-row-link" href="${route}" aria-label="Open ${esc(item.primaryTitle)} details"><div><div class="result-row-title">${esc(item.primaryTitle)}</div>${metaLine}<div class="result-row-meta">${esc(item.startYear||'Year unknown')} · ${esc(item.titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div><div class="result-row-source">${categoryTagHtml}${sourceTag(source,contentType)}</div></div><span class="result-row-arrow" aria-hidden="true">›</span></a>${actionButtons}</article>`}).join('')}
+    function titleCards(items){return items.map(item=>{const kind=/^tv/i.test(item.titleType)?'series':'movie';const route=`/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';let categoryTag='';if(item._source==='local-movies'||item._source==='local-shows'){contentType=item._source==='local-movies'?'Movie':'Show';categoryTag=contentType}else if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie';categoryTag=contentType}else if(item._source==='usenet'){contentType='All';categoryTag='Usenet'}else if(item._source==='local-music'){contentType='Music';categoryTag='Music'};const metaParts=[];if(item.seeders!==null&&item.seeders!==undefined)metaParts.push(`${Number(item.seeders).toLocaleString()} seeders`);if(item.leechers!==null&&item.leechers!==undefined)metaParts.push(`${Number(item.leechers).toLocaleString()} leechers`);if(item.size)metaParts.push(fmtBytes(item.size));if(source)metaParts.push(source);const metaLine=metaParts.length?`<div class="result-row-meta-line">${esc(metaParts.join(' · '))}</div>`:'';const categoryTagHtml=categoryTag?`<span class="category-tag">${esc(categoryTag)}</span>`:'';const isTorrent = item._source === 'torrents';const actionButtons = isTorrent ? `<div class="candidate-actions">${item.magnet?`<button class="p-button p-button-secondary p-button-small" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy magnet</button>`:''}${item.magnet?`<button class="p-button p-button-secondary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.primaryTitle)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.primaryTitle)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.primaryTitle)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div>` : '';return `<article class="p-card result-row"><a class="result-row-link" href="${route}" aria-label="Open ${esc(item.primaryTitle)} details"><div><div class="result-row-title">${esc(item.primaryTitle)}</div>${metaLine}<div class="result-row-meta">${esc(item.startYear||'Year unknown')} · ${esc(item.titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div><div class="result-row-source">${categoryTagHtml}${sourceTag(source,contentType)}</div></div><span class="result-row-arrow" aria-hidden="true">›</span></a>${actionButtons}</article>`}).join('')}
     let activeCandidateSearch=null;
     async function findTorrentCandidates(imdbId,kind,title){
         activeCandidateSearch={imdbId,kind,title};

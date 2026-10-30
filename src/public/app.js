@@ -1367,9 +1367,10 @@ function initHamburgerMenu() {
       hamburgerBtn.setAttribute('aria-expanded', 'false');
     }
   });
-  // Initialize hamburger menu
-  initHamburgerMenu();
 }
+
+// Initialize hamburger menu
+initHamburgerMenu();
 
 // Initialize import status refresh
 void refreshImportStatus();

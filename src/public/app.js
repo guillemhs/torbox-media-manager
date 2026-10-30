@@ -1229,6 +1229,7 @@ async function loadPageUnified(view, page) {
             const container = $('#movies-results');
             if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map(item => ({...item, kind: 'movie'}))) : '';
             observeArtwork(container);
+            
             // Add event listener for copy magnet buttons
             container.querySelectorAll('[data-copy-magnet]').forEach(button => {
                 button.onclick = async () => {
@@ -1254,7 +1255,8 @@ async function loadPageUnified(view, page) {
                             if (button.isConnected) button.textContent = 'Copy magnet';
                         }, 1500);
                     }
-                });
+                };
+            });
             renderPagination('movies', 'movies-pagination');
         } else if (view === 'shows') {
             // Combine show metadata and torrent results for shows view
@@ -1285,7 +1287,7 @@ async function loadPageUnified(view, page) {
         } else if (view === 'music') {
             // Combine music metadata and torrent results for music view
             const musicMetadata = data.music?.items || [];
-            const musicTorrents = data.torrents?.items || [];
+            const musicTorrents = data.music?.items || [];
             // Transform torrent items to have music metadata structure for rendering
             const transformedTorrents = musicTorrents.map(t => ({
                 id: t.hash,
@@ -1502,6 +1504,4 @@ initHamburgerMenu();
 // Initialize import status refresh
 void refreshImportStatus();
 
-
-    void refreshImportStatus();
 });

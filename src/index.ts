@@ -50,7 +50,7 @@ app.get('/usenet/search', usenetSearchRoute);
 app.post('/torbox/usenet', addUsenetToTorboxRoute);
 app.get('/torbox/usenet/:usenetId/files/:fileId', downloadUsenetFileRoute);
 app.get('/library/torrents/search', torrentSearchRoute);
-app.get('/torrents/search', (_req, res) => res.redirect(301, '/library/torrents/search'));
+app.get('/torrents/search', (req, res) => res.redirect(301, '/library/torrents/search' + (req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '')));
 app.get('/torrents/download/:token', musicTorrentDownloadRoute);
 app.get('/api/movies', moviesRoute);
 app.get('/api/movies/:imdbId', titleRoute);

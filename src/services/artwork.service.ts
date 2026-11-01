@@ -83,9 +83,9 @@ export async function getTitleArtwork(imdbId: string, kind: 'movie' | 'series'):
   return artwork;
 }
 
-function placeholderPoster(kind: 'movie' | 'series'): Artwork {
-  const text = kind === 'series' ? 'TV%20Series' : 'Movie';
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='500' height='750' viewBox='0 0 500 750'><rect width='500' height='750' fill='%231a1a1a'/><rect x='50' y='50' width='400' height='650' fill='%23333' rx='20'/><text x='250' y='350' font-family='Arial,sans-serif' font-size='24' fill='%23888' text-anchor='middle'>${text}</text><text x='250' y='390' font-family='Arial,sans-serif' font-size='16' fill='%23666' text-anchor='middle'>Poster unavailable</text></svg>`;
+function placeholderPoster(kind: 'movie' | 'series' | 'music'): Artwork {
+  const text = kind === 'series' ? 'TV%20Series' : kind === 'music' ? 'Music%20Release' : 'Movie';
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='500' height='750' viewBox='0 0 500 750'><rect width='500' height='750' fill='%231a1a1a'/><rect x='50' y='50' width='400' height='650' fill='%23333' rx='20'/><text x='250' y='350' font-family='Arial,sans-serif' font-size='24' fill='%23888' text-anchor='middle'>${text}</text><text x='250' y='390' font-family='Arial,sans-serif' font-size='16' fill='%23666' text-anchor='middle'>Artwork unavailable</text></svg>`;
   return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, source: 'Placeholder' };
 }
 
@@ -180,6 +180,10 @@ export async function getMusicArtworkByReleaseGroup(id: string): Promise<Artwork
       redirect: 'manual',
       signal: AbortSignal.timeout(8_000)
     });
+    // 404 means no cover art exists for this release group
+    if (front.status === 404) {
+      return placeholderPoster('music');
+    }
     if ([301, 302, 303, 307, 308].includes(front.status)) {
       const location = front.headers.get('location');
       if (location) {

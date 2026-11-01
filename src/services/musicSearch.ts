@@ -30,8 +30,28 @@ export async function searchMusicMetadata(query: string, limit = 25, offset = 0)
   });
   if (!response.ok) throw new Error(`MusicBrainz returned HTTP ${response.status}.`);
   const body = await response.json() as Record<string, unknown>;
-  const groups = body['release-groups'];
-  if (!Array.isArray(groups)) return [];
+  let groups: Array<Record<string, unknown>> = [];
+  const rawGroups = body['release-groups'];
+  if (Array.isArray(rawGroups)) groups = rawGroups;
+
+  // If the date-filtered query returned nothing, fall back to a broad search
+  if (!query.trim() && groups.length === 0) {
+    const fallbackUrl = new URL('https://musicbrainz.org/ws/2/release-group');
+    fallbackUrl.searchParams.set('query', '*');
+    fallbackUrl.searchParams.set('fmt', 'json');
+    fallbackUrl.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
+    fallbackUrl.searchParams.set('offset', String(Math.max(0, offset)));
+    const fallbackResponse = await fetch(fallbackUrl, {
+      headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },
+      signal: AbortSignal.timeout(10_000)
+    });
+    if (fallbackResponse.ok) {
+      const fallbackBody = await fallbackResponse.json() as Record<string, unknown>;
+      const fallbackGroups = fallbackBody['release-groups'];
+      if (Array.isArray(fallbackGroups)) groups = fallbackGroups;
+    }
+  }
+
   return groups.flatMap((raw): MusicRelease[] => {
     if (!raw || typeof raw !== 'object') return [];
     const group = raw as Record<string, unknown>;

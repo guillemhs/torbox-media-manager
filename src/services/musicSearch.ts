@@ -13,7 +13,12 @@ function text(value: unknown): string { return typeof value === 'string' ? value
 
 export async function searchMusicMetadata(query: string, limit = 25, offset = 0): Promise<MusicRelease[]> {
   const url = new URL('https://musicbrainz.org/ws/2/release-group');
-  url.searchParams.set('query', query);
+  // When no query is provided, surface recent/current-year releases so the
+  // first load of /music shows up-to-date trending music instead of erroring.
+  const searchQuery = query.trim()
+    ? query
+    : `firstreleasedate:[${new Date().getFullYear()} TO *]`;
+  url.searchParams.set('query', searchQuery);
   url.searchParams.set('fmt', 'json');
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('offset', String(Math.max(0, offset)));

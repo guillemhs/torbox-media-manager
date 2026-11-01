@@ -237,8 +237,13 @@ export const musicRoute: RequestHandler = async (req, res) => {
     const page = pagination(req.query as Record<string, unknown>);
     const query = scalar(req.query.q) || '';
     
-    // Search local music metadata
-    const localResult = await searchMusicMetadata(query);
+    // Search local music metadata (MusicBrainz)
+    let localResult: any[] = [];
+    try {
+      localResult = await searchMusicMetadata(query);
+    } catch (musicBrainzError) {
+      console.warn('MusicBrainz unavailable for music:', musicBrainzError instanceof Error ? musicBrainzError.message : String(musicBrainzError));
+    }
     const localItems = localResult.slice(page.offset, page.offset + page.limit).map((item: any) => ({
       ...item,
       _type: 'local',
@@ -251,7 +256,12 @@ export const musicRoute: RequestHandler = async (req, res) => {
     
     if (hasIndexerConfig) {
       const audioCategories = ['3000', '3010', '3020', '3030', '3040', '3050', '3060'];
-      const torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, audioCategories);
+      let torrentCandidates: any[] = [];
+      try {
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, audioCategories);
+      } catch (prowlarrError) {
+        console.warn('Prowlarr search unavailable for music:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
+      }
       
       for (const candidate of torrentCandidates) {
         torrentResults.push({
@@ -273,7 +283,7 @@ export const musicRoute: RequestHandler = async (req, res) => {
       try {
         usenetResult = await searchUsenet(query, 'all', 50, 0);
       } catch (usenetError) {
-        console.warn('Usenet search unavailable for movies:', usenetError instanceof Error ? usenetError.message : String(usenetError));
+        console.warn('Usenet search unavailable for music:', usenetError instanceof Error ? usenetError.message : String(usenetError));
       }
       for (const candidate of usenetResult.candidates) {
         usenetResults.push({

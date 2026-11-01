@@ -1088,6 +1088,85 @@ async function searchTorrentsUsenetSearch(query) {
                 const countEl = $('#music-count');
                 if(countEl) countEl.textContent = `${state.items.music.length}${state.total.music > state.items.music.length ? ` of ${state.total.music}` : ``} items`;
                 observeArtwork(container);
+                // Add event listener for music copy magnet buttons
+                container.querySelectorAll('[data-copy-magnet]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.music[Number(button.dataset.copyMagnet)];
+                        try {
+                            await navigator.clipboard.writeText(item.magnet);
+                            button.textContent = 'Copied into the clipboard';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        } catch {
+                            const field = document.createElement('textarea');
+                            field.value = item.magnet;
+                            field.setAttribute('readonly', '');
+                            field.style.position = 'fixed';
+                            field.style.opacity = '0';
+                            document.body.append(field);
+                            field.select();
+                            const copied = document.execCommand('copy');
+                            field.remove();
+                            button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        }
+                    };
+                });
+                // Add event listener for music add-torrent buttons
+                container.querySelectorAll('[data-add-torrent]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.music[Number(button.dataset.addTorrent)];
+                        button.disabled = true;
+                        button.textContent = 'Adding…';
+                        try {
+                            await jsonFetch('/torbox/torrents', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({magnet: item.magnet, name: item.title, addOnlyIfCached: button.dataset.cachedOnly === 'true'})
+                            });
+                            button.textContent = 'Added';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add cached';
+                            }, 1500);
+                        } catch (error) {
+                            button.textContent = 'Add failed';
+                            button.disabled = false;
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add cached';
+                            }, 1500);
+                        }
+                    };
+                });
+                // Add event listener for music add-usenet buttons
+                container.querySelectorAll('[data-add-usenet]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.music[Number(button.dataset.addUsenet)];
+                        button.disabled = true;
+                        button.textContent = 'Adding…';
+                        try {
+                            const usenetData = JSON.parse(decodeURIComponent(item.dataset.addUsenet));
+                            await jsonFetch('/torbox/usenet', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({...usenetData, addOnlyIfCached: false})
+                            });
+                            button.textContent = 'Added';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add to TorBox';
+                            }, 1500);
+                        } catch (error) {
+                            button.textContent = 'Add failed';
+                            button.disabled = false;
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add to TorBox';
+                            }, 1500);
+                        }
+                    };
+                });
+
                 // Render pagination
                 state.currentPage.music = 1;
                 renderPagination('music', 'music-pagination');
@@ -1155,6 +1234,85 @@ async function searchTorrentsUsenetSearch(query) {
                 if(container) container.innerHTML=state.items.music.length?musicReleaseCards(state.items.music):'';
                 $('#music-more')?.classList.toggle('hidden',state.items.music.length>=state.total.music);
                 observeArtwork(container);
+                // Add event listener for music copy magnet buttons
+                container.querySelectorAll('[data-copy-magnet]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.music[Number(button.dataset.copyMagnet)];
+                        try {
+                            await navigator.clipboard.writeText(item.magnet);
+                            button.textContent = 'Copied into the clipboard';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        } catch {
+                            const field = document.createElement('textarea');
+                            field.value = item.magnet;
+                            field.setAttribute('readonly', '');
+                            field.style.position = 'fixed';
+                            field.style.opacity = '0';
+                            document.body.append(field);
+                            field.select();
+                            const copied = document.execCommand('copy');
+                            field.remove();
+                            button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        }
+                    };
+                });
+                // Add event listener for music add-torrent buttons
+                container.querySelectorAll('[data-add-torrent]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.music[Number(button.dataset.addTorrent)];
+                        button.disabled = true;
+                        button.textContent = 'Adding…';
+                        try {
+                            await jsonFetch('/torbox/torrents', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({magnet: item.magnet, name: item.title, addOnlyIfCached: button.dataset.cachedOnly === 'true'})
+                            });
+                            button.textContent = 'Added';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add cached';
+                            }, 1500);
+                        } catch (error) {
+                            button.textContent = 'Add failed';
+                            button.disabled = false;
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add cached';
+                            }, 1500);
+                        }
+                    };
+                });
+                // Add event listener for music add-usenet buttons
+                container.querySelectorAll('[data-add-usenet]').forEach(button => {
+                    button.onclick = async () => {
+                        const item = state.items.music[Number(button.dataset.addUsenet)];
+                        button.disabled = true;
+                        button.textContent = 'Adding…';
+                        try {
+                            const usenetData = JSON.parse(decodeURIComponent(item.dataset.addUsenet));
+                            await jsonFetch('/torbox/usenet', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({...usenetData, addOnlyIfCached: false})
+                            });
+                            button.textContent = 'Added';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add to TorBox';
+                            }, 1500);
+                        } catch (error) {
+                            button.textContent = 'Add failed';
+                            button.disabled = false;
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Add to TorBox';
+                            }, 1500);
+                        }
+                    };
+                });
+
                 // Render pagination
                 state.currentPage.music = 1;
                 renderPagination('music', 'music-pagination');

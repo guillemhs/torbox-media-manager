@@ -15,9 +15,11 @@ export async function searchMusicMetadata(query: string, limit = 25, offset = 0)
   const url = new URL('https://musicbrainz.org/ws/2/release-group');
   // When no query is provided, surface recent/current-year releases so the
   // first load of /music shows up-to-date trending music instead of erroring.
+  // MusicBrainz date ranges require YYYYMMDD format.
+  const currentYear = new Date().getFullYear();
   const searchQuery = query.trim()
     ? query
-    : `firstreleasedate:[${new Date().getFullYear()} TO *]`;
+    : `firstreleasedate:[${currentYear}0101 TO ${currentYear}1231]`;
   url.searchParams.set('query', searchQuery);
   url.searchParams.set('fmt', 'json');
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));

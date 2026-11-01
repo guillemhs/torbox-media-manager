@@ -852,7 +852,7 @@ async function searchTorrentsUsenetSearch(query) {
     async function loadTitleSearchResults(title,kind,source){const status=$('#title-search-status'),results=$('#title-search-results');if(!status||!results)return;status.innerHTML=`<span class="spinner"></span>Searching ${source==='torrent'?'torrent sources':'NZBIndex and Binsearch'}…`;results.innerHTML='';try{const data=source==='torrent'?await jsonFetch(`/torrents/search?imdbId=${encodeURIComponent(title.imdbId)}&kind=${encodeURIComponent(kind)}&season=1&title=${encodeURIComponent(title.primaryTitle)}`):await jsonFetch(`/usenet/search?q=${encodeURIComponent(title.primaryTitle)}&source=all`);if(!status.isConnected)return;const candidates=data.candidates||[];if(!candidates.length){status.textContent='Search complete.';results.innerHTML='<div class="empty-state">No matches found.</div>';return}status.textContent=`${candidates.length} results${data.warnings?.length?` · ${data.warnings.join(' · ')}`:''}`;results.innerHTML=`<div class="candidate-list">${candidates.slice(0,30).map((item,index)=>`<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${source==='torrent'?`${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${item.source?` · ${sourceTag(item.source, kind==='series'?'Show':'Movie')}`:''}`:`${sourceTag(item.source, 'All')}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}`}</div><div class="candidate-meta" data-title-result-status="${index}" role="status"></div></div><div class="candidate-actions">${source==='torrent'?`<a class="p-button p-button-secondary p-button-small" href="${esc(item.magnet)}">Magnet</a>${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-title-result-add="${index}">Add cached</button>`:`<button class="p-button p-button-primary p-button-small" data-title-result-add="${index}">Add to TorBox</button>`}</div></article>`).join('')}</div>`;results.querySelectorAll('[data-title-result-add]').forEach(button=>button.onclick=async()=>{const item=candidates[Number(button.dataset.titleResultAdd)],line=button.closest('.candidate-row').querySelector('[data-title-result-status]');button.disabled=true;button.textContent=source==='torrent'?'Adding…':'Sending…';try{const data=source==='torrent'?await jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet:item.magnet,name:item.name,addOnlyIfCached:true})}):await jsonFetch('/torbox/usenet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:item.source,id:item.id,name:item.name,addOnlyIfCached:false})});button.textContent=source==='torrent'?'Added':'Added to TorBox';if(line)line.textContent=data.detail||'Added to TorBox';void loadView('torrents',true)}catch(error){button.disabled=false;button.textContent=source==='torrent'?'Add cached':'Add to TorBox';if(line)line.textContent=error.message}})}catch(error){if(status&&status.isConnected)status.textContent=error.message}}
     async function loadTvmazeTitle(id){const pageTitle=$('#page-title');if(pageTitle)pageTitle.textContent='Loading title…';const detailContent=$('#detail-content');if(detailContent)detailContent.innerHTML='<div class="empty-state"><span class="spinner"></span>Loading show details…</div>';try{const show=await jsonFetch(`/tvmaze/shows/${id}`);const image=show.image?.original||show.image?.medium||'';const imdbId=typeof show.externals?.imdb==='string'&&/^tt\d+$/.test(show.externals.imdb)?show.externals.imdb:'';const network=show.network?.name||show.webChannel?.name||'';const years=[show.premiered,show.ended].filter(Boolean).map(value=>String(value).slice(0,4)).join('–');const rating=Number(show.rating?.average);const seasons=Array.isArray(show._embedded?.seasons)?show._embedded.seasons.length:0;if(pageTitle)pageTitle.textContent=show.name;const url=typeof show.url==='string'&&/^https:\/\/www\.tvmaze\.com\//.test(show.url)?show.url:'';if(detailContent)detailContent.innerHTML=`<div class="detail-layout"><div class="detail-poster">${image?`<img class="loaded" src="${esc(image)}" alt="${esc(show.name)} poster">`:''}</div><div class="detail-copy"><div class="detail-kicker">TV series · TVMaze</div><h2>${esc(show.name)}</h2><div class="detail-subtitle">${esc([show.type,seasons?`${seasons} ${seasons===1?'season':'seasons'}`:'',years,show.status,show.language,network].filter(Boolean).join(' · ')||'Series information')}</div><div class="detail-tags">${rating?`<span class="detail-tag">★ ${rating.toFixed(1)} TVMaze</span>`:''}${(show.genres||[]).map(genre=>`<span class="detail-tag">${esc(genre)}</span>`).join('')}</div><div class="detail-actions">${url?`<a class="p-button p-button-primary" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open on TVMaze ↗</a>`:''}${imdbId?`<a class="p-button p-button-secondary" href="/title/${encodeURIComponent(imdbId)}?kind=series">Local IMDb title</a><a class="p-button p-button-secondary" href="https://www.imdb.com/title/${encodeURIComponent(imdbId)}/" target="_blank" rel="noopener noreferrer">IMDb ↗</a><button class="p-button p-button-primary" data-find-torrents data-imdb="${esc(imdbId)}" data-kind="series" data-title="${esc(show.name)}">Find torrents</button>`:`<a class="p-button p-button-secondary" href="/shows?q=${encodeURIComponent(show.name)}">Find in local catalog</a>`}</div></div></div>${plainText(show.summary)?`<p class="detail-description">${esc(plainText(show.summary))}</p>`:''}<div class="detail-results-link"><p class="muted">Find a candidate torrent from the IMDb title page, then add it to TorBox only if it is already cached.</p></div>`}catch(error){if(detailContent)detailContent.innerHTML=`<div class="empty-state detail-error">${esc(error.message)}<p>Could not load this TVMaze show.</p><a class="p-button p-button-secondary" href="/calendar">Back to calendar</a></div>`}}
     function routeFromLocation(){const path=decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g,'');const params=new URLSearchParams(location.search);const titleMatch=/^title\/(tt\d+)$/i.exec(path);const tvmazeMatch=/^tvmaze\/(\d+)$/i.exec(path);const musicMatch=/^music\/release\/([a-f0-9-]{36})$/i.exec(path);if(titleMatch||tvmazeMatch||musicMatch){document.querySelectorAll('.view').forEach(node=>node.classList.toggle('active',node.id==='view-title'));document.querySelectorAll('[data-view]').forEach(node=>{node.classList.remove('p-selected');node.removeAttribute('aria-current')});state.view='title';const pageTitle=$('#page-title');if(pageTitle)pageTitle.textContent='Loading title…';window.scrollTo({top:0,behavior:'smooth'});if(titleMatch)void loadTitle(titleMatch[1],params.get('kind')==='series'?'series':'movie');else if(tvmazeMatch)void loadTvmazeTitle(Number(tvmazeMatch[1]));else loadMusicRelease(musicMatch[1],params);return}const views=['browse','movies','shows','torrents','local','music','calendar'];const view=views.includes(path)?path:'browse';if((view==='shows'||view==='movies'||view==='browse')&&params.has('q')){const input=view==='browse'?'#browse-query':`#${view}-query`;if($(input))$(input).value=params.get('q')||''}if(view==='browse'&&['all','movie','series','music','torrents','usenet'].includes(params.get('kind'))){const browseKind=$('#browse-kind');if(browseKind)browseKind.value=params.get('kind')}showView(view);window.scrollTo({top:0,behavior:'smooth'})}
-    function setRoute(path){const destination=path.startsWith('/')?path:`/${path}`;if(location.pathname+location.search===destination)routeFromLocation();else{history.pushState(null,'',destination);routeFromLocation()}}
+    function setRoute(path){const destination=path.startsWith('/')?path:`/${path}`;if(location.pathname+location.search===destination)routeFromLocation();else{history.pushState(null,'',destination);routeFromLocation();if(typeof window.closeSidebar==="function")window.closeSidebar()}}
     function searchRoute(view){
         if(view==='browse'){
             const q=$('#browse-query')?.value.trim()||'';
@@ -1455,6 +1455,15 @@ function initHamburgerMenu() {
   
   if (!hamburgerBtn || !sidebar || !overlay) return;
   
+  function closeSidebar() {
+    const wasOpen = sidebar.classList.contains('open');
+    if (!wasOpen) return;
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+    document.body.classList.remove('sidebar-open');
+    hamburgerBtn.setAttribute('aria-expanded', 'false');
+  }
+  
   function toggleSidebar() {
     const isOpen = sidebar.classList.toggle('open');
     overlay.classList.toggle('visible', isOpen);
@@ -1467,35 +1476,21 @@ function initHamburgerMenu() {
   
   // Close sidebar when a navigation item is clicked
   sidebar.querySelectorAll('[data-view]').forEach(item => {
-    item.addEventListener('click', () => {
-      if (window.innerWidth <= 760) {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('visible');
-        document.body.classList.remove('sidebar-open');
-        hamburgerBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
+    item.addEventListener('click', () => closeSidebar());
   });
   
-  // Close sidebar on window resize if desktop
+  // Close sidebar on window resize when crossing back to desktop
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 760) {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('visible');
-      document.body.classList.remove('sidebar-open');
-      hamburgerBtn.setAttribute('aria-expanded', 'false');
-    }
+    if (window.innerWidth > 760) closeSidebar();
   });
   
   // Close sidebar on escape key
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('visible');
-      document.body.classList.remove('sidebar-open');
-      hamburgerBtn.setAttribute('aria-expanded', 'false');
-    }
+    if (e.key === 'Escape') closeSidebar();
   });
+  
+  // Expose closeSidebar so route navigation can dismiss the drawer
+  window.closeSidebar = closeSidebar;
 }
 
 // Initialize hamburger menu

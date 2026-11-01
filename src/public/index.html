@@ -431,6 +431,107 @@
       }
     }
 
+
+
+    /* ============================================================
+       Refactored Mobile Drawer — Hamburger Menu
+       Overrides conflicting minified (line ~10) and landscape
+       (line ~199) styles that force the sidebar into a horizontal
+       sticky bar. The drawer now uses a vertical column layout.
+       ============================================================ */
+
+    /* Mobile portrait drawer */
+    @media (max-width: 760px) {
+      .app-sidebar {
+        flex-direction: column !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+      }
+
+      .sidebar-group,
+      .sidebar-bottom {
+        display: block !important;
+      }
+
+      .p-sidebar-row {
+        white-space: normal !important;
+        padding: 12px 16px !important;
+        font-size: 15px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        border-radius: 10px !important;
+        transition: background-color 0.2s ease, color 0.2s ease !important;
+      }
+
+      .p-sidebar-row:hover,
+      .p-sidebar-row[aria-current="page"] {
+        background: rgba(127, 127, 127, 0.1) !important;
+      }
+
+      .brand {
+        padding: 16px 20px 24px !important;
+        gap: 12px !important;
+      }
+
+      .brand span:last-child {
+        display: inline !important;
+      }
+
+      .brand-mark {
+        width: 32px !important;
+        height: 32px !important;
+      }
+
+      .sidebar-group {
+        margin: 20px 16px 8px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+        color: #8e8e93 !important;
+      }
+
+      .sidebar-bottom {
+        margin-top: auto !important;
+        padding: 16px 20px !important;
+      }
+    }
+
+    /* Mobile landscape — keep the drawer (not a horizontal bar) */
+    @media (max-width: 768px) and (orientation: landscape) {
+      .app-sidebar {
+        flex-direction: column !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        transform: translateX(-100%) !important;
+      }
+
+      .app-sidebar.open {
+        transform: translateX(0) !important;
+      }
+    }
+
+    /* Hamburger open state — morph lines into an X */
+    .hamburger-menu[aria-expanded="true"] svg line {
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .hamburger-menu[aria-expanded="true"] svg line:nth-child(1) {
+      transform: translateY(6px) rotate(45deg);
+    }
+    .hamburger-menu[aria-expanded="true"] svg line:nth-child(2) {
+      opacity: 0;
+    }
+    .hamburger-menu[aria-expanded="true"] svg line:nth-child(3) {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+
 </style>
 </head>
 <body class="p-type p-auto-dark-mode">

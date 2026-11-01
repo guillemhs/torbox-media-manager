@@ -269,7 +269,12 @@ export const musicRoute: RequestHandler = async (req, res) => {
     // Search usenet
     let usenetResults: Array<Record<string, unknown>> = [];
     if (hasIndexerConfig) {
-      const usenetResult = await searchUsenet(query, 'all', 50, 0);
+      let usenetResult: any = { candidates: [], warnings: [], configured: { NZBIndex: false, Binsearch: false } };
+      try {
+        usenetResult = await searchUsenet(query, 'all', 50, 0);
+      } catch (usenetError) {
+        console.warn('Usenet search unavailable for movies:', usenetError instanceof Error ? usenetError.message : String(usenetError));
+      }
       for (const candidate of usenetResult.candidates) {
         usenetResults.push({
           name: candidate.name,
@@ -357,7 +362,12 @@ export const moviesRoute: RequestHandler = async (req, res) => {
     
     if (hasIndexerConfig) {
       const movieCategories = ['2000', '2010', '2020', '2030', '2040', '2045', '2050', '2060', '2070', '2080', '2090'];
-      const torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, movieCategories);
+      let torrentCandidates: any[] = [];
+      try {
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, movieCategories);
+      } catch (prowlarrError) {
+        console.warn('Prowlarr search unavailable for movies:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
+      }
       
       for (const candidate of torrentCandidates) {
         torrentResults.push({
@@ -375,7 +385,12 @@ export const moviesRoute: RequestHandler = async (req, res) => {
     // Search usenet
     let usenetResults: Array<Record<string, unknown>> = [];
     if (hasIndexerConfig) {
-      const usenetResult = await searchUsenet(query, 'all', 50, 0);
+      let usenetResult: any = { candidates: [], warnings: [], configured: { NZBIndex: false, Binsearch: false } };
+      try {
+        usenetResult = await searchUsenet(query, 'all', 50, 0);
+      } catch (usenetError) {
+        console.warn('Usenet search unavailable for movies:', usenetError instanceof Error ? usenetError.message : String(usenetError));
+      }
       for (const candidate of usenetResult.candidates) {
         usenetResults.push({
           name: candidate.name,

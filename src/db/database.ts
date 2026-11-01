@@ -179,7 +179,7 @@ export async function searchTitles(options: TitleSearch = {}) {
             runtime_minutes AS "runtimeMinutes", genres, average_rating AS "averageRating",
             num_votes AS "numVotes"
      FROM titles ${where}
-     ORDER BY COALESCE(num_votes, 0) DESC, primary_title ASC
+     ORDER BY ${q ? 'COALESCE(num_votes, 0) DESC' : 'COALESCE(start_year, 0) DESC'}, primary_title ASC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset]
   );

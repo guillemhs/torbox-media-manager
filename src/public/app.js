@@ -1090,17 +1090,18 @@ async function searchTorrentsUsenetSearch(query) {
                 observeArtwork(container);
                 // Add event listener for music copy magnet buttons
                 container.querySelectorAll('[data-copy-magnet]').forEach(button => {
-                    button.onclick = async () => {
-                        const item = state.items.music[Number(button.dataset.copyMagnet)];
+                    button.onclick = async (e) => {
+                        e.stopPropagation();
+                        const magnet = decodeURIComponent(button.dataset.copyMagnet);
                         try {
-                            await navigator.clipboard.writeText(item.magnet);
+                            await navigator.clipboard.writeText(magnet);
                             button.textContent = 'Copied into the clipboard';
                             setTimeout(() => {
                                 if (button.isConnected) button.textContent = 'Copy magnet';
                             }, 1500);
                         } catch {
                             const field = document.createElement('textarea');
-                            field.value = item.magnet;
+                            field.value = magnet;
                             field.setAttribute('readonly', '');
                             field.style.position = 'fixed';
                             field.style.opacity = '0';
@@ -1117,15 +1118,18 @@ async function searchTorrentsUsenetSearch(query) {
                 });
                 // Add event listener for music add-torrent buttons
                 container.querySelectorAll('[data-add-torrent]').forEach(button => {
-                    button.onclick = async () => {
-                        const item = state.items.music[Number(button.dataset.addTorrent)];
+                    button.onclick = async (e) => {
+                        e.stopPropagation();
+                        const magnet = decodeURIComponent(button.dataset.addTorrent);
+                        const name = decodeURIComponent(button.dataset.torrentName || '');
+                        const cachedOnly = button.dataset.cachedOnly === 'true';
                         button.disabled = true;
                         button.textContent = 'Adding…';
                         try {
                             await jsonFetch('/torbox/torrents', {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({magnet: item.magnet, name: item.title, addOnlyIfCached: button.dataset.cachedOnly === 'true'})
+                                body: JSON.stringify({magnet, name, addOnlyIfCached: cachedOnly})
                             });
                             button.textContent = 'Added';
                             setTimeout(() => {
@@ -1142,12 +1146,12 @@ async function searchTorrentsUsenetSearch(query) {
                 });
                 // Add event listener for music add-usenet buttons
                 container.querySelectorAll('[data-add-usenet]').forEach(button => {
-                    button.onclick = async () => {
-                        const item = state.items.music[Number(button.dataset.addUsenet)];
+                    button.onclick = async (e) => {
+                        e.stopPropagation();
+                        const usenetData = JSON.parse(decodeURIComponent(button.dataset.addUsenet));
                         button.disabled = true;
                         button.textContent = 'Adding…';
                         try {
-                            const usenetData = JSON.parse(decodeURIComponent(item.dataset.addUsenet));
                             await jsonFetch('/torbox/usenet', {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'},

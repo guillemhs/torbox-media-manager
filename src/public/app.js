@@ -1086,7 +1086,7 @@ async function searchTorrentsUsenetSearch(query) {
                 if (container) container.innerHTML = state.items.music.length ? musicReleaseCards(state.items.music) : '';
                 $('#music-more')?.classList.toggle('hidden', state.items.music.length >= state.total.music);
                 const countEl = $('#music-count');
-                if(countEl) countEl.textContent = \`\${state.items.music.length}\${state.total.music > state.items.music.length ? \` of \${state.total.music}\` : \`\`} items\`;
+                if(countEl) countEl.textContent = `${state.items.music.length}${state.total.music > state.items.music.length ? ` of ${state.total.music}` : ``} items`;
                 observeArtwork(container);
                 // Render pagination
                 state.currentPage.music = 1;

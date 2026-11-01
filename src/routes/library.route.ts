@@ -961,10 +961,10 @@ export const titleArtworkRoute: RequestHandler = async (req, res) => {
 export const musicArtworkRoute: RequestHandler = async (req, res) => {
   const releaseGroupId = scalar(req.query.id)?.trim();
   if (releaseGroupId) {
-    const artwork = getMusicArtworkByReleaseGroup(releaseGroupId);
+    const artwork = await getMusicArtworkByReleaseGroup(releaseGroupId);
     if (!artwork) return res.status(400).json({ error: 'MusicBrainz release group ID is invalid.' });
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.json({ artwork });
+    return res.redirect(302, artwork.url);
   }
   const query = scalar(req.query.q)?.trim();
   if (!query || query.length < 2 || query.length > 180) {

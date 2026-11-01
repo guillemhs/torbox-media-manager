@@ -171,7 +171,26 @@ export async function getMusicArtwork(name: string): Promise<Artwork | null> {
   return artwork;
 }
 
-export function getMusicArtworkByReleaseGroup(id: string): Artwork | null {
+export async function getMusicArtworkByReleaseGroup(id: string): Promise<Artwork | null> {
   if (!/^[a-f0-9-]{36}$/i.test(id)) return null;
+  // Follow the Cover Art Archive redirect to get the final archive.org URL
+  try {
+    const front = await fetch(`https://coverartarchive.org/release-group/${id}/front-250`, {
+      method: 'HEAD',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(8_000)
+    });
+    if ([301, 302, 303, 307, 308].includes(front.status)) {
+      const location = front.headers.get('location');
+      if (location) {
+        try {
+          const image = new URL(location);
+          if (image.protocol === 'https:' && ['archive.org', 'coverartarchive.org'].includes(image.hostname)) {
+            return { url: image.toString(), source: 'Cover Art Archive' };
+          }
+        } catch { /* fall through to direct URL */ }
+      }
+    }
+  } catch { /* fall through to direct URL */ }
   return { url: `https://coverartarchive.org/release-group/${id}/front-250`, source: 'Cover Art Archive' };
 }

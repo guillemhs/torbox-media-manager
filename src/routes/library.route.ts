@@ -578,7 +578,7 @@ export const titleRoute: RequestHandler = async (req, res) => {
   const seasons = Array.isArray(tvmaze?._embedded && (tvmaze._embedded as Record<string, unknown>).seasons) ? (tvmaze!._embedded as Record<string, unknown>).seasons as unknown[] : [];
   const image = tvmaze?.image && typeof tvmaze.image === 'object' ? (tvmaze.image as Record<string, unknown>).original || (tvmaze.image as Record<string, unknown>).medium : undefined;
   const tvArtwork = typeof image === 'string' && /^https:\/\/static\.tvmaze\.com\//.test(image) ? { url: image, source: 'TVMaze' } : undefined;
-  return res.json({ ...title, overview: metadata?.overview || (typeof tvmaze?.summary === 'string' ? tvmaze.summary.replace(/<[^>]*>/g, ' ').trim() : ''), releaseDate: metadata?.releaseDate || tvmaze?.premiered || (title.startYear ? `${title.startYear}-01-01` : undefined), seasonCount: metadata?.seasonCount ?? (seasons.length || undefined), showStatus: typeof tvmaze?.status === 'string' ? tvmaze.status : undefined, artwork: metadata?.artwork || tvArtwork });
+  return res.json({ ...title, overview: metadata?.overview || (typeof tvmaze?.summary === 'string' ? tvmaze.summary.replace(/<[^>]*>/g, ' ').trim() : ''), releaseDate: metadata?.releaseDate || tvmaze?.premiered || (title.startYear ? `${title.startYear}-01-01` : undefined), seasonCount: metadata?.seasonCount ?? (seasons.length || undefined), showStatus: typeof tvmaze?.status === 'string' ? tvmaze.status : undefined, artwork: metadata?.artwork || tvArtwork || await getTitleArtwork(imdbId, kind) });
 };
 
 export const browseRoute: RequestHandler = async (req, res) => {

@@ -1,4 +1,4 @@
-type Artwork = { url: string; source: 'TMDB' | 'TVMaze' | 'Cover Art Archive' };
+type Artwork = { url: string; source: 'TMDB' | 'TVMaze' | 'Cover Art Archive' | 'Placeholder' };
 
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 const MAX_CACHE_ENTRIES = 1_000;
@@ -75,8 +75,18 @@ export async function getTitleArtwork(imdbId: string, kind: 'movie' | 'series'):
   if (!artwork && kind === 'series') {
     try { artwork = await tvmazePoster(imdbId); } catch { /* image is optional */ }
   }
+  // Fallback: return a placeholder poster when no artwork source is available
+  if (!artwork) {
+    artwork = placeholderPoster(kind);
+  }
   remember(key, artwork);
   return artwork;
+}
+
+function placeholderPoster(kind: 'movie' | 'series'): Artwork {
+  const text = kind === 'series' ? 'TV%20Series' : 'Movie';
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='500' height='750' viewBox='0 0 500 750'><rect width='500' height='750' fill='%231a1a1a'/><rect x='50' y='50' width='400' height='650' fill='%23333' rx='20'/><text x='250' y='350' font-family='Arial,sans-serif' font-size='24' fill='%23888' text-anchor='middle'>${text}</text><text x='250' y='390' font-family='Arial,sans-serif' font-size='16' fill='%23666' text-anchor='middle'>Poster unavailable</text></svg>`;
+  return { url: `data:image/svg+xml,${encodeURIComponent(svg)}`, source: 'Placeholder' };
 }
 
 export async function getTitleMetadata(imdbId: string, kind: 'movie' | 'series'): Promise<{ overview?: string; releaseDate?: string; seasonCount?: number; artwork?: Artwork } | null> {

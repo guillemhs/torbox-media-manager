@@ -171,6 +171,16 @@ export async function searchTitles(options: TitleSearch = {}) {
   }
   if (options.kind === 'movie') conditions.push("title_type = 'movie'");
   if (options.kind === 'series') conditions.push("title_type IN ('tvSeries', 'tvMiniSeries')");
+
+  // When no search query is provided, only show titles released up to the
+  // current year so future-dated titles (e.g. 2030, 2031, 2032) do not appear
+  // on the first load of /movies.
+  if (!q) {
+    const currentYear = new Date().getFullYear();
+    conditions.push('start_year <= ?');
+    params.push(currentYear);
+  }
+
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const countResult = await query<{ count: number }>(`SELECT COUNT(*) AS count FROM titles ${where}`, params);
   const result = await query(

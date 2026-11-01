@@ -465,7 +465,12 @@ export const showsRoute: RequestHandler = async (req, res) => {
     
     if (hasIndexerConfig) {
       const tvCategories = ['5000', '5010', '5020', '5030', '5040', '5045', '5050', '5060', '5070', '5080', '5090'];
-      const torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, tvCategories);
+      let torrentCandidates: any[] = [];
+      try {
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, tvCategories);
+      } catch (prowlarrError) {
+        console.warn('Prowlarr search unavailable for shows:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
+      }
       
       for (const candidate of torrentCandidates) {
         torrentResults.push({
@@ -483,7 +488,12 @@ export const showsRoute: RequestHandler = async (req, res) => {
     // Search usenet
     let usenetResults: Array<Record<string, unknown>> = [];
     if (hasIndexerConfig) {
-      const usenetResult = await searchUsenet(query, 'all', 50, 0);
+      let usenetResult: any = { candidates: [], warnings: [], configured: { NZBIndex: false, Binsearch: false } };
+      try {
+        usenetResult = await searchUsenet(query, 'all', 50, 0);
+      } catch (usenetError) {
+        console.warn('Usenet search unavailable for shows:', usenetError instanceof Error ? usenetError.message : String(usenetError));
+      }
       for (const candidate of usenetResult.candidates) {
         usenetResults.push({
           name: candidate.name,

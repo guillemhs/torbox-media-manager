@@ -963,8 +963,20 @@ export const musicArtworkRoute: RequestHandler = async (req, res) => {
   if (releaseGroupId) {
     const artwork = await getMusicArtworkByReleaseGroup(releaseGroupId);
     if (!artwork) return res.status(400).json({ error: 'MusicBrainz release group ID is invalid.' });
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.redirect(302, artwork.url);
+    // Proxy the image to avoid ERR_UNSAFE_REDIRECT on cross-origin redirects
+    try {
+      const imageResp = await fetch(artwork.url, { signal: AbortSignal.timeout(15_000) });
+      if (!imageResp.ok) {
+        return res.status(502).json({ error: 'Failed to fetch artwork image.' });
+      }
+      const contentType = imageResp.headers.get('content-type') || 'image/jpeg';
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Content-Type', contentType);
+      const buffer = Buffer.from(await imageResp.arrayBuffer());
+      return res.send(buffer);
+    } catch {
+      return res.status(502).json({ error: 'Failed to fetch artwork image.' });
+    }
   }
   const query = scalar(req.query.q)?.trim();
   if (!query || query.length < 2 || query.length > 180) {

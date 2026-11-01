@@ -11,19 +11,29 @@ export interface MusicRelease {
 
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
 
-export async function searchMusicMetadata(query: string, limit = 25, offset = 0): Promise<MusicRelease[]> {
+export async function searchMusicMetadata(query: string, limit = 25, offset = 0)
+: Promise<MusicRelease[]> {
   const url = new URL('https://musicbrainz.org/ws/2/release-group');
-  // When no query is provided, surface recent/current-year releases so the
-  // first load of /music shows up-to-date trending music instead of erroring.
-  // MusicBrainz date ranges require YYYYMMDD format.
   const currentYear = new Date().getFullYear();
-  const searchQuery = query.trim()
-    ? query
+  const hasQuery = query.trim().length > 0;
+
+  // Build the MusicBrainz query
+  // - With a query: search by artist/album/track name (sorted by relevance)
+  // - Without a query: surface current-year releases (trending/new music, newest first)
+  const searchQuery = hasQuery
+    ? query.trim()
     : `firstreleasedate:[${currentYear}0101 TO ${currentYear}1231]`;
   url.searchParams.set('query', searchQuery);
   url.searchParams.set('fmt', 'json');
-  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
+  // Request more results than needed so we can deduplicate and filter by type
+  const fetchLimit = Math.min(100, Math.max(1, limit * 3));
+  url.searchParams.set('limit', String(fetchLimit));
   url.searchParams.set('offset', String(Math.max(0, offset)));
+  // Include artist credits for better artist data
+  url.searchParams.set('inc', 'artist-credits');
+  // Sort: newest first for browsing (trending), relevance for search
+  url.searchParams.set('sort', hasQuery ? 'relevance' : 'first-release-date+desc');
+
   const response = await fetch(url, {
     headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },
     signal: AbortSignal.timeout(10_000)
@@ -35,12 +45,14 @@ export async function searchMusicMetadata(query: string, limit = 25, offset = 0)
   if (Array.isArray(rawGroups)) groups = rawGroups;
 
   // If the date-filtered query returned nothing, fall back to a broad search
-  if (!query.trim() && groups.length === 0) {
+  if (!hasQuery && groups.length === 0) {
     const fallbackUrl = new URL('https://musicbrainz.org/ws/2/release-group');
     fallbackUrl.searchParams.set('query', '*');
     fallbackUrl.searchParams.set('fmt', 'json');
-    fallbackUrl.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
+    fallbackUrl.searchParams.set('limit', String(fetchLimit));
     fallbackUrl.searchParams.set('offset', String(Math.max(0, offset)));
+    fallbackUrl.searchParams.set('inc', 'artist-credits');
+    fallbackUrl.searchParams.set('sort', 'first-release-date+desc');
     const fallbackResponse = await fetch(fallbackUrl, {
       headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },
       signal: AbortSignal.timeout(10_000)
@@ -52,17 +64,38 @@ export async function searchMusicMetadata(query: string, limit = 25, offset = 0)
     }
   }
 
-  return groups.flatMap((raw): MusicRelease[] => {
-    if (!raw || typeof raw !== 'object') return [];
+  // Filter to the most relevant release types for browsing
+  const relevantTypes = new Set(['Album', 'Single', 'EP']);
+  const seen = new Set<string>();
+  const results: MusicRelease[] = [];
+
+  for (const raw of groups) {
+    if (!raw || typeof raw !== 'object') continue;
     const group = raw as Record<string, unknown>;
     const id = text(group.id);
-    if (!/^[a-f0-9-]{36}$/i.test(id)) return [];
+    if (!/^[a-f0-9-]{36}$/i.test(id)) continue;
+
+    const type = text(group['primary-type']);
+    // Focus on the release types users care about most
+    if (type && !relevantTypes.has(type)) continue;
+
+    const title = text(group.title) || 'Unknown release';
     const artists = Array.isArray(group['artist-credit']) ? group['artist-credit'] as Record<string, unknown>[] : [];
     const artist = artists.map((credit) => text(credit.name) || text((credit.artist as Record<string, unknown> | undefined)?.name)).filter(Boolean).join(' ');
     const date = text(group['first-release-date']);
+
+    // Deduplicate by artist + title to avoid showing the same release multiple times
+    const dedupeKey = `${artist?.toLowerCase()}|${title?.toLowerCase()}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
     const cover = `https://coverartarchive.org/release-group/${id}/front-250`;
-    return [{ id, title: text(group.title) || 'Unknown release', artist, date, type: text(group['primary-type']), cover }];
-  });
+    results.push({ id, title, artist, date, type, cover });
+
+    if (results.length >= limit) break;
+  }
+
+  return results;
 }
 
 function decodeXml(value: string): string {

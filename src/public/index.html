@@ -12,99 +12,150 @@
     <style>
       :root{font-family:system-ui,-apple-system,sans-serif}body{margin:0;min-height:100vh;background:#f5f5f7;color:#1d1d1f}
       .view{display:none} .view.active{display:block} .hidden{display:none}
-      #app-sidebar{position:fixed;top:0;left:0;width:280px;height:100vh;background:#fff;border-right:1px solid #e5e5e5;transform:translateX(-100%);transition:transform .2s;z-index:50;padding:24px}
+      #app-sidebar{position:fixed;top:0;left:0;width:280px;height:100vh;background:#fff;border-right:1px solid #dee2e6;transform:translateX(-100%);transition:transform .2s;z-index:1050;padding:1.5rem}
       #app-sidebar.open{transform:translateX(0)}
-      #sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s;z-index:45}
+      #sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:1040}
       #sidebar-overlay.visible{opacity:1;pointer-events:auto}
       body.sidebar-open{overflow:hidden}
-      .p-sidebar-item{display:block;padding:10px 14px;color:#1d1d1f;text-decoration:none;border-radius:8px}
-      .p-sidebar-item.p-selected{background:#f2f2f7;color:#000}
-      .p-sidebar-item[aria-current="page"]{background:#f2f2f7;font-weight:600}
-      #hamburger-menu{display:none;position:fixed;top:12px;left:12px;z-index:60;background:#fff;border:1px solid #d2d2d7;border-radius:8px;padding:8px;cursor:pointer}
+      .nav-link{display:block;padding:.75rem 1rem;color:#212529;text-decoration:none;border-radius:.5rem;margin-bottom:.25rem}
+      .nav-link.active{background:#f8f9fa;color:#0d6efd;font-weight:500}
+      .nav-link:hover{background:#f1f3f5}
+      #hamburger-menu{display:none;position:fixed;top:.75rem;left:.75rem;z-index:1060;background:#fff;border:1px solid #dee2e6;border-radius:.5rem;padding:.5rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
       @media (max-width:760px){#hamburger-menu{display:block}}
-      #root{padding-top:60px;padding-bottom:24px}
-      .page-title{font-size:20px;font-weight:600;margin:0 0 16px}
-      .section{margin-bottom:24px}
-      .section-title{font-size:16px;font-weight:600;margin:0 0 12px}
-      .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-      .results{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
-      .empty-state{padding:40px;text-align:center;color:#86868b}
-      .spinner{display:inline-block;width:16px;height:16px;border:2px solid #e5e5e5;border-top-color:#000;border-radius:50%;animation:spin .8s linear infinite}
+      #root{padding-top:70px;padding-bottom:2rem}
+      .page-title{font-size:1.5rem;font-weight:600;margin-bottom:1rem}
+      .section{margin-bottom:2rem}
+      .section-title{font-size:1.25rem;font-weight:600;margin-bottom:.75rem}
+      .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1rem}
+      .results{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem}
+      .empty-state{padding:3rem;text-align:center;color:#6c757d}
+      .spinner{display:inline-block;width:1.5rem;height:1.5rem;border:2px solid #dee2e6;border-top-color:#0d6efd;border-radius:50%;animation:spin .8s linear infinite}
       @keyframes spin{to{transform:rotate(360deg)}}
-      .skeleton{background:#e5e5e5;border-radius:8px;animation:pulse 1.2s infinite}
+      .skeleton{background:#e9ecef;border-radius:.375rem;animation:pulse 1.5s infinite}
       @keyframes pulse{0%,100%{opacity:.6}50%{opacity:.3}}
-      label{font-size:12px;color:#86868b;margin-right:6px}
+      .muted{color:#6c757d;font-size:.875rem}
+      label{font-size:.875rem;color:#6c757d;margin-right:.5rem}
+      .detail-layout{display:flex;gap:2rem;margin-bottom:1.5rem}
+      .detail-poster{flex:0 0 auto}
+      .detail-poster img{max-width:200px;border-radius:.5rem;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+      .detail-copy{flex:1}
+      .detail-kicker{font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;margin-bottom:.25rem}
+      .detail-subtitle{color:#6c757d;font-size:.95rem;margin-bottom:.75rem}
+      .detail-tag{display:inline-block;padding:.25rem .5rem;background:#e9ecef;border-radius:.375rem;font-size:.8rem;margin-right:.375rem;margin-bottom:.375rem}
+      .detail-actions{margin-top:1rem}
+      .detail-description{line-height:1.6;color:#495057}
+      .detail-error{padding:2rem;text-align:center;color:#dc3545}
+      .tab-row{display:flex;gap:.25rem;margin-bottom:.75rem}
+      .status-line{font-size:.875rem;color:#6c757d;margin-bottom:.75rem}
+      .candidate-row{border:1px solid #dee2e6;border-radius:.5rem;padding:.75rem;margin-bottom:.75rem;background:#fff}
+      .candidate-name{font-weight:600;color:#212529}
+      .candidate-meta{font-size:.875rem;color:#6c757d}
+      .candidate-actions{margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap}
+      .source-tag{font-size:.8rem;background:#e9ecef;padding:.125rem .5rem;border-radius:.375rem;color:#495057}
+      .category-tag{font-size:.75rem;background:#0d6efd;color:#fff;padding:.125rem .5rem;border-radius:.375rem;text-transform:uppercase}
+      .result-row{border:1px solid #dee2e6;border-radius:.5rem;padding:1rem;margin-bottom:.75rem;background:#fff;display:flex;justify-content:space-between;align-items:center}
+      .result-row-link{text-decoration:none;color:inherit;flex:1}
+      .result-row-link:hover{color:#0d6efd}
+      .result-row-title{font-weight:600;color:#212529}
+      .result-row-meta{font-size:.875rem;color:#6c757d}
+      .result-row-meta-line{font-size:.8rem;color:#6c757d;margin-bottom:.25rem}
+      .result-row-source{font-size:.75rem}
+      .result-row-arrow{color:#adb5bd;font-size:1.25rem}
+      .library-item{border:1px solid #dee2e6;border-radius:.5rem;padding:1rem;margin-bottom:.75rem;background:#fff}
+      .library-item-main{flex:1}
+      .library-item-title{font-weight:600;color:#212529}
+      .library-item-meta{font-size:.875rem;color:#6c757d}
+      .library-state{font-weight:500}
+      .library-files{border-top:1px solid #dee2e6;margin-top:.75rem;padding-top:.75rem}
+      .track-list{font-size:.875rem}
+      .track-row{display:flex;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid #f8f9fa}
+      .album-cover{width:100%;max-width:200px;border-radius:.5rem;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+      .album-cover img{width:100%;height:auto;display:block}
+      .album-info{flex:1}
+      .album-details{margin-top:.5rem}
+      .track-list{font-size:.875rem}
+      .track-row{display:flex;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid #f8f9fa}
+      .episode-card{border:1px solid #dee2e6;border-radius:.5rem;overflow:hidden;background:#fff;margin-bottom:1rem}
+      .episode-card img{width:100%;height:120px;object-fit:cover}
+      .episode-copy{padding:1rem}
+      .episode-name{font-weight:600;color:#212529}
+      .episode-time{font-size:.875rem;color:#0d6efd;font-weight:600}
+      .episode-meta{font-size:.8rem;color:#6c757d;margin-top:.25rem}
+      .episode-summary{font-size:.875rem;color:#495057;margin-top:.5rem}
+      .pagination-btn{padding:.375rem .75rem;font-size:.875rem}
+      .pagination-info{font-size:.875rem;color:#6c757d}
+      .pagination-ellipsis{padding:.375rem .5rem;color:#6c757d}
     </style>
   </head>
   <body>
-    <button id="hamburger-menu" aria-label="Menu" aria-expanded="false">&#9776;</button>
+    <button id="hamburger-menu" class="btn btn-outline-secondary btn-sm" aria-label="Menu" aria-expanded="false">&#9776;</button>
     <div id="sidebar-overlay"></div>
     <nav id="app-sidebar">
-      <h3 style="margin:0 0 16px;font-size:18px">TorBox</h3>
-      <a href="/browse" class="p-sidebar-item" data-view="browse">Browse</a>
-      <a href="/movies" class="p-sidebar-item" data-view="movies">Movies</a>
-      <a href="/shows" class="p-sidebar-item" data-view="shows">Shows</a>
-      <a href="/torrents" class="p-sidebar-item" data-view="torrents">TorBox Library</a>
-      <a href="/local" class="p-sidebar-item" data-view="local">Local Media</a>
-      <a href="/music" class="p-sidebar-item" data-view="music">Music</a>
-      <a href="/calendar" class="p-sidebar-item" data-view="calendar">Calendar</a>
+      <h3 style="margin:0 0 1rem;font-size:1.25rem">TorBox</h3>
+      <a href="/browse" class="nav-link" data-view="browse">Browse</a>
+      <a href="/movies" class="nav-link" data-view="movies">Movies</a>
+      <a href="/shows" class="nav-link" data-view="shows">Shows</a>
+      <a href="/torrents" class="nav-link" data-view="torrents">TorBox Library</a>
+      <a href="/local" class="nav-link" data-view="local">Local Media</a>
+      <a href="/music" class="nav-link" data-view="music">Music</a>
+      <a href="/calendar" class="nav-link" data-view="calendar">Calendar</a>
     </nav>
 
     <div id="root">
-      <h1 id="page-title" class="page-title">TorBox Media Manager</h1>
+      <h1 id="page-title" class="fs-4 fw-bold">TorBox Media Manager</h1>
 
       <!-- Browse view -->
       <section id="view-browse" class="view">
         <div class="toolbar">
           <label for="browse-query">Search</label>
-          <input id="browse-query" type="search" placeholder="Search movies, shows, music…" />
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input id="source-indexers" type="checkbox" checked /> Indexers</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input id="source-usenet" type="checkbox" /> Usenet</label>
+          <input id="browse-query" type="search" class="form-control" placeholder="Search movies, shows, music…" />
+          <label class="form-check-inline"><input id="source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
+          <label class="form-check-inline"><input id="source-usenet" type="checkbox" class="form-check-input" /> Usenet</label>
         </div>
         <div id="browse-status"></div>
 
         <section id="browse-movies-section" class="section">
           <h2 id="browse-movies-title" class="section-title">Movies</h2>
           <div id="browse-movies-results" class="results"></div>
-          <button id="browse-movies-more" class="p-button p-button-secondary">More</button>
+          <button id="browse-movies-more" class="btn btn-outline-secondary btn-sm">More</button>
         </section>
 
         <section id="browse-shows-section" class="section">
           <h2 id="browse-shows-title" class="section-title">Shows</h2>
           <div id="browse-shows-results" class="results"></div>
-          <button id="browse-shows-more" class="p-button p-button-secondary">More</button>
+          <button id="browse-shows-more" class="btn btn-outline-secondary btn-sm">More</button>
         </section>
 
         <section id="browse-music-section" class="section">
           <h2 id="browse-music-title" class="section-title">Music</h2>
           <div id="browse-music-results" class="results"></div>
-          <button id="browse-music-more" class="p-button p-button-secondary">More</button>
+          <button id="browse-music-more" class="btn btn-outline-secondary btn-sm">More</button>
         </section>
 
         <section id="browse-torrents-section" class="section">
           <h2 id="browse-torrents-title" class="section-title">Torrents</h2>
           <div id="browse-torrents-results" class="results"></div>
-          <button id="browse-torrents-more" class="p-button p-button-secondary">More</button>
+          <button id="browse-torrents-more" class="btn btn-outline-secondary btn-sm">More</button>
         </section>
 
         <section id="browse-usenet-section" class="section">
           <h2 id="browse-usenet-title" class="section-title">Usenet</h2>
           <div id="browse-usenet-results" class="results"></div>
-          <button id="browse-usenet-more" class="p-button p-button-secondary">More</button>
+          <button id="browse-usenet-more" class="btn btn-outline-secondary btn-sm">More</button>
         </section>
 
         <section id="browse-torrent-search-section" class="section hidden">
           <h2 id="browse-torrent-search-title" class="section-title">Torrent Results</h2>
           <div id="browse-torrent-results" class="results"></div>
-          <button id="browse-torrent-more" class="p-button p-button-secondary">More</button>
+          <button id="browse-torrent-more" class="btn btn-outline-secondary btn-sm">More</button>
         </section>
 
         <section id="browse-usenet-search-section" class="section hidden">
-          <label style="font-size:13px">Usenet source</label>
-          <select id="browse-usenet-search-source"><option value="all">All</option></select>
+          <label style="font-size:.875rem">Usenet source</label>
+          <select id="browse-usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
           <h2 id="browse-usenet-search-title" class="section-title">Usenet Results</h2>
           <div id="browse-usenet-search-results" class="results"></div>
-          <button id="browse-usenet-search-more" class="p-button p-button-secondary">More</button>
+          <button id="browse-usenet-search-more" class="btn btn-outline-secondary btn-sm">More</button>
         </section>
       </section>
 
@@ -112,35 +163,35 @@
       <section id="view-movies" class="view">
         <div class="toolbar">
           <label for="movies-query">Search</label>
-          <input id="movies-query" type="search" placeholder="Search movies…" />
+          <input id="movies-query" type="search" class="form-control" placeholder="Search movies…" />
         </div>
         <div id="movies-status"></div>
         <div id="movies-count"></div>
         <div id="movies-results" class="results"></div>
-        <button id="movies-more" class="p-button p-button-secondary">More</button>
+        <button id="movies-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Shows view -->
       <section id="view-shows" class="view">
         <div class="toolbar">
           <label for="shows-query">Search</label>
-          <input id="shows-query" type="search" placeholder="Search shows…" />
+          <input id="shows-query" type="search" class="form-control" placeholder="Search shows…" />
         </div>
         <div id="shows-status"></div>
         <div id="shows-count"></div>
         <div id="shows-results" class="results"></div>
-        <button id="shows-more" class="p-button p-button-secondary">More</button>
+        <button id="shows-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Torrents view -->
       <section id="view-torrents" class="view">
         <div class="toolbar">
           <label for="library-query">Search library</label>
-          <input id="library-query" type="search" placeholder="Search library…" />
+          <input id="library-query" type="search" class="form-control" placeholder="Search library…" />
           <label for="library-sort">Sort by</label>
-          <select id="library-sort"><option value="created">Added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select>
+          <select id="library-sort" class="form-select form-select-sm"><option value="created">Added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select>
           <label for="library-filter">Filter by</label>
-          <select id="library-filter"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option><option value="other">Other</option></select>
+          <select id="library-filter" class="form-select form-select-sm"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option><option value="other">Other</option></select>
         </div>
         <div id="library-summary"></div>
         <div id="torrents-results" class="results"></div>
@@ -150,11 +201,11 @@
       <section id="view-local" class="view">
         <div class="toolbar">
           <label for="library-query-local">Search local media</label>
-          <input id="library-query-local" type="search" placeholder="Search local media…" />
+          <input id="library-query-local" type="search" class="form-control" placeholder="Search local media…" />
           <label for="library-sort-local">Sort by</label>
-          <select id="library-sort-local"><option value="created">Added</option><option value="name">Name</option></select>
+          <select id="library-sort-local" class="form-select form-select-sm"><option value="created">Added</option><option value="name">Name</option></select>
           <label for="library-filter-local">Filter by</label>
-          <select id="library-filter-local"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option></select>
+          <select id="library-filter-local" class="form-select form-select-sm"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option></select>
         </div>
         <div id="library-summary-local"></div>
         <div id="torrents-results-local" class="results"></div>
@@ -164,27 +215,27 @@
       <section id="view-music" class="view">
         <div class="toolbar">
           <label for="music-query">Search</label>
-          <input id="music-query" type="search" placeholder="Search music…" />
+          <input id="music-query" type="search" class="form-control" placeholder="Search music…" />
         </div>
         <div id="music-status"></div>
         <div id="music-count"></div>
         <div id="music-results" class="results"></div>
-        <button id="music-more" class="p-button p-button-secondary">More</button>
+        <button id="music-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Calendar view -->
       <section id="view-calendar" class="view">
         <div class="toolbar">
           <label for="calendar-date">Date</label>
-          <input id="calendar-date" type="date" />
+          <input id="calendar-date" type="date" class="form-control form-control-sm" />
           <label for="calendar-country">Country</label>
-          <select id="calendar-country"><option value="US">US</option></select>
+          <select id="calendar-country" class="form-select form-select-sm"><option value="US">US</option></select>
           <label for="calendar-source">Source</label>
-          <select id="calendar-source"><option value="all">All</option></select>
+          <select id="calendar-source" class="form-select form-select-sm"><option value="all">All</option></select>
           <label for="calendar-query">Search</label>
-          <input id="calendar-query" type="search" placeholder="Search…" />
+          <input id="calendar-query" type="search" class="form-control form-control-sm" placeholder="Search…" />
           <label for="calendar-platform">Platform</label>
-          <select id="calendar-platform"><option value="all">All</option></select>
+          <select id="calendar-platform" class="form-select form-select-sm"><option value="all">All</option></select>
         </div>
         <div id="calendar-summary"></div>
         <div id="calendar-results" class="results"></div>
@@ -202,33 +253,33 @@
         <div id="title-torrent-search-title"></div>
         <div id="title-torrent-count"></div>
         <div id="title-torrent-results" class="results"></div>
-        <button id="title-torrent-more" class="p-button p-button-secondary">More</button>
+        <button id="title-torrent-more" class="btn btn-outline-secondary btn-sm">More</button>
 
         <!-- Title usenet search -->
         <div id="title-usenet-search-title"></div>
         <div id="title-usenet-search-count"></div>
         <div id="title-usenet-search-results" class="results"></div>
         <label for="title-usenet-search-source">Source</label>
-        <select id="title-usenet-search-source"><option value="all">All</option></select>
-        <button id="title-usenet-search-more" class="p-button p-button-secondary">More</button>
+        <select id="title-usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
+        <button id="title-usenet-search-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Usenet search -->
       <section id="usenet-search" class="section hidden">
         <div class="toolbar">
           <label for="usenet-query">Search</label>
-          <input id="usenet-query" type="search" placeholder="Search Usenet…" />
+          <input id="usenet-query" type="search" class="form-control" placeholder="Search Usenet…" />
           <label for="usenet-search-source">Source</label>
-          <select id="usenet-search-source"><option value="all">All</option></select>
+          <select id="usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
         </div>
         <div id="usenet-status"></div>
         <div id="usenet-results" class="results"></div>
-        <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input id="usenet-cached-only" type="checkbox" /> Cached only</label>
-        <div style="font-size:12px;color:#86868b">
+        <label class="form-check-inline"><input id="usenet-cached-only" type="checkbox" class="form-check-input" /> Cached only</label>
+        <div style="font-size:.875rem;color:#6c757d">
           <label for="usenet-offset">Offset</label>
-          <input id="usenet-offset" type="number" value="0" style="width:40px" />
+          <input id="usenet-offset" type="number" class="form-control form-control-sm" value="0" style="width:4rem" />
           <label for="usenet-limit">Limit</label>
-          <input id="usenet-limit" type="number" value="20" style="width:40px" />
+          <input id="usenet-limit" type="number" class="form-control form-control-sm" value="20" style="width:4rem" />
         </div>
       </section>
 
@@ -238,8 +289,8 @@
         <div id="torrents-usenet-search-count"></div>
         <div id="torrents-usenet-search-results" class="results"></div>
         <label for="torrents-usenet-search-source">Source</label>
-        <select id="torrents-usenet-search-source"><option value="all">All</option></select>
-        <button id="torrents-usenet-search-more" class="p-button p-button-secondary">More</button>
+        <select id="torrents-usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
+        <button id="torrents-usenet-search-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Music release -->
@@ -249,35 +300,43 @@
       </section>
 
       <!-- Candidate modal -->
-      <div id="candidate-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px">
-        <div style="background:#fff;border-radius:12px;padding:24px;min-width:400px;max-width:600px;max-height:80vh;overflow:auto">
-          <h2 id="candidate-title" style="margin-top:0"></h2>
-          <div id="candidate-results"></div>
-          <div id="candidate-status" style="font-size:12px;color:#86868b"></div>
-          <div style="font-size:12px;color:#86868b;margin-top:12px">
-            <label for="candidate-offset">Offset</label>
-            <input id="candidate-offset" type="number" value="0" style="width:40px" />
-            <label for="candidate-limit">Limit</label>
-            <input id="candidate-limit" type="number" value="20" style="width:40px" />
-            <label for="candidate-count">Count</label>
-            <input id="candidate-count" type="number" value="0" style="width:40px" readonly />
-          </div>
-          <div style="font-size:12px;color:#86868b;margin-top:8px">
-            <label for="candidate-min-seeders">Min seeders</label>
-            <input id="candidate-min-seeders" type="number" style="width:60px" />
-            <label for="candidate-min-leechers">Min leechers</label>
-            <input id="candidate-min-leechers" type="number" style="width:60px" />
-            <label for="candidate-season">Season</label>
-            <input id="candidate-season" type="number" style="width:60px" />
-            <label for="candidate-season-field">Season field</label>
-            <select id="candidate-season-field"><option value="all">All</option></select>
-            <label for="candidate-sort">Sort</label>
-            <select id="candidate-sort"><option value="seeders">Seeders</option></select>
+      <div class="modal fade" id="candidate-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="candidate-title"></h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div id="candidate-results"></div>
+              <div id="candidate-status" class="text-muted small"></div>
+              <div class="mt-3">
+                <label for="candidate-offset">Offset</label>
+                <input id="candidate-offset" type="number" class="form-control form-control-sm" value="0" style="width:4rem" />
+                <label for="candidate-limit">Limit</label>
+                <input id="candidate-limit" type="number" class="form-control form-control-sm" value="20" style="width:4rem" />
+                <label for="candidate-count">Count</label>
+                <input id="candidate-count" type="number" class="form-control form-control-sm" value="0" style="width:4rem" readonly />
+              </div>
+              <div class="mt-2">
+                <label for="candidate-min-seeders">Min seeders</label>
+                <input id="candidate-min-seeders" type="number" class="form-control form-control-sm" style="width:5rem" />
+                <label for="candidate-min-leechers">Min leechers</label>
+                <input id="candidate-min-leechers" type="number" class="form-control form-control-sm" style="width:5rem" />
+                <label for="candidate-season">Season</label>
+                <input id="candidate-season" type="number" class="form-control form-control-sm" style="width:5rem" />
+                <label for="candidate-season-field">Season field</label>
+                <select id="candidate-season-field" class="form-select form-select-sm"><option value="all">All</option></select>
+                <label for="candidate-sort">Sort</label>
+                <select id="candidate-sort" class="form-select form-select-sm"><option value="seeders">Seeders</option></select>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
+    <script src="/vendor/bootstrap/bootstrap.bundle.min.js?v=3"></script>
     <script src="/app.js?v=3" defer></script>
   </body>
 </html>

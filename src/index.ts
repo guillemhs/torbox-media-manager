@@ -35,7 +35,8 @@ const app = express();
 const PORT = Number(process.env.PORT || 8066);
 app.use(express.json({ limit: '32kb' }));
 app.use(express.urlencoded({ extended: true, limit: '32kb' }));
-app.use('/vendor/bootstrap', express.static(path.join(__dirname, '../node_modules/bootstrap/dist')));
+app.use('/vendor/bootstrap/css', express.static(path.join(__dirname, '../node_modules/bootstrap/dist/css')));
+app.use('/vendor/bootstrap/js', express.static(path.join(__dirname, '../node_modules/bootstrap/dist/js')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', async (_req, res) => {

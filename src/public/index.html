@@ -7,10 +7,10 @@
     <link rel="icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css?v=3">
     <style>
-      :root{font-family:system-ui,-apple-system,sans-serif}body{margin:0;min-height:100vh;background:#f5f5f7;color:#1d1d1f}
+      :root{font-family:"Inter",system-ui,-apple-system,sans-serif;body{margin:0;min-height:100vh;background:#f8f9fa;color:#212529}}
       .view{display:none} .view.active{display:block} .hidden{display:none}
       #app-sidebar{position:fixed;top:0;left:0;width:280px;height:100vh;background:#fff;border-right:1px solid #dee2e6;transform:translateX(-100%);transition:transform .2s;z-index:1050;padding:1.5rem}
       #app-sidebar.open{transform:translateX(0)}
@@ -23,12 +23,13 @@
       #hamburger-menu{display:none;position:fixed;top:.75rem;left:.75rem;z-index:1060;background:#fff;border:1px solid #dee2e6;border-radius:.5rem;padding:.5rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
       @media (max-width:760px){#hamburger-menu{display:block}}
       #root{padding-top:70px;padding-bottom:2rem}
-      .page-title{font-size:1.5rem;font-weight:600;margin-bottom:1rem}
+      .page-title{font-size:1.5rem;font-weight:700;margin-bottom:1rem}
       .section{margin-bottom:2rem}
       .section-title{font-size:1.25rem;font-weight:600;margin-bottom:.75rem}
       .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1rem}
-      .results{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem}
-      .empty-state{padding:3rem;text-align:center;color:#6c757d}
+      .results{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}
+      .empty-state{padding:3rem;text-align:center;color:#6c757d;background:#fff;border:1px solid #dee2e6;border-radius:.5rem}
+      .empty-state .btn{margin-top:1rem}
       .spinner{display:inline-block;width:1.5rem;height:1.5rem;border:2px solid #dee2e6;border-top-color:#0d6efd;border-radius:50%;animation:spin .8s linear infinite}
       @keyframes spin{to{transform:rotate(360deg)}}
       .skeleton{background:#e9ecef;border-radius:.375rem;animation:pulse 1.5s infinite}
@@ -83,21 +84,28 @@
       .pagination-btn{padding:.375rem .75rem;font-size:.875rem}
       .pagination-info{font-size:.875rem;color:#6c757d}
       .pagination-ellipsis{padding:.375rem .5rem;color:#6c757d}
+      .card{transition:transform .2s,box-shadow .2s}
+      .card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+      .card-img-top{height:200px;object-fit:cover}
+      .search-card{border:none;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+      .search-card .card-body{padding:1.5rem}
     </style>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
       <div class="container-fluid">
         <button class="btn btn-outline-light" id="hamburger-menu" aria-label="Toggle navigation">&#9776;</button>
-        <a class="navbar-brand" href="/">TorBox Media Manager</a>
-        <div class="d-none d-md-block">
-          <a href="/browse" class="nav-link" data-view="browse">Browse</a>
-          <a href="/movies" class="nav-link" data-view="movies">Movies</a>
-          <a href="/shows" class="nav-link" data-view="shows">Shows</a>
-          <a href="/torrents" class="nav-link" data-view="torrents">TorBox Library</a>
-          <a href="/local" class="nav-link" data-view="local">Local Media</a>
-          <a href="/music" class="nav-link" data-view="music">Music</a>
-          <a href="/calendar" class="nav-link" data-view="calendar">Calendar</a>
+        <a class="navbar-brand d-flex align-items-center" href="/">
+          <span class="fas fa-film me-2" style="font-size:1.25rem"></span>TorBox Media Manager
+        </a>
+        <div class="d-none d-md-flex">
+          <a href="/browse" class="nav-link px-3" data-view="browse">Browse</a>
+          <a href="/movies" class="nav-link px-3" data-view="movies">Movies</a>
+          <a href="/shows" class="nav-link px-3" data-view="shows">Shows</a>
+          <a href="/music" class="nav-link px-3" data-view="music">Music</a>
+          <a href="/torrents" class="nav-link px-3" data-view="torrents">TorBox Library</a>
+          <a href="/local" class="nav-link px-3" data-view="local">Local Media</a>
+          <a href="/calendar" class="nav-link px-3" data-view="calendar">Calendar</a>
         </div>
         <div class="d-flex ms-auto">
           <span class="text-light small me-3" id="app-status"></span>
@@ -130,13 +138,18 @@
 
       <!-- Browse view -->
       <section id="view-browse" class="view">
-        <div class="toolbar">
-          <label for="browse-query" class="visually-hidden">Search</label>
-          <input id="browse-query" type="search" class="form-control form-control-sm" placeholder="Search movies, shows, music…" />
-          <label class="form-check form-check-inline me-2"><input id="source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-          <label class="form-check form-check-inline me-2"><input id="source-usenet" type="checkbox" class="form-check-input" /> Usenet</label>
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="browse-query" class="visually-hidden">Search</label>
+              <input id="browse-query" type="search" class="form-control form-control-lg" placeholder="Search movies, shows, music…" />
+              <label class="form-check form-check-inline me-2"><input id="source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
+              <label class="form-check form-check-inline me-2"><input id="source-usenet" type="checkbox" class="form-check-input" /> Usenet</label>
+              <button id="browse-search-btn" class="btn btn-primary">Search</button>
+            </div>
+            <div id="browse-status" class="mt-2"></div>
+          </div>
         </div>
-        <div id="browse-status" class="mb-2"></div>
 
         <section id="browse-movies-section" class="section">
           <h2 id="browse-movies-title" class="section-title">Movies</h2>
@@ -185,83 +198,110 @@
 
       <!-- Movies view -->
       <section id="view-movies" class="view">
-        <div class="toolbar">
-          <label for="movies-query" class="visually-hidden">Search</label>
-          <input id="movies-query" type="search" class="form-control form-control-sm" placeholder="Search movies…" />
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="movies-query" class="visually-hidden">Search</label>
+              <input id="movies-query" type="search" class="form-control form-control-lg" placeholder="Search movies…" />
+              <button id="movies-search-btn" class="btn btn-primary">Search</button>
+            </div>
+            <div id="movies-status" class="mt-2"></div>
+            <div id="movies-count" class="text-muted small mt-2"></div>
+          </div>
         </div>
-        <div id="movies-status" class="mb-2"></div>
-        <div id="movies-count" class="text-muted small mb-2"></div>
         <div id="movies-results" class="results"></div>
         <button id="movies-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Shows view -->
       <section id="view-shows" class="view">
-        <div class="toolbar">
-          <label for="shows-query" class="visually-hidden">Search</label>
-          <input id="shows-query" type="search" class="form-control form-control-sm" placeholder="Search shows…" />
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="shows-query" class="visually-hidden">Search</label>
+              <input id="shows-query" type="search" class="form-control form-control-lg" placeholder="Search shows…" />
+              <button id="shows-search-btn" class="btn btn-primary">Search</button>
+            </div>
+            <div id="shows-status" class="mt-2"></div>
+            <div id="shows-count" class="text-muted small mt-2"></div>
+          </div>
         </div>
-        <div id="shows-status" class="mb-2"></div>
-        <div id="shows-count" class="text-muted small mb-2"></div>
         <div id="shows-results" class="results"></div>
         <button id="shows-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Torrents view -->
       <section id="view-torrents" class="view">
-        <div class="toolbar">
-          <label for="library-query" class="visually-hidden">Search library</label>
-          <input id="library-query" type="search" class="form-control form-control-sm" placeholder="Search library…" />
-          <label for="library-sort" class="form-label-sm">Sort by</label>
-          <select id="library-sort" class="form-select form-select-sm"><option value="created">Added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select>
-          <label for="library-filter" class="form-label-sm">Filter by</label>
-          <select id="library-filter" class="form-select form-select-sm"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option><option value="other">Other</option></select>
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="library-query" class="visually-hidden">Search library</label>
+              <input id="library-query" type="search" class="form-control form-control-lg" placeholder="Search library…" />
+              <label for="library-sort" class="form-label-sm">Sort by</label>
+              <select id="library-sort" class="form-select form-select-sm"><option value="created">Added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select>
+              <label for="library-filter" class="form-label-sm">Filter by</label>
+              <select id="library-filter" class="form-select form-select-sm"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option><option value="other">Other</option></select>
+            </div>
+            <div id="library-summary" class="text-muted small mt-2"></div>
+          </div>
         </div>
-        <div id="library-summary" class="text-muted small mb-2"></div>
         <div id="torrents-results" class="results"></div>
       </section>
 
       <!-- Local view -->
       <section id="view-local" class="view">
-        <div class="toolbar">
-          <label for="library-query-local" class="visually-hidden">Search local media</label>
-          <input id="library-query-local" type="search" class="form-control form-control-sm" placeholder="Search local media…" />
-          <label for="library-sort-local" class="form-label-sm">Sort by</label>
-          <select id="library-sort-local" class="form-select form-select-sm"><option value="created">Added</option><option value="name">Name</option></select>
-          <label for="library-filter-local" class="form-label-sm">Filter by</label>
-          <select id="library-filter-local" class="form-select form-select-sm"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option></select>
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="library-query-local" class="visually-hidden">Search local media</label>
+              <input id="library-query-local" type="search" class="form-control form-control-lg" placeholder="Search local media…" />
+              <label for="library-sort-local" class="form-label-sm">Sort by</label>
+              <select id="library-sort-local" class="form-select form-select-sm"><option value="created">Added</option><option value="name">Name</option></select>
+              <label for="library-filter-local" class="form-label-sm">Filter by</label>
+              <select id="library-filter-local" class="form-select form-select-sm"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option></select>
+            </div>
+            <div id="library-summary-local" class="text-muted small mt-2"></div>
+          </div>
         </div>
-        <div id="library-summary-local" class="text-muted small mb-2"></div>
         <div id="torrents-results-local" class="results"></div>
       </section>
 
       <!-- Music view -->
       <section id="view-music" class="view">
-        <div class="toolbar">
-          <label for="music-query" class="visually-hidden">Search</label>
-          <input id="music-query" type="search" class="form-control form-control-sm" placeholder="Search music…" />
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="music-query" class="visually-hidden">Search</label>
+              <input id="music-query" type="search" class="form-control form-control-lg" placeholder="Search music…" />
+              <button id="music-search-btn" class="btn btn-primary">Search</button>
+            </div>
+            <div id="music-status" class="mt-2"></div>
+            <div id="music-count" class="text-muted small mt-2"></div>
+          </div>
         </div>
-        <div id="music-status" class="mb-2"></div>
-        <div id="music-count" class="text-muted small mb-2"></div>
         <div id="music-results" class="results"></div>
         <button id="music-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
       <!-- Calendar view -->
       <section id="view-calendar" class="view">
-        <div class="toolbar">
-          <label for="calendar-date" class="form-label-sm">Date</label>
-          <input id="calendar-date" type="date" class="form-control form-control-sm" />
-          <label for="calendar-country" class="form-label-sm">Country</label>
-          <select id="calendar-country" class="form-select form-select-sm"><option value="US">US</option></select>
-          <label for="calendar-source" class="form-label-sm">Source</label>
-          <select id="calendar-source" class="form-select form-select-sm"><option value="all">All</option></select>
-          <label for="calendar-query" class="visually-hidden">Search</label>
-          <input id="calendar-query" type="search" class="form-control form-control-sm" placeholder="Search…" />
-          <label for="calendar-platform" class="form-label-sm">Platform</label>
-          <select id="calendar-platform" class="form-select form-select-sm"><option value="all">All</option></select>
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="calendar-date" class="form-label-sm">Date</label>
+              <input id="calendar-date" type="date" class="form-control form-control-sm" />
+              <label for="calendar-country" class="form-label-sm">Country</label>
+              <select id="calendar-country" class="form-select form-select-sm"><option value="US">US</option></select>
+              <label for="calendar-source" class="form-label-sm">Source</label>
+              <select id="calendar-source" class="form-select form-select-sm"><option value="all">All</option></select>
+              <label for="calendar-query" class="visually-hidden">Search</label>
+              <input id="calendar-query" type="search" class="form-control form-control-sm" placeholder="Search…" />
+              <label for="calendar-platform" class="form-label-sm">Platform</label>
+              <select id="calendar-platform" class="form-select form-select-sm"><option value="all">All</option></select>
+            </div>
+            <div id="calendar-summary" class="text-muted small mt-2"></div>
+          </div>
         </div>
-        <div id="calendar-summary" class="text-muted small mb-2"></div>
         <div id="calendar-results" class="results"></div>
       </section>
 
@@ -284,13 +324,17 @@
 
       <!-- Usenet search -->
       <section id="usenet-search" class="section hidden">
-        <div class="toolbar">
-          <label for="usenet-query" class="visually-hidden">Search</label>
-          <input id="usenet-query" type="search" class="form-control form-control-sm" placeholder="Search Usenet…" />
-          <label for="usenet-search-source" class="form-label-sm">Source</label>
-          <select id="usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
+        <div class="card search-card mb-4">
+          <div class="card-body">
+            <div class="toolbar">
+              <label for="usenet-query" class="visually-hidden">Search</label>
+              <input id="usenet-query" type="search" class="form-control form-control-lg" placeholder="Search Usenet…" />
+              <label for="usenet-search-source" class="form-label-sm">Source</label>
+              <select id="usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
+            </div>
+            <div id="usenet-status" class="mt-2"></div>
+          </div>
         </div>
-        <div id="usenet-status" class="mb-2"></div>
         <div id="usenet-results" class="results"></div>
         <label class="form-check form-check-inline me-2"><input id="usenet-cached-only" type="checkbox" class="form-check-input" /> Cached only</label>
         <div class="mt-2">

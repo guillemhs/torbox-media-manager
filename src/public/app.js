@@ -253,7 +253,7 @@ async function searchTorrentsUsenetSearch(query) {
         return candidates.map(item => {
             const source = item.source || 'Unknown';
             const contentType = item.kind === 'series' ? 'Show' : 'Movie';
-            return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source, contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<button class="p-button p-button-secondary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div></article>`
+            return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source, contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<button class="p-button p-button-secondary p-button-small" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy Magnet</button>`:''}${item.magnet?`<button class="p-button p-button-secondary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="p-button p-button-secondary p-button-small" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="p-button p-button-primary p-button-small" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div></article>`
         }).join('')
     }
     
@@ -796,6 +796,62 @@ async function searchTorrentsUsenetSearch(query) {
             $('#browse-torrents-more')?.classList.toggle('hidden', torrents.length >= totalTorrents);
             // Render pagination for torrents
             renderPagination('browse-torrents', 'browse-torrents-pagination');
+            // Add event listener for browse torrents copy magnet buttons
+            container.querySelectorAll('[data-copy-magnet]').forEach(button => {
+                button.onclick = async (e) => {
+                    e.stopPropagation();
+                    const magnet = decodeURIComponent(button.dataset.copyMagnet);
+                    try {
+                        await navigator.clipboard.writeText(magnet);
+                        button.textContent = 'Copied into the clipboard';
+                        setTimeout(() => {
+                            if (button.isConnected) button.textContent = 'Copy Magnet';
+                        }, 1500);
+                    } catch {
+                        const field = document.createElement('textarea');
+                        field.value = magnet;
+                        field.setAttribute('readonly', '');
+                        field.style.position = 'fixed';
+                        field.style.opacity = '0';
+                        document.body.append(field);
+                        field.select();
+                        const copied = document.execCommand('copy');
+                        field.remove();
+                        button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
+                        setTimeout(() => {
+                            if (button.isConnected) button.textContent = 'Copy Magnet';
+                        }, 1500);
+                    }
+                };
+            });
+            // Add event listener for browse torrents add-torrent buttons
+            container.querySelectorAll('[data-add-torrent]').forEach(button => {
+                button.onclick = async (e) => {
+                    e.stopPropagation();
+                    const magnet = decodeURIComponent(button.dataset.addTorrent);
+                    const name = decodeURIComponent(button.dataset.torrentName || '');
+                    const cachedOnly = button.dataset.cachedOnly === 'true';
+                    button.disabled = true;
+                    button.textContent = 'Adding…';
+                    try {
+                        await jsonFetch('/torbox/torrents', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({magnet, name, addOnlyIfCached: cachedOnly})
+                        });
+                        button.textContent = 'Added';
+                        setTimeout(() => {
+                            if (button.isConnected) button.textContent = 'Add cached';
+                        }, 1500);
+                    } catch (error) {
+                        button.textContent = 'Add failed';
+                        button.disabled = false;
+                        setTimeout(() => {
+                            if (button.isConnected) button.textContent = 'Add cached';
+                        }, 1500);
+                    }
+                };
+            });
         }
 
         // Usenet

@@ -1598,12 +1598,7 @@ if(location.hash){const legacy=location.hash.slice(1);history.replaceState(null,
     for(const view of ['browse','movies','shows'])$(`#${view}-query`)?.addEventListener('keydown',event=>{if(event.key==='Enter')searchRoute(view)});
     $('#music-query')?.addEventListener('keydown',event=>{if(event.key==='Enter')searchRoute('music')});
     
-    // Movies view filter controls
-    $('#movies-source-indexers')?.addEventListener('change',()=>{const uF=$('#movies-usenet-filters');if(uF)uF.style.display='none';const iF=$('#movies-indexer-filters');if(iF)iF.style.display=$('#movies-source-indexers')?.checked?'block':'none'});
-    $('#movies-source-usenet')?.addEventListener('change',()=>{const uF=$('#movies-usenet-filters');if(uF)uF.style.display=$('#movies-source-usenet')?.checked?'block':'none';const iF=$('#movies-indexer-filters');if(iF)iF.style.display='none'});
-    $('#movies-indexer-prowlarr')?.addEventListener('change',()=>{});
-    $('#movies-indexer-torrentio')?.addEventListener('change',()=>{});
-    $('#movies-usenet-source')?.addEventListener('change',()=>{});
+    // Movies view - simplified, no filter controls
     
     // Shows view filter controls
     $('#shows-source-indexers')?.addEventListener('change',()=>{const uF=$('#shows-usenet-filters');if(uF)uF.style.display='none';const iF=$('#shows-indexer-filters');if(iF)iF.style.display=$('#shows-source-indexers')?.checked?'block':'none'});
@@ -1621,6 +1616,11 @@ if(location.hash){const legacy=location.hash.slice(1);history.replaceState(null,
     
     // Load more buttons for movies, shows, music views
     $('#movies-more')?.addEventListener('click',()=>loadMoreUnified('movies'));
+    $('#movies-discover')?.addEventListener('click',()=>{
+        const input = $('#movies-query');
+        if(input) input.value = '';
+        void loadView('movies', true);
+    });
     $('#shows-more')?.addEventListener('click',()=>loadMoreUnified('shows'));
     $('#music-more')?.addEventListener('click',()=>loadMoreUnified('music'));
     

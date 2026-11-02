@@ -92,6 +92,11 @@
       .card-img-top{height:200px;object-fit:cover}
       .search-card{border:none;box-shadow:0 2px 8px rgba(0,0,0,.08)}
       .search-card .card-body{padding:1.5rem}
+      .sidebar-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid #dee2e6;margin-bottom:1rem}
+      .sidebar-title{margin:0;font-size:1.25rem;font-weight:600}
+      .sidebar-body{padding:1rem 1.5rem}
+      .btn-close{background:none;border:none;font-size:1.5rem;line-height:1;color:#6c757d;padding:0.5rem;cursor:pointer}
+      .btn-close:hover{color:#000}
     </style>
   </head>
   <body>
@@ -116,12 +121,12 @@
       </div>
     </nav>
 
-    <div class="offcanvas offcanvas-start" id="app-sidebar" tabindex="-1">
-      <div class="offcanvas-header">
-        <h5 class="offcanvas-title">TorBox</h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <div id="app-sidebar" tabindex="-1">
+      <div class="sidebar-header">
+        <h5 class="sidebar-title">TorBox</h5>
+        <button type="button" class="btn-close text-reset" aria-label="Close"></button>
       </div>
-      <div class="offcanvas-body">
+      <div class="sidebar-body">
         <nav class="nav flex-column">
           <a href="/browse" class="nav-link" data-view="browse">Browse</a>
           <a href="/movies" class="nav-link" data-view="movies">Movies</a>
@@ -134,7 +139,7 @@
       </div>
     </div>
 
-    <div class="offcanvas-backdrop fade" id="sidebar-overlay" tabindex="-1"></div>
+    <div id="sidebar-overlay" tabindex="-1"></div>
 
     <div id="root" class="container-fluid">
       <h1 id="page-title" class="page-title">TorBox Media Manager</h1>

@@ -76,19 +76,19 @@ function renderPagination(viewKey, paginationId) {
     let html = '<span class="pagination-info">Page ' + currentPage + ' of ' + totalPages + ' (' + total + ' results)</span>';
     
     // Previous button
-    html += '<button class="pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" data-page="' + (currentPage - 1) + '"' + (currentPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">&laquo;</button>';
+    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" data-page="' + (currentPage - 1) + '"' + (currentPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">&laquo;</button>';
     
     // Page numbers
     for (const page of pages) {
         if (page === '...') {
             html += '<span class="pagination-ellipsis">...</span>';
         } else {
-            html += '<button class="pagination-btn' + (page === currentPage ? ' active' : '') + '" data-page="' + page + '">' + page + '</button>';
+            html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (page === currentPage ? ' active' : '') + '" data-page="' + page + '">' + page + '</button>';
         }
     }
     
     // Next button
-    html += '<button class="pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" data-page="' + (currentPage + 1) + '"' + (currentPage === totalPages ? ' disabled' : '') + ' aria-label="Next page">&raquo;</button>';
+    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" data-page="' + (currentPage + 1) + '"' + (currentPage === totalPages ? ' disabled' : '') + ' aria-label="Next page">&raquo;</button>';
     
     container.innerHTML = html;
     

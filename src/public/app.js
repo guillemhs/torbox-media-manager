@@ -1650,3 +1650,62 @@ async function loadPageUnified(view, page) {
   }
   loadViewMode = null;
 }
+document.addEventListener('click', event => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  // Don't intercept button clicks - let button handlers handle them
+  if (target.closest('button')) return;
+  const link = target.closest('a[href]');
+  if (link) {
+    const href = link.getAttribute('href');
+    if (href && href.startsWith('/') && !href.startsWith('//')) {
+      event.preventDefault();
+      setRoute(href);
+      return;
+    }
+  }
+});
+
+// Hamburger menu toggle functionality
+function initHamburgerMenu() {
+  const hamburgerBtn = document.getElementById('hamburger-menu');
+  const sidebar = document.getElementById('app-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  
+  if (!hamburgerBtn || !sidebar || !overlay) return;
+  
+  function closeSidebar() {
+    const wasOpen = sidebar.classList.contains('open');
+    if (!wasOpen) return;
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+    document.body.classList.remove('sidebar-open');
+    hamburgerBtn.setAttribute('aria-expanded', 'false');
+  }
+  
+  function toggleSidebar() {
+    const isOpen = sidebar.classList.toggle('open');
+    overlay.classList.toggle('visible', isOpen);
+    document.body.classList.toggle('sidebar-open', isOpen);
+    hamburgerBtn.setAttribute('aria-expanded', isOpen);
+  }
+  
+  hamburgerBtn.addEventListener('click', toggleSidebar);
+  overlay.addEventListener('click', toggleSidebar);
+  
+  sidebar.querySelectorAll('[data-view]').forEach(item => {
+    item.addEventListener('click', () => closeSidebar());
+  });
+  
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 760) closeSidebar();
+  });
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
+  
+  window.closeSidebar = closeSidebar;
+}
+
+initHamburgerMenu();

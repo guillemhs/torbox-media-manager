@@ -1574,148 +1574,79 @@ async function loadPageUnified(view, page) {
     let calendarRequest=0;async function loadCalendar(){const request=++calendarRequest;setStatus('calendar','Loading schedule…');const date=$('#calendar-date')?.value||'';const country=$('#calendar-country')?.value||'US';const type=state.calendarType;const key=`${date}:${country}:${type}`;try{if(state.calendarKey!==key){const data=await jsonFetch(`/api/calendar?date=${encodeURIComponent(date)}&country=${encodeURIComponent(country)}${type==='web'?'&type=web':''}`);if(request!==calendarRequest)return;state.calendarData=data;state.calendarKey=key}if(request===calendarRequest)renderCalendar()}catch(error){if(request!==calendarRequest)return;const calRes=$('#calendar-results');if(calRes)calRes.innerHTML=empty(error.message);setStatus('calendar',error.message)}}
     function renderCalendar(){const data=state.calendarData||{episodes:[]};const query=$('#calendar-query')?.value.trim().toLocaleLowerCase()||'';const platformSelect=$('#calendar-platform');if(!platformSelect)return;const selectedPlatform=platformSelect.value;const allEpisodes=Array.isArray(data.episodes)?data.episodes:[];const platformOf=ep=>String(ep.show?.webChannel?.name||ep.show?.network?.name||'').trim();const platforms=[...new Set(allEpisodes.map(platformOf).filter(Boolean))].sort((a,b)=>a.localeCompare(b));platformSelect.innerHTML='<option value="">All channels and services</option>'+platforms.map(name=>`<option value="${esc(name)}">${esc(name)}</option>`).join('');if(platforms.includes(selectedPlatform))platformSelect.value=selectedPlatform;const platform=platformSelect.value.toLocaleLowerCase();const episodes=allEpisodes.slice().sort((a,b)=>String(a.airtime||a.airstamp||'99:99').localeCompare(String(b.airtime||b.airstamp||'99:99'))).filter(ep=>{const show=ep.show||{};const channel=platformOf(ep);const season=Number(ep.season),number=Number(ep.number);const code=season&&number?`S${String(season).padStart(2,'0')}E${String(number).padStart(2,'0')}`:'';const searchable=`${show.name||''} ${ep.name||''} ${code} ${channel} ${show.network?.country?.name||''} ${plainText(ep.summary)}`.toLocaleLowerCase();return(!query||searchable.includes(query))&&(!platform||channel.toLocaleLowerCase()===platform)});const calRes=$('#calendar-results');if(calRes)calRes.innerHTML=episodes.length?scheduleCards(episodes):empty(query||platform?'No episodes match these search and filter settings.':'No episodes scheduled for this day.');const rawDate=$('#calendar-date')?.value||'';const dateParts=/^(\d{4})-(\d{2})-(\d{2})$/.exec(rawDate);const parsedDate=dateParts?new Date(Number(dateParts[1]),Number(dateParts[2])-1,Number(dateParts[3]),12):null;const day=parsedDate&&!Number.isNaN(parsedDate.valueOf())?parsedDate.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Selected date';const calSum=$('#calendar-summary');if(calSum)calSum.textContent=`${episodes.length} of ${allEpisodes.length} ${allEpisodes.length===1?'episode':'episodes'} · ${day}`;const calSrc=$('#calendar-source');if(calSrc)calSrc.textContent=state.calendarType==='web'?'Streaming services · TVMaze':data.stale?'Cached schedule · offline fallback':data.cached?'Cached schedule':'TVMaze schedule';setStatus('calendar','')}
     function shiftCalendarDay(days){const dateInput=$('#calendar-date');if(!dateInput)return;const date=new Date(`${dateInput.value}T12:00:00`);date.setDate(date.getDate()+days);dateInput.value=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;loadCalendar()}
-    async function loadView(view,reset=false){if(reset){state.offset[view]=0;state.items[view]=[]}if(view==='browse')return searchBrowse();const supported=['browse','movies','shows','music','torrents','local'];if(supported.includes(view)){setStatus(view,'Loading…');try{const limit=view==='torrents'?1000:50,offset=view==='torrents'?0:(state.offset[view]||0);let data,rows=[];if(view==='movies'||view==='shows'||view==='music'){const q=$(`#${view}-query`)?.value||'';if(!q&&view==='movies'){rows=[];state.total.movies=0}else{data=await jsonFetch(`/api/${view}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);if(view==='movies'&&loadViewMode==='search'){rows=(data.results.torrents?.items||[]).concat(data.results.usenet?.items||[]);state.total.movies=(data.results.torrents?.total||0)+(data.results.usenet?.total||0)}else if(view==='movies'&&loadViewMode==='discover'){rows=data.results.local?.items||[];state.total.movies=data.results.local?.total||0}else{rows=data.items;state.total[view]=data.total}}else if(view==='torrents'){data=await jsonFetch(`/library?limit=${limit}&offset=${offset}`);rows=data.torbox||[];state.total.torrents=rows.length}else{data=await jsonFetch(`/library?limit=${limit}&offset=${offset}`);rows=data.localMedia.items;state.total.local=data.localMedia.total;state.localErrors=data.localMedia.errors}if(view==='torrents'){const recentIds=new Set(state.recentTorrents.map(item=>Number(item.id)));rows=[...state.recentTorrents,...rows.filter(item=>!recentIds.has(Number(item.id)))];}state.items[view]=reset?rows:[...state.items[view],...rows];state.offset[view]=state.items[view].length;const count=$(`#${view}-count`);if(count)count.textContent=`${state.items[view].length}${state.total[view]>state.items[view].length?` of ${state.total[view]}`:''} items`;const results=$(`#${view}-results`);if(results){if(view==='movies'&&loadViewMode==='search'){const torrents=data.results.torrents?.items||[];const usenet=data.results.usenet?.items||[];results.innerHTML=torrents.length?renderBrowseTorrentCandidates(torrents):(usenet.length?renderBrowseUsenetCandidates(usenet):empty('No torrent results found.'));}else if(view==='movies'&&loadViewMode==='discover'){results.innerHTML=rows.length?titleCards(rows.map(item=>({...item,titleType:'movie'}))):empty('Search for movies or click Discover to see recent releases.');}else{results.innerHTML=state.items[view].length?(view==='torrents'?renderTorboxLibrary(state.items[view]):view==='local'?localCards(state.items[view]):view==='music'?musicReleaseCards(state.items[view]):titleCards(state.items[view])):empty(view==='torrents'?'No TorBox items found.':view==='music'?'No results yet. Try searching for artists, albums, or tracks.':view==='movies'?'Search for movies or click Discover to see recent releases.':'No results yet. The IMDb catalog may still be importing.');}observeArtwork(results);}setStatus(view,view==='local'&&state.localErrors?`${state.localErrors} paths could not be scanned.`:view==='torrents'&&data.usenetError?`TorBox Usenet list unavailable: ${data.usenetError}`:'');updaloadViewMode=null;
-    document.addEventListener("DOMContentLoaded", () => {
-if(location.hash){const legacy=location.hash.slice(1);history.replaceState(null,'',legacy.startsWith('/')?legacy:`/${legacy}`)}if(location.pathname==='/'&&!location.hash)history.replaceState(null,'','/browse');routeFromLocation();
-    document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>setRoute(`/${button.dataset.view}`)));
-    document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;if(!target)return;if(target.closest('button'))return;const link=target.closest('a[href]');if(link){const href=link.getAttribute('href');if(href && href.startsWith('/') && !href.startsWith('//')){event.preventDefault();setRoute(href);return}}const musicButton=target.closest('[data-music-torrent]');if(musicButton){event.preventDefault();findMusicTorrentCandidates(musicButton.dataset.musicTorrent);return}const button=target.closest('[data-find-torrents],#detail-find-torrents');if(button){event.preventDefault();event.stopImmediatePropagation();let imdbId=button.dataset.imdb,kind=button.dataset.kind,title=button.dataset.title;if(button.id==='detail-find-torrents'){imdbId=(location.pathname.match(/title\/(tt\d+)/)||[])[1];kind=new URLSearchParams(location.search).get('kind')||'movie';title=$('#detail-content .detail-copy h2')?.textContent||'Selected title'}if(imdbId)searchTitleTorrentSearch(imdbId,kind==='series'?'series':'movie',title||'Selected title')}const addTorrentBtn=target.closest('[data-add-torrent]');if(addTorrentBtn){event.preventDefault();const magnet=decodeURIComponent(addTorrentBtn.dataset.addTorrent);const name=addTorrentBtn.dataset.torrentName||'';addTorrentBtn.disabled=true;addTorrentBtn.textContent='Adding…';jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet,name,addOnlyIfCached:true})}).then(data=>{addTorrentBtn.textContent='Added';setTimeout(()=>{addTorrentBtn.textContent='Add cached';addTorrentBtn.disabled=false},1500);pinRecentTorrent(data.torrent);loadView('torrents',true)}).catch(error=>{addTorrentBtn.textContent='Add cached';addTorrentBtn.disabled=false;alert(error.message)})}const copyMagnetBtn=target.closest('[data-copy-magnet]');if(copyMagnetBtn){event.preventDefault();const index=Number(copyMagnetBtn.dataset.copyMagnet);const magnet=currentCandidateData?.candidates?.[index]?.magnet;if(magnet){navigator.clipboard.writeText(magnet).then(()=>{copyMagnetBtn.textContent='Copied!';setTimeout(()=>{copyMagnetBtn.textContent='Copy magnet'},1500)}).catch(()=>{alert('Failed to copy magnet link')})}}const addUsenetBtn=target.closest('[data-add-usenet]');if(addUsenetBtn){event.preventDefault();const usenetData=JSON.parse(decodeURIComponent(addUsenetBtn.dataset.addUsenet));addUsenetBtn.disabled=true;addUsenetBtn.textContent='Adding…';jsonFetch('/torbox/usenet',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...usenetData,addOnlyIfCached:true})}).then(data=>{addUsenetBtn.textContent='Added';setTimeout(()=>{addUsenetBtn.textContent='Add to TorBox';addUsenetBtn.disabled=false},1500);loadView('torrents',true)}).catch(error=>{addUsenetBtn.textContent='Add to TorBox';addUsenetBtn.disabled=false;alert(error.message)})}} ,true);
-    let elCandidateClose=$('#candidate-close');if(elCandidateClose)elCandidateClose.onclick=()=>$('#candidate-modal')?.classList.add('hidden');$('#candidate-modal')?.addEventListener('click',event=>{if(event.target===$('#candidate-modal'))$('#candidate-modal').classList.add('hidden')});$('#candidate-season')?.addEventListener('change',()=>{if(activeCandidateSearch?.kind==='series')fetchTorrentCandidates(activeCandidateSearch.imdbId,'series',activeCandidateSearch.title)});
-    document.querySelectorAll('[data-search]').forEach(button=>button.addEventListener('click',()=>searchRoute(button.dataset.search)));
-// Browse search shows all results (no kind filter)
-    $('#source-indexers')?.addEventListener('change',()=>{const uF=$('#usenet-filters');if(uF)uF.style.display='none';const iF=$('#indexer-filters');if(iF)iF.style.display=$('#source-indexers')?.checked?'block':'none'});
-    $('#source-usenet')?.addEventListener('change',()=>{const uF=$('#usenet-filters');if(uF)uF.style.display=$('#source-usenet')?.checked?'block':'none';const iF=$('#indexer-filters');if(iF)iF.style.display='none'});
-    $('#indexer-prowlarr')?.addEventListener('change',()=>{});
-    $('#indexer-torrentio')?.addEventListener('change',()=>{});
-    $('#usenet-source')?.addEventListener('change',()=>{});
-    $('#browse-torrent-sort')?.addEventListener('change',()=>renderBrowseTorrentSearchResults());
-    $('#browse-torrent-min-seeders')?.addEventListener('input',()=>renderBrowseTorrentSearchResults());
-    $('#browse-torrent-min-leechers')?.addEventListener('input',()=>renderBrowseTorrentSearchResults());
-    $('#browse-usenet-search-source')?.addEventListener('change',()=>{});
-    $('#browse-movies-more')?.addEventListener('click',()=>loadMoreBrowse('movies'));
-    $('#browse-shows-more')?.addEventListener('click',()=>loadMoreBrowse('shows'));
-    $('#browse-music-more')?.addEventListener('click',()=>loadMoreBrowse('music'));
-    $('#browse-torrents-more')?.addEventListener('click',()=>loadMoreBrowse('torrents'));
-    $('#browse-usenet-more')?.addEventListener('click',()=>loadMoreBrowse('usenet'));
-    $('#browse-torrent-more')?.addEventListener('click',()=>loadMoreBrowseTorrentSearch());
-    $('#browse-usenet-search-more')?.addEventListener('click',()=>loadMoreBrowseUsenetSearch());
-    for(const view of ['browse','movies','shows'])$(`#${view}-query`)?.addEventListener('keydown',event=>{if(event.key==='Enter')searchRoute(view)});
-    $('#music-query')?.addEventListener('keydown',event=>{if(event.key==='Enter')searchRoute('music')});
-    
-    // Movies view - simplified, no filter controls
-    
-    // Shows view filter controls
-    $('#shows-source-indexers')?.addEventListener('change',()=>{const uF=$('#shows-usenet-filters');if(uF)uF.style.display='none';const iF=$('#shows-indexer-filters');if(iF)iF.style.display=$('#shows-source-indexers')?.checked?'block':'none'});
-    $('#shows-source-usenet')?.addEventListener('change',()=>{const uF=$('#shows-usenet-filters');if(uF)uF.style.display=$('#shows-source-usenet')?.checked?'block':'none';const iF=$('#shows-indexer-filters');if(iF)iF.style.display='none'});
-    $('#shows-indexer-prowlarr')?.addEventListener('change',()=>{});
-    $('#shows-indexer-torrentio')?.addEventListener('change',()=>{});
-    $('#shows-usenet-source')?.addEventListener('change',()=>{});
-    
-    // Music view filter controls
-    $('#music-source-indexers')?.addEventListener('change',()=>{const uF=$('#music-usenet-filters');if(uF)uF.style.display='none';const iF=$('#music-indexer-filters');if(iF)iF.style.display=$('#music-source-indexers')?.checked?'block':'none'});
-    $('#music-source-usenet')?.addEventListener('change',()=>{const uF=$('#music-usenet-filters');if(uF)uF.style.display=$('#music-source-usenet')?.checked?'block':'none';const iF=$('#music-indexer-filters');if(iF)iF.style.display='none'});
-    $('#music-indexer-prowlarr')?.addEventListener('change',()=>{});
-    $('#music-indexer-torrentio')?.addEventListener('change',()=>{});
-    $('#music-usenet-source')?.addEventListener('change',()=>{});
-    
-    // Load more buttons for movies, shows, music views
-    $('#movies-more')?.addEventListener('click',()=>loadMoreUnified('movies'));
-    $('#movies-discover')?.addEventListener('click',async()=>{
-        const input = $('#movies-query');
-        if(input) input.value = '';
-        loadViewMode='discover';
-        void loadView('movies', true);
-    }););
-    $('#shows-more')?.addEventListener('click',()=>loadMoreUnified('shows'));
-    $('#music-more')?.addEventListener('click',()=>loadMoreUnified('music'));
-    
-    // Other load more buttons (torrents, local, etc.)
-    document.querySelectorAll('[id$="-more"]:not(#movies-more):not(#shows-more):not(#music-more)').forEach(button=>button.addEventListener('click',()=>loadView(button.id.replace('-more',''))));
-    let elRefreshTorrents=$('#refresh-torrents');if(elRefreshTorrents)elRefreshTorrents.onclick=()=>loadView('torrents',true);
-    $('#library-query')?.addEventListener('input',()=>renderTorboxLibrary(state.items.torrents));
-    $('#library-filter')?.addEventListener('change',()=>renderTorboxLibrary(state.items.torrents));
-    $('#library-sort')?.addEventListener('change',()=>renderTorboxLibrary(state.items.torrents));
-    
-    
-    const uSubmit=$('#usenet-search-submit');if(uSubmit)uSubmit.onclick=searchUsenet;
-    $('#usenet-query')?.addEventListener('keydown',event=>{if(event.key==='Enter')searchUsenet()});
-    let elUsenetClose=$('#usenet-close');if(elUsenetClose)elUsenetClose.onclick=()=>$('#usenet-modal')?.classList.add('hidden');
-    $('#usenet-modal')?.addEventListener('click',event=>{if(event.target===$('#usenet-modal'))$('#usenet-modal').classList.add('hidden')});
-    
-    const today=new Date();const calDate=$('#calendar-date');if(calDate)calDate.value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    let elDetailBack=$('#detail-back');if(elDetailBack)elDetailBack.onclick=()=>{if(document.referrer.startsWith(location.origin))history.back();else setRoute('/browse')};
-    window.addEventListener('popstate',routeFromLocation);
-    
-    let elCalendarPrev=$('#calendar-prev');if(elCalendarPrev)elCalendarPrev.onclick=()=>shiftCalendarDay(-1);
-    let elCalendarNext=$('#calendar-next');if(elCalendarNext)elCalendarNext.onclick=()=>shiftCalendarDay(1);
-    let elCalendarToday=$('#calendar-today');if(elCalendarToday)elCalendarToday.onclick=()=>{const cD=$('#calendar-date');if(cD)cD.value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;loadCalendar()};
-    const cDate=$('#calendar-date');if(cDate)cDate.onchange=()=>loadCalendar();
-    const cCountry=$('#calendar-country');if(cCountry)cCountry.onchange=()=>{state.calendarKey='';loadCalendar()};
-    $('#calendar-query')?.addEventListener('input',renderCalendar);
-    $('#calendar-query')?.addEventListener('search',renderCalendar);
-    $('#calendar-query')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();renderCalendar()}});
-    $('#calendar-platform')?.addEventListener('change',renderCalendar);
-    let elCalendarSearch=$('#calendar-search');if(elCalendarSearch)elCalendarSearch.onclick=renderCalendar;
-    document.querySelectorAll('[data-calendar-type]').forEach(button=>button.onclick=()=>{state.calendarType=button.dataset.calendarType;const cCountry=$('#calendar-country');if(cCountry){cCountry.disabled=state.calendarType==='web';cCountry.title=state.calendarType==='web'?'Streaming results include global and local services':'Choose a broadcast country';}document.querySelectorAll('[data-calendar-type]').forEach(item=>{item.classList.toggle('active',item===button);item.setAttribute('aria-pressed',String(item===button))});state.calendarKey='';loadCalendar()});
-    
-    let elAddOpen=$('#add-open');if(elAddOpen)elAddOpen.onclick=()=>{$('#add-modal')?.classList.remove('hidden');$('#magnet-input')?.focus()};
-    let elAddCancel=$('#add-cancel');if(elAddCancel)elAddCancel.onclick=()=>$('#add-modal')?.classList.add('hidden');
-    $('#add-modal')?.addEventListener('click',event=>{if(event.target===$('#add-modal'))$('#add-modal').classList.add('hidden')});
-    
-    $('#add-form')?.addEventListener('submit',async event=>{event.preventDefault();const button=$('#add-submit');if(button)button.disabled=true;const addStat=$('#add-status');if(addStat)addStat.innerHTML='<span class="spinner"></span>Sending to TorBox…';try{const magInput=$('#magnet-input')?.value.trim()||'';const torName=$('#torrent-name')?.value.trim()||'';const cachedOnly=$('#cached-only')?.checked||false;const data=await jsonFetch('/torbox/torrents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({magnet:magInput,name:torName,addOnlyIfCached:cachedOnly})});if(addStat)addStat.textContent=`${data.detail}${data.torrent?.torrent_id?` · TorBox ID ${data.torrent.torrent_id}`:''}`;const mIn=$('#magnet-input');if(mIn)mIn.value='';const tIn=$('#torrent-name');if(tIn)tIn.value='';pinRecentTorrent(data.torrent);void loadView('torrents',true);setTimeout(()=>{$('#add-modal')?.classList.add('hidden')},1800)}catch(error){if(addStat)addStat.textContent=error.message}finally{if(button)button.disabled=false}});
-    async function pollHealth(){try{const data=await jsonFetchWithTimeout('/health',5000);const modePill=$('#mode-pill');if(modePill)modePill.textContent=data.mode==='torbox-integrated'?'TorBox configured':'Local mode'}catch{const modePill=$('#mode-pill');if(modePill)modePill.textContent='TorBox status unavailable'}}pollHealth();setInterval(pollHealth,30000);
-    async function refreshImportStatus(retries=0){const MAX_RETRIES=12;try{const data=await jsonFetchWithTimeout('/admin/imdb/status',10000);const progress=data.progress||{};const impStat=$('#import-status');if(!impStat)return;if(progress.running)impStat.textContent=`Importing IMDb ${progress.dataset.includes('ratings')?'ratings':'titles'} · ${Number(progress.importedRows||0).toLocaleString()} processed`;else if(progress.error)impStat.textContent=`IMDb import failed · ${progress.error}`;else if(data.datasets.length>=2)impStat.textContent=`${Number(data.titles).toLocaleString()} IMDb titles · catalog ready`;else impStat.textContent=`IMDb catalog waiting to import · ${Number(data.titles).toLocaleString()} titles`;if((progress.running||data.datasets.length<2)&&retries<MAX_RETRIES)setTimeout(()=>refreshImportStatus(retries+1),5000);else if(retries>=MAX_RETRIES)impStat.textContent='IMDb catalog status unavailable · stopped polling'}catch{const impStat=$('#import-status');if(impStat)impStat.textContent='IMDb status unavailable · retrying';if(retries<MAX_RETRIES)setTimeout(()=>refreshImportStatus(retries+1),10000);else if(impStat)impStat.textContent='IMDb status unavailable · stopped polling'}}
-
-
-// Hamburger menu toggle functionality
-function initHamburgerMenu() {
-  const hamburgerBtn = document.getElementById('hamburger-menu');
-  const sidebar = document.getElementById('app-sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  
-  if (!hamburgerBtn || !sidebar || !overlay) return;
-  
-  function closeSidebar() {
-    const wasOpen = sidebar.classList.contains('open');
-    if (!wasOpen) return;
-    sidebar.classList.remove('open');
-    overlay.classList.remove('visible');
-    document.body.classList.remove('sidebar-open');
-    hamburgerBtn.setAttribute('aria-expanded', 'false');
+    async function loadView(view, reset=false) {
+  if (reset) {
+    state.offset[view] = 0;
+    state.items[view] = [];
   }
-  
-  function toggleSidebar() {
-    const isOpen = sidebar.classList.toggle('open');
-    overlay.classList.toggle('visible', isOpen);
-    document.body.classList.toggle('sidebar-open', isOpen);
-    hamburgerBtn.setAttribute('aria-expanded', isOpen);
+  if (view === 'browse') return searchBrowse();
+  const supported = ['browse', 'movies', 'shows', 'music', 'torrents', 'local'];
+  if (supported.includes(view)) {
+    setStatus(view, 'Loading…');
+    try {
+      const limit = view === 'torrents' ? 1000 : 50;
+      const offset = view === 'torrents' ? 0 : (state.offset[view] || 0);
+      let data, rows = [];
+      if (view === 'movies' || view === 'shows' || view === 'music') {
+        const q = $(`#${view}-query`)?.value || '';
+        if (!q && view === 'movies') {
+          rows = [];
+          state.total.movies = 0;
+        } else {
+          data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
+          if (view === 'movies' && loadViewMode === 'search') {
+            rows = (data.results.torrents?.items || []).concat(data.results.usenet?.items || []);
+            state.total.movies = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
+          } else if (view === 'movies' && loadViewMode === 'discover') {
+            rows = data.results.local?.items || [];
+            state.total.movies = data.results.local?.total || 0;
+          } else {
+            rows = data.items;
+            state.total[view] = data.total;
+          }
+        }
+      } else if (view === 'torrents') {
+        data = await jsonFetch(`/library?limit=${limit}&offset=${offset}`);
+        rows = data.torbox || [];
+        state.total.torrents = rows.length;
+      } else {
+        data = await jsonFetch(`/library?limit=${limit}&offset=${offset}`);
+        rows = data.localMedia.items;
+        state.total.local = data.localMedia.total;
+        state.localErrors = data.localMedia.errors;
+      }
+      if (view === 'torrents') {
+        const recentIds = new Set(state.recentTorrents.map(item => Number(item.id)));
+        rows = [...state.recentTorrents, ...rows.filter(item => !recentIds.has(Number(item.id)))];
+      }
+      state.items[view] = reset ? rows : [...state.items[view], ...rows];
+      state.offset[view] = state.items[view].length;
+      const count = $(`#${view}-count`);
+      if (count) count.textContent = state.items[view].length + (state.total[view] > state.items[view].length ? ' of ' + state.total[view] : '') + ' items';
+      const results = $(`#${view}-results`);
+      if (results) {
+        if (view === 'movies' && loadViewMode === 'search') {
+          const torrents = data.results.torrents?.items || [];
+          const usenet = data.results.usenet?.items || [];
+          results.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : (usenet.length ? renderBrowseUsenetCandidates(usenet) : empty('No torrent results found.'));
+        } else if (view === 'movies' && loadViewMode === 'discover') {
+          results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'movie'}))) : empty('Search for movies or click Discover to see recent releases.');
+        } else {
+          results.innerHTML = state.items[view].length ? (view === 'torrents' ? renderTorboxLibrary(state.items[view]) : view === 'local' ? localCards(state.items[view]) : view === 'music' ? musicReleaseCards(state.items[view]) : titleCards(state.items[view])) : empty(view === 'torrents' ? 'No TorBox items found.' : view === 'music' ? 'No results yet. Try searching for artists, albums, or tracks.' : view === 'movies' ? 'Search for movies or click Discover to see recent releases.' : 'No results yet. The IMDb catalog may still be importing.');
+        }
+        observeArtwork(results);
+      }
+      setStatus(view, view === 'local' && state.localErrors ? `${state.localErrors} paths could not be scanned.` : view === 'torrents' && data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
+      updateMore(view);
+    } catch (error) {
+      setStatus(view, error.message);
+      if (reset) {
+        const results = $(`#${view}-results`);
+        if (results) results.innerHTML = empty(error.message);
+      }
+    }
+  } else if (view === 'calendar') {
+    await loadCalendar();
   }
-  
-  hamburgerBtn.addEventListener('click', toggleSidebar);
-  overlay.addEventListener('click', toggleSidebar);
-  
-  // Close sidebar when a navigation item is clicked
-  sidebar.querySelectorAll('[data-view]').forEach(item => {
-    item.addEventListener('click', () => closeSidebar());
-  });
-  
-  // Close sidebar on window resize when crossing back to desktop
-  window.addEventListener('resize', () => {
-    if (window.innerWidth > 760) closeSidebar();
-  });
-  
-  // Close sidebar on escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSidebar();
-  });
-  
-  // Expose closeSidebar so route navigation can dismiss the drawer
-  window.closeSidebar = closeSidebar;
+  loadViewMode = null;
 }
-
-// Initialize hamburger menu
-initHamburgerMenu();
-
-// Initialize import status refresh
-void refreshImportStatus();
-
-});

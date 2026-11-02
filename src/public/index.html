@@ -33,6 +33,7 @@
       @keyframes spin{to{transform:rotate(360deg)}}
       .skeleton{background:#e5e5e5;border-radius:8px;animation:pulse 1.2s infinite}
       @keyframes pulse{0%,100%{opacity:.6}50%{opacity:.3}}
+      label{font-size:12px;color:#86868b;margin-right:6px}
     </style>
   </head>
   <body>
@@ -55,6 +56,7 @@
       <!-- Browse view -->
       <section id="view-browse" class="view">
         <div class="toolbar">
+          <label for="browse-query">Search</label>
           <input id="browse-query" type="search" placeholder="Search movies, shows, music…" />
           <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input id="source-indexers" type="checkbox" checked /> Indexers</label>
           <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input id="source-usenet" type="checkbox" /> Usenet</label>
@@ -109,6 +111,7 @@
       <!-- Movies view -->
       <section id="view-movies" class="view">
         <div class="toolbar">
+          <label for="movies-query">Search</label>
           <input id="movies-query" type="search" placeholder="Search movies…" />
         </div>
         <div id="movies-status"></div>
@@ -120,6 +123,7 @@
       <!-- Shows view -->
       <section id="view-shows" class="view">
         <div class="toolbar">
+          <label for="shows-query">Search</label>
           <input id="shows-query" type="search" placeholder="Search shows…" />
         </div>
         <div id="shows-status"></div>
@@ -131,8 +135,11 @@
       <!-- Torrents view -->
       <section id="view-torrents" class="view">
         <div class="toolbar">
+          <label for="library-query">Search library</label>
           <input id="library-query" type="search" placeholder="Search library…" />
+          <label for="library-sort">Sort by</label>
           <select id="library-sort"><option value="created">Added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select>
+          <label for="library-filter">Filter by</label>
           <select id="library-filter"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option><option value="other">Other</option></select>
         </div>
         <div id="library-summary"></div>
@@ -142,17 +149,21 @@
       <!-- Local view -->
       <section id="view-local" class="view">
         <div class="toolbar">
-          <input id="library-query" type="search" placeholder="Search local media…" />
-          <select id="library-sort"><option value="created">Added</option><option value="name">Name</option></select>
-          <select id="library-filter"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option></select>
+          <label for="library-query-local">Search local media</label>
+          <input id="library-query-local" type="search" placeholder="Search local media…" />
+          <label for="library-sort-local">Sort by</label>
+          <select id="library-sort-local"><option value="created">Added</option><option value="name">Name</option></select>
+          <label for="library-filter-local">Filter by</label>
+          <select id="library-filter-local"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option></select>
         </div>
-        <div id="library-summary"></div>
-        <div id="torrents-results" class="results"></div>
+        <div id="library-summary-local"></div>
+        <div id="torrents-results-local" class="results"></div>
       </section>
 
       <!-- Music view -->
       <section id="view-music" class="view">
         <div class="toolbar">
+          <label for="music-query">Search</label>
           <input id="music-query" type="search" placeholder="Search music…" />
         </div>
         <div id="music-status"></div>
@@ -164,10 +175,15 @@
       <!-- Calendar view -->
       <section id="view-calendar" class="view">
         <div class="toolbar">
+          <label for="calendar-date">Date</label>
           <input id="calendar-date" type="date" />
+          <label for="calendar-country">Country</label>
           <select id="calendar-country"><option value="US">US</option></select>
+          <label for="calendar-source">Source</label>
           <select id="calendar-source"><option value="all">All</option></select>
+          <label for="calendar-query">Search</label>
           <input id="calendar-query" type="search" placeholder="Search…" />
+          <label for="calendar-platform">Platform</label>
           <select id="calendar-platform"><option value="all">All</option></select>
         </div>
         <div id="calendar-summary"></div>
@@ -192,6 +208,7 @@
         <div id="title-usenet-search-title"></div>
         <div id="title-usenet-search-count"></div>
         <div id="title-usenet-search-results" class="results"></div>
+        <label for="title-usenet-search-source">Source</label>
         <select id="title-usenet-search-source"><option value="all">All</option></select>
         <button id="title-usenet-search-more" class="p-button p-button-secondary">More</button>
       </section>
@@ -199,13 +216,20 @@
       <!-- Usenet search -->
       <section id="usenet-search" class="section hidden">
         <div class="toolbar">
+          <label for="usenet-query">Search</label>
           <input id="usenet-query" type="search" placeholder="Search Usenet…" />
+          <label for="usenet-search-source">Source</label>
           <select id="usenet-search-source"><option value="all">All</option></select>
         </div>
         <div id="usenet-status"></div>
         <div id="usenet-results" class="results"></div>
         <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input id="usenet-cached-only" type="checkbox" /> Cached only</label>
-        <div style="font-size:12px;color:#86868b">Offset <input id="usenet-offset" type="number" value="0" style="width:40px" /> Limit <input id="usenet-limit" type="number" value="20" style="width:40px" /></div>
+        <div style="font-size:12px;color:#86868b">
+          <label for="usenet-offset">Offset</label>
+          <input id="usenet-offset" type="number" value="0" style="width:40px" />
+          <label for="usenet-limit">Limit</label>
+          <input id="usenet-limit" type="number" value="20" style="width:40px" />
+        </div>
       </section>
 
       <!-- Torrents/Usenet search -->
@@ -213,6 +237,7 @@
         <div id="torrents-usenet-search-title"></div>
         <div id="torrents-usenet-search-count"></div>
         <div id="torrents-usenet-search-results" class="results"></div>
+        <label for="torrents-usenet-search-source">Source</label>
         <select id="torrents-usenet-search-source"><option value="all">All</option></select>
         <button id="torrents-usenet-search-more" class="p-button p-button-secondary">More</button>
       </section>
@@ -230,16 +255,24 @@
           <div id="candidate-results"></div>
           <div id="candidate-status" style="font-size:12px;color:#86868b"></div>
           <div style="font-size:12px;color:#86868b;margin-top:12px">
-            Offset <input id="candidate-offset" type="number" value="0" style="width:40px" />
-            Limit <input id="candidate-limit" type="number" value="20" style="width:40px" />
-            Count <input id="candidate-count" type="number" value="0" style="width:40px" readonly />
+            <label for="candidate-offset">Offset</label>
+            <input id="candidate-offset" type="number" value="0" style="width:40px" />
+            <label for="candidate-limit">Limit</label>
+            <input id="candidate-limit" type="number" value="20" style="width:40px" />
+            <label for="candidate-count">Count</label>
+            <input id="candidate-count" type="number" value="0" style="width:40px" readonly />
           </div>
           <div style="font-size:12px;color:#86868b;margin-top:8px">
-            Min seeders <input id="candidate-min-seeders" type="number" style="width:60px" />
-            Min leechers <input id="candidate-min-leechers" type="number" style="width:60px" />
-            Season <input id="candidate-season" type="number" style="width:60px" />
+            <label for="candidate-min-seeders">Min seeders</label>
+            <input id="candidate-min-seeders" type="number" style="width:60px" />
+            <label for="candidate-min-leechers">Min leechers</label>
+            <input id="candidate-min-leechers" type="number" style="width:60px" />
+            <label for="candidate-season">Season</label>
+            <input id="candidate-season" type="number" style="width:60px" />
+            <label for="candidate-season-field">Season field</label>
             <select id="candidate-season-field"><option value="all">All</option></select>
-            Sort <select id="candidate-sort"><option value="seeders">Seeders</option></select>
+            <label for="candidate-sort">Sort</label>
+            <select id="candidate-sort"><option value="seeders">Seeders</option></select>
           </div>
         </div>
       </div>

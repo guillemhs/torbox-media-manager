@@ -1709,3 +1709,12 @@ function initHamburgerMenu() {
 }
 
 initHamburgerMenu();
+
+// App initialization: render the current URL on load and restore
+// the view on browser back/forward navigation.
+function initApp() {
+  window.addEventListener('popstate', routeFromLocation);
+  routeFromLocation();
+}
+
+initApp();

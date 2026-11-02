@@ -1600,6 +1600,12 @@ async function loadPageUnified(view, page) {
           } else if (view === 'movies' && loadViewMode === 'discover') {
             rows = data.results.local?.items || [];
             state.total.movies = data.results.local?.total || 0;
+          } else if (view === 'shows' && loadViewMode === 'discover') {
+            rows = data.results.local?.items || [];
+            state.total.shows = data.results.local?.total || 0;
+          } else if (view === 'music' && loadViewMode === 'discover') {
+            rows = data.releases || [];
+            state.total.music = data.total || 0;
           } else {
             rows = data.items;
             state.total[view] = data.total;
@@ -1709,6 +1715,42 @@ function initHamburgerMenu() {
 }
 
 initHamburgerMenu();
+
+// Search button click handlers
+document.getElementById('browse-search-btn')?.addEventListener('click', () => {
+  void searchBrowse();
+});
+
+document.getElementById('movies-search-btn')?.addEventListener('click', () => {
+  loadViewMode = 'search';
+  void loadView('movies', true);
+});
+
+document.getElementById('shows-search-btn')?.addEventListener('click', () => {
+  loadViewMode = 'search';
+  void loadView('shows', true);
+});
+
+document.getElementById('music-search-btn')?.addEventListener('click', () => {
+  loadViewMode = 'search';
+  void loadView('music', true);
+});
+
+// Discover button click handlers
+document.getElementById('movies-discover-btn')?.addEventListener('click', () => {
+  loadViewMode = 'discover';
+  void loadView('movies', true);
+});
+
+document.getElementById('shows-discover-btn')?.addEventListener('click', () => {
+  loadViewMode = 'discover';
+  void loadView('shows', true);
+});
+
+document.getElementById('music-discover-btn')?.addEventListener('click', () => {
+  loadViewMode = 'discover';
+  void loadView('music', true);
+});
 
 // App initialization: render the current URL on load and restore
 // the view on browser back/forward navigation.

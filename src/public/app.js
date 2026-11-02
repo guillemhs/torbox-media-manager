@@ -708,7 +708,7 @@ async function searchTorrentsUsenetSearch(query) {
             }
             const container = $('#browse-movies-results');
             if (container) {
-                container.innerHTML = movies.length ? titleCards(movies.map(item => ({...item, titleType: 'movie'}))) : (isSearching ? '' : empty('No movie results found.'));
+                container.innerHTML = movies.length ? titleCards(movies.map(item => ({...item, titleType: 'movie'}))) : (isSearching || !state.browseSearched ? '' : empty('No movie results found.'));
                 observeArtwork(container);
             }
             $('#browse-movies-more')?.classList.toggle('hidden', movies.length >= totalMovies);
@@ -736,7 +736,7 @@ async function searchTorrentsUsenetSearch(query) {
             }
             const container = $('#browse-shows-results');
             if (container) {
-                container.innerHTML = shows.length ? titleCards(shows.map(item => ({...item, titleType: 'series'}))) : (isSearching ? '' : empty('No show results found.'));
+                container.innerHTML = shows.length ? titleCards(shows.map(item => ({...item, titleType: 'series'}))) : (isSearching || !state.browseSearched ? '' : empty('No show results found.'));
                 observeArtwork(container);
             }
             $('#browse-shows-more')?.classList.toggle('hidden', shows.length >= totalShows);
@@ -764,7 +764,7 @@ async function searchTorrentsUsenetSearch(query) {
             }
             const container = $('#browse-music-results');
             if (container) {
-                container.innerHTML = music.length ? musicReleaseCards(music) : empty('No music results found.');
+                container.innerHTML = music.length ? musicReleaseCards(music) : (isSearching || !state.browseSearched ? '' : empty('No music results found.'));
                 observeArtwork(container);
             }
             $('#browse-music-more')?.classList.toggle('hidden', music.length >= totalMusic);
@@ -792,7 +792,7 @@ async function searchTorrentsUsenetSearch(query) {
             }
             const container = $('#browse-torrents-results');
             if (container) {
-                container.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : empty('No torrent results found.');
+                container.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : (isSearching || !state.browseSearched ? '' : empty('No torrent results found.'));
             }
             $('#browse-torrents-more')?.classList.toggle('hidden', torrents.length >= totalTorrents);
             // Render pagination for torrents
@@ -875,7 +875,7 @@ async function searchTorrentsUsenetSearch(query) {
             }
             const container = $('#browse-usenet-results');
             if (container) {
-                container.innerHTML = usenet.length ? renderBrowseUsenetCandidates(usenet) : empty('No usenet results found.');
+                container.innerHTML = usenet.length ? renderBrowseUsenetCandidates(usenet) : (isSearching || !state.browseSearched ? '' : empty('No usenet results found.'));
             }
             $('#browse-usenet-more')?.classList.toggle('hidden', usenet.length >= totalUsenet);
             // Render pagination for usenet

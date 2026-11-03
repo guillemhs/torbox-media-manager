@@ -688,203 +688,30 @@ async function searchTorrentsUsenetSearch(query) {
         const hasUsenet = $('#source-usenet')?.checked;
         const isSearching = state.browseSearchInProgress;
 
-        // Movies
-        const showMovies = hasIndexers;
-        if ($('#browse-movies-section')) $('#browse-movies-section').style.display = showMovies ? 'block' : 'none';
-        if (showMovies) {
-            const movies = state.browseResults.movie || [];
-            const totalMovies = state.total['browse-movies'] || 0;
-            const titleEl = $('#browse-movies-title');
-            if (titleEl) {
-                if (movies.length === 0 && totalMovies === 0) {
-                    titleEl.style.display = 'none';
-                } else if (movies.length === 0) {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = isSearching ? 'Movies' : 'Movies - No results found';
-                } else {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = `Movies (${movies.length} of ${totalMovies})`;
-                }
-            }
-            const container = $('#browse-movies-results');
-            if (container) {
-                container.innerHTML = movies.length ? titleCards(movies.map(item => ({...item, titleType: 'movie'}))) : (isSearching || !state.browseSearched ? '' : empty('No movie results found.'));
-                observeArtwork(container);
-            }
-            $('#browse-movies-more')?.classList.toggle('hidden', movies.length >= totalMovies);
-            // Render pagination for movies
-            renderPagination('browse-movies', 'browse-torrents-pagination');
+        // Collect all results from enabled sources into a single block
+        const allItems = [];
+        if (hasIndexers) {
+            allItems.push(...(state.browseResults.movie || []).map(item => ({...item, titleType: 'movie'})));
+            allItems.push(...(state.browseResults.series || []).map(item => ({...item, titleType: 'series'})));
+            allItems.push(...(state.browseResults.music || []));
+            allItems.push(...(state.browseResults.torrents || []));
+        }
+        if (hasUsenet) {
+            allItems.push(...(state.browseResults.usenet || []));
         }
 
-        // Shows
-        const showShows = hasIndexers;
-        if ($('#browse-shows-section')) $('#browse-shows-section').style.display = showShows ? 'block' : 'none';
-        if (showShows) {
-            const shows = state.browseResults.series || [];
-            const totalShows = state.total['browse-shows'] || 0;
-            const titleEl = $('#browse-shows-title');
-            if (titleEl) {
-                if (shows.length === 0 && totalShows === 0) {
-                    titleEl.style.display = 'none';
-                } else if (shows.length === 0) {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = isSearching ? 'Shows' : 'Shows - No results found';
-                } else {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = `Shows (${shows.length} of ${totalShows})`;
-                }
-            }
-            const container = $('#browse-shows-results');
-            if (container) {
-                container.innerHTML = shows.length ? titleCards(shows.map(item => ({...item, titleType: 'series'}))) : (isSearching || !state.browseSearched ? '' : empty('No show results found.'));
-                observeArtwork(container);
-            }
-            $('#browse-shows-more')?.classList.toggle('hidden', shows.length >= totalShows);
-            // Render pagination for shows
-            renderPagination('browse-shows', 'browse-usenet-pagination');
+        const container = $('#browse-results');
+        if (container) {
+            container.innerHTML = allItems.length ? titleCards(allItems) : (isSearching || !state.browseSearched ? '' : empty('No results found.'));
+            observeArtwork(container);
         }
 
-        // Music
-        const showMusic = hasIndexers;
-        if ($('#browse-music-section')) $('#browse-music-section').style.display = showMusic ? 'block' : 'none';
-        if (showMusic) {
-            const music = state.browseResults.music || [];
-            const totalMusic = state.total['browse-music'] || 0;
-            const titleEl = $('#browse-music-title');
-            if (titleEl) {
-                if (music.length === 0 && totalMusic === 0) {
-                    titleEl.style.display = 'none';
-                } else if (music.length === 0) {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = 'Music - No results found';
-                } else {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = `Music (${music.length} of ${totalMusic})`;
-                }
-            }
-            const container = $('#browse-music-results');
-            if (container) {
-                container.innerHTML = music.length ? musicReleaseCards(music) : (isSearching || !state.browseSearched ? '' : empty('No music results found.'));
-                observeArtwork(container);
-            }
-            $('#browse-music-more')?.classList.toggle('hidden', music.length >= totalMusic);
-            // Render pagination for music
-            renderPagination('browse-music', 'browse-torrent-pagination');
-        }
-
-        // Torrents
-        const showTorrents = hasIndexers;
-        if ($('#browse-torrents-section')) $('#browse-torrents-section').style.display = showTorrents ? 'block' : 'none';
-        if (showTorrents) {
-            const torrents = state.browseResults.torrents || [];
-            const totalTorrents = state.total['browse-torrents'] || 0;
-            const titleEl = $('#browse-torrents-title');
-            if (titleEl) {
-                if (torrents.length === 0 && totalTorrents === 0) {
-                    titleEl.style.display = 'none';
-                } else if (torrents.length === 0) {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = 'Torrents - No results found';
-                } else {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = `Torrents (${torrents.length} of ${totalTorrents})`;
-                }
-            }
-            const container = $('#browse-torrents-results');
-            if (container) {
-                container.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : (isSearching || !state.browseSearched ? '' : empty('No torrent results found.'));
-            }
-            $('#browse-torrents-more')?.classList.toggle('hidden', torrents.length >= totalTorrents);
-            // Render pagination for torrents
-            renderPagination('browse-torrents', 'browse-torrents-pagination');
-            // Add event listener for browse torrents copy magnet buttons
-            container.querySelectorAll('[data-copy-magnet]').forEach(button => {
-                button.onclick = async (e) => {
-                    e.stopPropagation();
-                    const magnet = decodeURIComponent(button.dataset.copyMagnet);
-                    try {
-                        await navigator.clipboard.writeText(magnet);
-                        button.textContent = 'Copied into the clipboard';
-                        setTimeout(() => {
-                            if (button.isConnected) button.textContent = 'Copy Magnet';
-                        }, 1500);
-                    } catch {
-                        const field = document.createElement('textarea');
-                        field.value = magnet;
-                        field.setAttribute('readonly', '');
-                        field.style.position = 'fixed';
-                        field.style.opacity = '0';
-                        document.body.append(field);
-                        field.select();
-                        const copied = document.execCommand('copy');
-                        field.remove();
-                        button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
-                        setTimeout(() => {
-                            if (button.isConnected) button.textContent = 'Copy Magnet';
-                        }, 1500);
-                    }
-                };
-            });
-            // Add event listener for browse torrents add-torrent buttons
-            container.querySelectorAll('[data-add-torrent]').forEach(button => {
-                button.onclick = async (e) => {
-                    e.stopPropagation();
-                    const magnet = decodeURIComponent(button.dataset.addTorrent);
-                    const name = decodeURIComponent(button.dataset.torrentName || '');
-                    const cachedOnly = button.dataset.cachedOnly === 'true';
-                    button.disabled = true;
-                    button.textContent = 'Adding…';
-                    try {
-                        await jsonFetch('/torbox/torrents', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({magnet, name, addOnlyIfCached: cachedOnly})
-                        });
-                        button.textContent = 'Added';
-                        setTimeout(() => {
-                            if (button.isConnected) button.textContent = 'Add cached';
-                        }, 1500);
-                    } catch (error) {
-                        button.textContent = 'Add failed';
-                        button.disabled = false;
-                        setTimeout(() => {
-                            if (button.isConnected) button.textContent = 'Add cached';
-                        }, 1500);
-                    }
-                };
-            });
-        }
-
-        // Usenet
-        const showUsenet = hasUsenet;
-        if ($('#browse-usenet-section')) $('#browse-usenet-section').style.display = showUsenet ? 'block' : 'none';
-        if (showUsenet) {
-            const usenet = state.browseResults.usenet || [];
-            const totalUsenet = state.total['browse-usenet'] || 0;
-            const titleEl = $('#browse-usenet-title');
-            if (titleEl) {
-                if (usenet.length === 0 && totalUsenet === 0) {
-                    titleEl.style.display = 'none';
-                } else if (usenet.length === 0) {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = 'Usenet - No results found';
-                } else {
-                    titleEl.style.display = 'block';
-                    titleEl.textContent = `Usenet (${usenet.length} of ${totalUsenet})`;
-                }
-            }
-            const container = $('#browse-usenet-results');
-            if (container) {
-                container.innerHTML = usenet.length ? renderBrowseUsenetCandidates(usenet) : (isSearching || !state.browseSearched ? '' : empty('No usenet results found.'));
-            }
-            $('#browse-usenet-more')?.classList.toggle('hidden', usenet.length >= totalUsenet);
-            // Render pagination for usenet
-            renderPagination('browse-usenet', 'browse-usenet-pagination');
-        }
+        $('#browse-more')?.classList.toggle('hidden', allItems.length >= (state.total['browse-movies'] || 0) + (state.total['browse-shows'] || 0) + (state.total['browse-music'] || 0) + (state.total['browse-torrents'] || 0) + (state.total['browse-usenet'] || 0));
 
         if ($('#browse-torrent-search-section')) $('#browse-torrent-search-section').style.display = 'none';
         if ($('#browse-usenet-search-section')) $('#browse-usenet-search-section').style.display = 'none';
     }
+
 
     function renderTorrentCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType=item.kind==='series'?'Show':'Movie';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source,contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<a class="btn btn-secondary btn-sm" href="${esc(item.magnet)}">Magnet</a>`:''}${item.downloadToken?`<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent">.torrent</a>`:''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}">Add cached</button></div></article>`}).join('')}
     function renderUsenetCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType='All';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${sourceTag(source,contentType)}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}</div></div><div class="candidate-actions"><button class="btn btn-primary btn-sm" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name}))}">Add to TorBox</button></div></article>`}).join('')}

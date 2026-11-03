@@ -1430,6 +1430,9 @@ async function loadPageUnified(view, page) {
           } else if (view === 'shows' && loadViewMode === 'discover') {
             rows = data.results.local?.items || [];
             state.total.shows = data.results.local?.total || 0;
+          } else if (view === 'shows' && loadViewMode === 'search') {
+            rows = (data.results.torrents?.items || []).concat(data.results.usenet?.items || []);
+            state.total.shows = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
           } else if (view === 'music' && loadViewMode === 'discover') {
             // Discover = MusicBrainz only
             rows = data.items || [];
@@ -1487,10 +1490,30 @@ async function loadPageUnified(view, page) {
           results.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : (usenet.length ? renderBrowseUsenetCandidates(usenet) : empty('No torrent results found.'));
         } else if (view === 'movies' && loadViewMode === 'discover') {
           results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'movie'}))) : empty('Search for movies or click Discover to see recent releases.');
+        } else if (view === 'shows' && loadViewMode === 'search') {
+          const torrents = data.results.torrents?.items || [];
+          const usenet = data.results.usenet?.items || [];
+          results.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : (usenet.length ? renderBrowseUsenetCandidates(usenet) : empty('No torrent results found.'));
+        } else if (view === 'shows' && loadViewMode === 'discover') {
+          results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'series'}))) : empty('Search for shows or click Discover to see recent releases.');
+        } else if (view === 'music' && loadViewMode === 'discover') {
+          results.innerHTML = rows.length ? musicReleaseCards(rows) : empty('No results yet. Try searching for artists, albums, or tracks.');
+        } else if (view === 'music') {
+          const torrents = state.items[view].filter(item => item._source === 'torrents');
+          const usenet = state.items[view].filter(item => item._source === 'usenet');
+          if (torrents.length) {
+            results.innerHTML = renderBrowseTorrentCandidates(torrents.map(t => ({...t, kind: 'music'})));
+          } else if (usenet.length) {
+            results.innerHTML = renderBrowseUsenetCandidates(usenet);
+          } else {
+            results.innerHTML = emptyMsg ? empty(emptyMsg) : '';
+          }
         } else {
           const emptyMsg = view === 'library' ? 'No Library items found.' : view === 'music' ? (state.musicSearched ? 'No results yet. Try searching for artists, albums, or tracks.' : null) : view === 'movies' ? (state.moviesSearched ? 'Search for movies or click Discover to see recent releases.' : null) : view === 'shows' ? (state.showsSearched ? 'No results yet. Try searching for shows.' : null) : 'No results yet. The IMDb catalog may still be importing.';
-      results.innerHTML = state.items[view].length ? (view === 'library' ? renderTorboxLibrary(state.items[view]) : view === 'music' ? musicReleaseCards(state.items[view]) : titleCards(state.items[view])) : (emptyMsg ? empty(emptyMsg) : '');
+          results.innerHTML = state.items[view].length ? (view === 'library' ? renderTorboxLibrary(state.items[view]) : view === 'music' ? musicReleaseCards(state.items[view]) : titleCards(state.items[view])) : (emptyMsg ? empty(emptyMsg) : '');
         }
+        observeArtwork(results);
+      }
         observeArtwork(results);
       }
       setStatus(view, view === 'library' && data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');

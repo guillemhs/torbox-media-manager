@@ -1484,16 +1484,47 @@ async function loadPageUnified(view, page) {
       }
       const results = $(`#${view}-results`);
       if (results) {
-        if (view === 'movies' && loadViewMode === 'search') {
-          const torrents = data.results.torrents?.items || [];
-          const usenet = data.results.usenet?.items || [];
-          results.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : (usenet.length ? renderBrowseUsenetCandidates(usenet) : empty('No torrent results found.'));
+        } else if (view === 'movies' && loadViewMode === 'search') {
+          const hasIndexers = $('#movies-source-indexers')?.checked;
+          const hasUsenet = $('#movies-source-usenet')?.checked;
+          const torrents = data.results.torrents?.items?.map(t => ({...t, _source: 'torrents'})) || [];
+          const usenet = data.results.usenet?.items?.map(u => ({...u, _source: 'usenet'})) || [];
+          if (hasIndexers && hasUsenet) {
+            rows = [...torrents, ...usenet];
+            state.total.movies = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
+          } else if (hasIndexers) {
+            rows = torrents;
+            state.total.movies = data.results.torrents?.total || 0;
+          } else if (hasUsenet) {
+            rows = usenet;
+            state.total.movies = data.results.usenet?.total || 0;
+          } else {
+            rows = torrents;
+            state.total.movies = data.results.torrents?.total || 0;
+          }
+          results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
+        } else if (view === 'movies' && loadViewMode === 'discover') {
         } else if (view === 'movies' && loadViewMode === 'discover') {
           results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'movie'}))) : empty('Search for movies or click Discover to see recent releases.');
         } else if (view === 'shows' && loadViewMode === 'search') {
-          const torrents = data.results.torrents?.items || [];
-          const usenet = data.results.usenet?.items || [];
-          results.innerHTML = torrents.length ? renderBrowseTorrentCandidates(torrents) : (usenet.length ? renderBrowseUsenetCandidates(usenet) : empty('No torrent results found.'));
+          const hasIndexers = $('#shows-source-indexers')?.checked;
+          const hasUsenet = $('#shows-source-usenet')?.checked;
+          const torrents = data.results.torrents?.items?.map(t => ({...t, _source: 'torrents'})) || [];
+          const usenet = data.results.usenet?.items?.map(u => ({...u, _source: 'usenet'})) || [];
+          if (hasIndexers && hasUsenet) {
+            rows = [...torrents, ...usenet];
+            state.total.shows = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
+          } else if (hasIndexers) {
+            rows = torrents;
+            state.total.shows = data.results.torrents?.total || 0;
+          } else if (hasUsenet) {
+            rows = usenet;
+            state.total.shows = data.results.usenet?.total || 0;
+          } else {
+            rows = torrents;
+            state.total.shows = data.results.torrents?.total || 0;
+          }
+          results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
         } else if (view === 'shows' && loadViewMode === 'discover') {
           results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'series'}))) : empty('Search for shows or click Discover to see recent releases.');
         } else if (view === 'music' && loadViewMode === 'discover') {

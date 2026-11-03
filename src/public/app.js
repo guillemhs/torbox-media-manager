@@ -1484,7 +1484,7 @@ async function loadPageUnified(view, page) {
       }
       const results = $(`#${view}-results`);
       if (results) {
-        } else if (view === 'movies' && loadViewMode === 'search') {
+        else if (view === 'movies' && loadViewMode === 'search') {
           const hasIndexers = $('#movies-source-indexers')?.checked;
           const hasUsenet = $('#movies-source-usenet')?.checked;
           const torrents = data.results.torrents?.items?.map(t => ({...t, _source: 'torrents'})) || [];

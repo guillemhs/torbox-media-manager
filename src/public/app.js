@@ -1441,8 +1441,8 @@ async function loadPageUnified(view, page) {
             // Music search: filter by selected sources
             const hasIndexers = $('#music-source-indexers')?.checked;
             const hasUsenet = $('#music-source-usenet')?.checked;
-            const torrents = data.results.torrents?.items || [];
-            const usenet = data.results.usenet?.items || [];
+            const torrents = data.results.torrents?.items?.map(t => ({...t, _source: 'torrents'})) || [];
+            const usenet = data.results.usenet?.items?.map(u => ({...u, _source: 'usenet'})) || [];
             if (hasIndexers && hasUsenet) {
               rows = [...torrents, ...usenet];
               state.total.music = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);

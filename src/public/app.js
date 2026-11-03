@@ -1632,7 +1632,8 @@ async function loadPageUnified(view, page) {
         } else if (view === 'movies' && loadViewMode === 'discover') {
           results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'movie'}))) : empty('Search for movies or click Discover to see recent releases.');
         } else {
-          results.innerHTML = state.items[view].length ? (view === 'library' ? renderTorboxLibrary(state.items[view]) : view === 'music' ? musicReleaseCards(state.items[view]) : titleCards(state.items[view])) : empty(view === 'library' ? 'No Library items found.' : view === 'music' ? (state.musicSearched ? 'No results yet. Try searching for artists, albums, or tracks.' : '') : view === 'movies' ? (state.moviesSearched ? 'Search for movies or click Discover to see recent releases.' : '') : 'No results yet. The IMDb catalog may still be importing.');
+          const emptyMsg = view === 'library' ? 'No Library items found.' : view === 'music' ? (state.musicSearched ? 'No results yet. Try searching for artists, albums, or tracks.' : null) : view === 'movies' ? (state.moviesSearched ? 'Search for movies or click Discover to see recent releases.' : null) : 'No results yet. The IMDb catalog may still be importing.';
+      results.innerHTML = state.items[view].length ? (view === 'library' ? renderTorboxLibrary(state.items[view]) : view === 'music' ? musicReleaseCards(state.items[view]) : titleCards(state.items[view])) : (emptyMsg ? empty(emptyMsg) : '');
         }
         observeArtwork(results);
       }

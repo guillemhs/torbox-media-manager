@@ -1635,7 +1635,7 @@ async function loadPageUnified(view, page) {
         }
         observeArtwork(results);
       }
-      setStatus(view, view === 'library' && data.usenetError ? \`TorBox Usenet list unavailable: \${data.usenetError}\` : '');
+      setStatus(view, view === 'library' && data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
       updateMore(view);
     } catch (error) {
       setStatus(view, error.message);

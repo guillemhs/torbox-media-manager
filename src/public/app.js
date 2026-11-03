@@ -1614,6 +1614,7 @@ async function loadPageUnified(view, page) {
       } else if (view === 'library') {
         data = await jsonFetch(`/library?limit=${limit}&offset=${offset}`);
         rows = data.torbox || [];
+      }
       if (view === 'library') {
         const recentIds = new Set(state.recentTorrents.map(item => Number(item.id)));
         rows = [...state.recentTorrents, ...rows.filter(item => !recentIds.has(Number(item.id)))];

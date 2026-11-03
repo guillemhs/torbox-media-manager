@@ -1501,6 +1501,7 @@ async function loadPageUnified(view, page) {
         } else if (view === 'music') {
           const torrents = state.items[view].filter(item => item._source === 'torrents');
           const usenet = state.items[view].filter(item => item._source === 'usenet');
+          const emptyMsg = state.musicSearched ? 'No results yet. Try searching for artists, albums, or tracks.' : null;
           if (torrents.length) {
             results.innerHTML = renderBrowseTorrentCandidates(torrents.map(t => ({...t, kind: 'music'})));
           } else if (usenet.length) {

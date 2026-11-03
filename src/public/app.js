@@ -1431,8 +1431,29 @@ async function loadPageUnified(view, page) {
             rows = data.results.local?.items || [];
             state.total.shows = data.results.local?.total || 0;
           } else if (view === 'music' && loadViewMode === 'discover') {
-            rows = data.releases || [];
+            // Discover = MusicBrainz only
+            rows = data.items || [];
             state.total.music = data.total || 0;
+          } else if (view === 'music') {
+            // Music search: filter by selected sources
+            const hasIndexers = $('#music-source-indexers')?.checked;
+            const hasUsenet = $('#music-source-usenet')?.checked;
+            const torrents = data.results.torrents?.items || [];
+            const usenet = data.results.usenet?.items || [];
+            if (hasIndexers && hasUsenet) {
+              rows = [...torrents, ...usenet];
+              state.total.music = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
+            } else if (hasIndexers) {
+              rows = torrents;
+              state.total.music = data.results.torrents?.total || 0;
+            } else if (hasUsenet) {
+              rows = usenet;
+              state.total.music = data.results.usenet?.total || 0;
+            } else {
+              // No source selected, default to indexers
+              rows = torrents;
+              state.total.music = data.results.torrents?.total || 0;
+            }
           } else {
             rows = data.items;
             state.total[view] = data.total;
@@ -1449,7 +1470,15 @@ async function loadPageUnified(view, page) {
       state.items[view] = reset ? rows : [...state.items[view], ...rows];
       state.offset[view] = state.items[view].length;
       const count = $(`#${view}-count`);
-      if (count) count.textContent = state.items[view].length + (state.total[view] > state.items[view].length ? ' of ' + state.total[view] : '') + ' items';
+      if (count) {
+        if (state.items[view].length === 0) {
+          count.textContent = '';
+          count.style.display = 'none';
+        } else {
+          count.style.display = '';
+          count.textContent = state.items[view].length + (state.total[view] > state.items[view].length ? ' of ' + state.total[view] : '') + ' items';
+        }
+      }
       const results = $(`#${view}-results`);
       if (results) {
         if (view === 'movies' && loadViewMode === 'search') {

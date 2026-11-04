@@ -161,7 +161,7 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   let response: Response;
   try {
     response = await fetch(url, {
-      headers: { Accept: 'application/rss+xml, application/xml' },
+      headers: { Accept: 'application/xml, application/rss+xml, */*' },
       signal: AbortSignal.timeout(20_000)
     });
   } catch {

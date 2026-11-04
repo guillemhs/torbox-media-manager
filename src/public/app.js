@@ -715,15 +715,34 @@ async function doSearch(view, page = 1) {
     const input = $(`#${view}-query`);
     if (!input) return;
     const query = input.value.trim();
+
+    // On first load with empty query, just clear results - don't show error
     if (query.length < 2) {
+        state.items[view] = [];
+        state.total[view] = 0;
+        state.offset[view] = 0;
+        state.currentPage[view] = 1;
         const container = $(`#${view}-results`);
-        if (container) container.innerHTML = empty('Enter at least 2 characters to search.');
+        if (container) container.innerHTML = '';
+        const count = $(`#${view}-count`);
+        if (count) { count.textContent = ''; count.style.display = 'none'; }
+        // Hide pagination and more button on empty query
+        const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
+        const pagContainer = document.getElementById(pagId);
+        if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
+        const moreBtn = document.getElementById(`${view}-more`);
+        if (moreBtn) moreBtn.classList.add('hidden');
+        setStatus(view, '');
         return;
     }
 
     const sources = [];
-    const indexersCheckbox = $(`#${view}-source-indexers`);
-    const usenetCheckbox = $(`#${view}-source-usenet`);
+    // Browse uses unprefixed checkbox IDs: source-indexers, source-usenet
+    // Movies/shows/music use prefixed: movies-source-indexers, etc.
+    const indexersCheckboxId = view === 'browse' ? 'source-indexers' : `${view}-source-indexers`;
+    const usenetCheckboxId = view === 'browse' ? 'source-usenet' : `${view}-source-usenet`;
+    const indexersCheckbox = $(`#${indexersCheckboxId}`);
+    const usenetCheckbox = $(`#${usenetCheckboxId}`);
     if (indexersCheckbox && indexersCheckbox.checked) sources.push('indexers');
     if (usenetCheckbox && usenetCheckbox.checked) sources.push('usenet');
     if (sources.length === 0) {
@@ -731,8 +750,8 @@ async function doSearch(view, page = 1) {
         return;
     }
 
-    const usenetSource = $(`#${view}-usenet-source`)?.value || 'all';
-    const indexers = getSelectedIndexers(view + '-');
+    const usenetSource = $(`#${view === 'browse' ? 'usenet-source' : `${view}-usenet-source`}`)?.value || 'all';
+    const indexers = getSelectedIndexers(view === 'browse' ? '' : `${view}-`);
     const limit = 20;
     const offset = (page - 1) * limit;
 
@@ -787,6 +806,13 @@ async function doSearch(view, page = 1) {
         // Render pagination
         const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
         renderPagination(view, pagId);
+
+        // Show More button only if there are more results
+        const moreBtn = document.getElementById(`${view}-more`);
+        if (moreBtn) {
+            const hasMore = (state.offset[view] || 0) < state.total[view];
+            moreBtn.classList.toggle('hidden', !hasMore);
+        }
 
         setStatus(view, '');
     } catch (error) {
@@ -1186,11 +1212,31 @@ async function loadPageUnified(view, page){
     state.items[view] = [];
   }
   if (view === 'browse') {
+    // On first load, just clear results - don't search until user clicks Search
     void doSearch('browse', 1);
     return;
   }
   const supported = ['browse', 'movies', 'shows', 'music', 'library'];
   if (supported.includes(view)) {
+    const q = $(`#${view}-query`)?.value || '';
+    if (!q) {
+      // On first load with empty query, just clear - don't show "Loading..."
+      state.items[view] = [];
+      state.total[view] = 0;
+      state.offset[view] = 0;
+      state.currentPage[view] = 1;
+      const results = $(`#${view}-results`);
+      if (results) results.innerHTML = '';
+      const count = $(`#${view}-count`);
+      if (count) { count.textContent = ''; count.style.display = 'none'; }
+      const pagId = `${view}-pagination`;
+      const pagContainer = document.getElementById(pagId);
+      if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
+      const moreBtn = document.getElementById(`${view}-more`);
+      if (moreBtn) moreBtn.classList.add('hidden');
+      setStatus(view, '');
+      return;
+    }
     setStatus(view, 'Loading…');
     try {
       if (view === 'library') {
@@ -1210,17 +1256,7 @@ async function loadPageUnified(view, page){
         return;
       }
 
-      const q = $(`#${view}-query`)?.value || '';
-      if (!q) {
-        state.items[view] = [];
-        state.total[view] = 0;
-        const results = $(`#${view}-results`);
-        if (results) results.innerHTML = empty('');
-        const count = $(`#${view}-count`);
-        if (count) { count.textContent = ''; count.style.display = 'none'; }
-        return;
-      }
-
+      // Movies, shows, music - use unified search
       void doSearch(view, 1);
     } catch (error) {
       setStatus(view, error.message);
@@ -1408,6 +1444,7 @@ document.getElementById('music-search-btn')?.addEventListener('click', () => {
   void doSearch('music', 1);
 });
 
+// Discover button click handlers
 document.getElementById('movies-discover-btn')?.addEventListener('click', () => {
   state.moviesSearched = false;
   void doSearch('movies', 1);
@@ -1423,10 +1460,12 @@ document.getElementById('music-discover-btn')?.addEventListener('click', () => {
   void doSearch('music', 1);
 });
 
+// More button click handlers (classic pagination)
 document.getElementById('movies-more')?.addEventListener('click', () => { void loadMoreUnified('movies'); });
 document.getElementById('shows-more')?.addEventListener('click', () => { void loadMoreUnified('shows'); });
 document.getElementById('music-more')?.addEventListener('click', () => { void loadMoreUnified('music'); });
 document.getElementById('browse-more')?.addEventListener('click', () => { void loadMoreUnified('browse'); });
+
 function initApp() {
   window.addEventListener('popstate', routeFromLocation);
   routeFromLocation();

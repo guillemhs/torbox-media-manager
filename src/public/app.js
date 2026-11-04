@@ -107,6 +107,9 @@ async function goToPage(viewKey, page) {
         case 'music':
             void doSearch(viewKey, page);
             break;
+        case 'browse':
+            void doSearch('browse', page);
+            break;
         case 'browse-torrents':
             await loadMoreBrowse('torrents');
             break;
@@ -732,6 +735,104 @@ async function doSearch(view, page = 1) {
         if (moreBtn) {
             const hasMore = false;
             moreBtn.classList.toggle('hidden', !hasMore);
+
+
+        // Attach event listeners for action buttons (browse view)
+        if (view === 'browse') {
+            const container = $('#browse-results');
+            if (container) {
+                // Copy magnet
+                container.querySelectorAll('[data-copy-magnet]').forEach(button => {
+                    button.onclick = async () => {
+                        const idx = Number(button.dataset.copyMagnet);
+                        const item = state.items.browse[idx];
+                        if (!item || !item.magnet) return;
+                        try {
+                            await navigator.clipboard.writeText(item.magnet);
+                            button.textContent = 'Copied into the clipboard';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        } catch {
+                            const field = document.createElement('textarea');
+                            field.value = item.magnet;
+                            field.setAttribute('readonly', '');
+                            field.style.position = 'fixed';
+                            field.style.opacity = '0';
+                            document.body.append(field);
+                            field.select();
+                            const copied = document.execCommand('copy');
+                            field.remove();
+                            button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
+                            setTimeout(() => {
+                                if (button.isConnected) button.textContent = 'Copy magnet';
+                            }, 1500);
+                        }
+                    };
+                });
+                // Add to TorBox
+                container.querySelectorAll('[data-add-torrent]').forEach(button => {
+                    button.onclick = async () => {
+                        const idx = Number(button.dataset.addTorrent);
+                        const item = state.items.browse[idx];
+                        if (!item || !item.magnet) return;
+                        const magnet = decodeURIComponent(button.dataset.addTorrent || '');
+                        const name = button.dataset.torrentName || '';
+                        const cachedOnly = button.dataset.cachedOnly === 'true';
+                        button.disabled = true;
+                        button.textContent = 'Adding…';
+                        try {
+                            const data = await jsonFetch('/torbox/torrents', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ magnet, name, addOnlyIfCached: cachedOnly })
+                            });
+                            button.textContent = 'Added';
+                            setTimeout(() => {
+                                button.textContent = cachedOnly ? 'Add cached' : 'Add to TorBox';
+                                button.disabled = false;
+                            }, 1500);
+                            pinRecentTorrent(data.torrent);
+                            loadView('library', true);
+                        } catch (error) {
+                            button.textContent = cachedOnly ? 'Add cached' : 'Add to TorBox';
+                            button.disabled = false;
+                            alert(error.message);
+                        }
+                    };
+                });
+                // Add to TorBox for usenet
+                container.querySelectorAll('[data-usenet-add]').forEach(button => {
+                    button.onclick = async () => {
+                        const idx = Number(button.dataset.usenetAdd);
+                        const item = state.items.browse[idx];
+                        if (!item) return;
+                        const name = decodeURIComponent(button.dataset.usenetName || '');
+                        const source = button.dataset.usenetSource || '';
+                        button.disabled = true;
+                        button.textContent = 'Adding…';
+                        try {
+                            const data = await jsonFetch('/torbox/usenet', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ source, id: item.id || '', name })
+                            });
+                            button.textContent = 'Added';
+                            setTimeout(() => {
+                                button.textContent = 'Add to TorBox';
+                                button.disabled = false;
+                            }, 1500);
+                            loadView('library', true);
+                        } catch (error) {
+                            button.textContent = 'Add to TorBox';
+                            button.disabled = false;
+                            alert(error.message);
+                        }
+                    };
+                });
+            }
+        }
+
         }
     }
 

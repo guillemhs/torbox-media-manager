@@ -242,20 +242,40 @@ async function searchTorrentsUsenetSearch(query) {
     
     // Render torrent candidates inline (no modal)
     function renderBrowseTorrentCandidates(candidates) {
-        return candidates.map(item => {
+        return candidates.map((item, idx) => {
             const source = item.source || 'Unknown';
             const contentType = item.kind === 'series' ? 'Show' : 'Movie';
-            return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source, contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy Magnet</button>`:''}${item.magnet?`<button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div></article>`
-        }).join('')
+            const size = item.size ? fmtBytes(item.size) : '';
+            const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()} seeders` : '';
+            const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()} leechers` : '';
+            const metaParts = [size, seeders, leechers, source ? sourceTag(source, contentType) : ''].filter(Boolean);
+            const meta = metaParts.join(' · ');
+            return `<div class="torrent-list-row" data-index="${idx}">
+  <span class="torrent-perm">${idx + 1}</span>
+  <span class="torrent-name">${esc(item.name)}</span>
+  <span class="torrent-meta">${esc(meta)}</span>
+  <span class="torrent-actions">${item.magnet ? `<button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy</button>` : ''}${item.magnet ? `<button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add</button>` : ''}${item.downloadToken ? `<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent" title="Download .torrent file">.torrent</a>` : ''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Cached</button></span>
+</div>`;
+        }).join('');
+    }
     }
     
     // Render usenet candidates inline (no modal)
     function renderBrowseUsenetCandidates(candidates) {
-        return candidates.map(item => {
+        return candidates.map((item, idx) => {
             const source = item.source || 'Unknown';
-            const contentType = 'All';
-            return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${sourceTag(source, contentType)}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}</div></div><div class="candidate-actions"><button class="btn btn-primary btn-sm" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name}))}">Add to TorBox</button></div></article>`
-        }).join('')
+            const size = item.size ? fmtBytes(item.size) : '';
+            const incomplete = item.complete === false ? ' · incomplete' : '';
+            const metaParts = [sourceTag(source, 'All'), size + incomplete].filter(Boolean);
+            const meta = metaParts.join(' · ');
+            return `<div class="torrent-list-row" data-index="${idx}">
+  <span class="torrent-perm">${idx + 1}</span>
+  <span class="torrent-name">${esc(item.name)}</span>
+  <span class="torrent-meta">${esc(meta)}</span>
+  <span class="torrent-actions"><button class="btn btn-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-source="${esc(source)}" title="Add Usenet item">Add</button></span>
+</div>`;
+        }).join('');
+    }
     }
     
     // Search torrent candidates inline with pagination
@@ -1275,7 +1295,10 @@ async function loadPageUnified(view, page) {
         } else {
           data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
           if (view === 'movies' && loadViewMode === 'search') {
-            rows = (data.results.torrents?.items || []).concat(data.results.usenet?.items || []);
+            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
+            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+            rows = tItems.map(t => ({...t, _source: 'torrents'})).concat(uItems.map(u => ({...u, _source: 'usenet'})));
+            state.total.movies = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
             state.total.movies = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
           } else if (view === 'movies' && loadViewMode === 'discover') {
             rows = data.results.local?.items || [];
@@ -1284,7 +1307,10 @@ async function loadPageUnified(view, page) {
             rows = data.results.local?.items || [];
             state.total.shows = data.results.local?.total || 0;
           } else if (view === 'shows' && loadViewMode === 'search') {
-            rows = (data.results.torrents?.items || []).concat(data.results.usenet?.items || []);
+            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
+            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+            rows = tItems.map(t => ({...t, _source: 'torrents'})).concat(uItems.map(u => ({...u, _source: 'usenet'})));
+            state.total.shows = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
             state.total.shows = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
           } else if (view === 'music' && loadViewMode === 'discover') {
             // Discover = MusicBrainz only
@@ -1340,8 +1366,10 @@ async function loadPageUnified(view, page) {
         if (view === 'movies' && loadViewMode === 'search') {
           const hasIndexers = $('#movies-source-indexers')?.checked;
           const hasUsenet = $('#movies-source-usenet')?.checked;
-          const torrents = data.results.torrents?.items?.map(t => ({...t, _source: 'torrents'})) || [];
-          const usenet = data.results.usenet?.items?.map(u => ({...u, _source: 'usenet'})) || [];
+            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
+            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+            const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
+            const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
           if (hasIndexers && hasUsenet) {
             rows = [...torrents, ...usenet];
             state.total.movies = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
@@ -1363,8 +1391,10 @@ async function loadPageUnified(view, page) {
         } else if (view === 'shows' && loadViewMode === 'search') {
           const hasIndexers = $('#shows-source-indexers')?.checked;
           const hasUsenet = $('#shows-source-usenet')?.checked;
-          const torrents = data.results.torrents?.items?.map(t => ({...t, _source: 'torrents'})) || [];
-          const usenet = data.results.usenet?.items?.map(u => ({...u, _source: 'usenet'})) || [];
+            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
+            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+            const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
+            const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
           if (hasIndexers && hasUsenet) {
             rows = [...torrents, ...usenet];
             state.total.shows = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
@@ -1430,6 +1460,105 @@ document.addEventListener('click', event => {
     }
   }
 });
+
+document.addEventListener('click', event => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  // Handle torrent add/copy buttons from list format
+  const addBtn = target.closest('[data-add-torrent]');
+  if (addBtn) {
+    event.preventDefault();
+    const magnet = decodeURIComponent(addBtn.dataset.addTorrent);
+    const name = addBtn.dataset.torrentName || '';
+    const cachedOnly = addBtn.dataset.cachedOnly === 'true';
+    addBtn.disabled = true;
+    addBtn.textContent = cachedOnly ? 'Adding cached…' : 'Adding…';
+    void (async () => {
+      try {
+        const data = await jsonFetch('/torbox/torrents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ magnet, name, addOnlyIfCached: cachedOnly })
+        });
+        addBtn.textContent = 'Added';
+        setTimeout(() => {
+          if (addBtn.isConnected) addBtn.textContent = cachedOnly ? 'Add cached' : 'Add';
+          addBtn.disabled = false;
+        }, 1500);
+        void loadView('library', true);
+      } catch (error) {
+        addBtn.textContent = cachedOnly ? 'Add cached' : 'Add';
+        addBtn.disabled = false;
+        alert(error.message);
+      }
+    })();
+    return;
+  }
+  // Handle magnet copy
+  const copyBtn = target.closest('[data-copy-magnet]');
+  if (copyBtn) {
+    event.preventDefault();
+    const magnet = decodeURIComponent(copyBtn.dataset.copyMagnet);
+    copyBtn.disabled = true;
+    copyBtn.textContent = 'Copying…';
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(magnet);
+        copyBtn.textContent = 'Copied';
+        setTimeout(() => {
+          if (copyBtn.isConnected) copyBtn.textContent = 'Copy magnet';
+          copyBtn.disabled = false;
+        }, 1500);
+      } catch {
+        const field = document.createElement('textarea');
+        field.value = magnet;
+        field.setAttribute('readonly', '');
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.append(field);
+        field.select();
+        const copied = document.execCommand('copy');
+        field.remove();
+        copyBtn.textContent = copied ? 'Copied' : 'Copy failed';
+        copyBtn.disabled = false;
+        setTimeout(() => {
+          if (copyBtn.isConnected) copyBtn.textContent = 'Copy magnet';
+        }, 1500);
+      }
+    })();
+    return;
+  }
+  // Handle usenet add
+  const usenetBtn = target.closest('[data-usenet-add]');
+  if (usenetBtn) {
+    event.preventDefault();
+    const name = usenetBtn.dataset.usenetAdd;
+    const source = usenetBtn.dataset.usenetSource;
+    usenetBtn.disabled = true;
+    usenetBtn.textContent = 'Adding…';
+    void (async () => {
+      try {
+        const result = await jsonFetch('/torbox/usenet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source, id: '', name, addOnlyIfCached: false })
+        });
+        usenetBtn.textContent = 'Added';
+        setTimeout(() => {
+          if (usenetBtn.isConnected) usenetBtn.textContent = 'Add';
+          usenetBtn.disabled = false;
+        }, 1500);
+        void loadView('library', true);
+      } catch (error) {
+        usenetBtn.textContent = 'Add';
+        usenetBtn.disabled = false;
+        alert(error.message);
+      }
+    })();
+    return;
+  }
+});
+
 
 // Hamburger menu toggle functionality
 function initHamburgerMenu() {

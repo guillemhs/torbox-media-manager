@@ -332,8 +332,8 @@ export const musicRoute: RequestHandler = async (req, res) => {
       kind: 'music',
       results: {
         local: { items: localItems, total: localResult.length },
-        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
-        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+        torrents: { items: formattedTorrents, total: formattedTorrents.length },
+        usenet: { items: formattedUsenet, total: formattedUsenet.length },
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
       browseLink: '/browse?q=' + encodeURIComponent(query) + '&kind=music'
@@ -452,8 +452,8 @@ export const moviesRoute: RequestHandler = async (req, res) => {
       kind: 'movie',
       results: {
         local: { items: localResult.items.slice(page.offset, page.offset + page.limit), total: localResult.total },
-        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
-        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+        torrents: { items: formattedTorrents, total: formattedTorrents.length },
+        usenet: { items: formattedUsenet, total: formattedUsenet.length },
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
       browseLink: '/browse?q=' + encodeURIComponent(query) + '&kind=movie'
@@ -555,8 +555,8 @@ export const showsRoute: RequestHandler = async (req, res) => {
       kind: 'series',
       results: {
         local: { items: localResult.items.slice(page.offset, page.offset + page.limit), total: localResult.total },
-        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
-        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+        torrents: { items: formattedTorrents, total: formattedTorrents.length },
+        usenet: { items: formattedUsenet, total: formattedUsenet.length },
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
       browseLink: '/browse?q=' + encodeURIComponent(query) + '&kind=series'
@@ -662,8 +662,8 @@ export const browseRoute: RequestHandler = async (req, res) => {
       kind,
       results: {
         local: { items: localResult.items.slice(page.offset, page.offset + page.limit), total: localResult.total },
-        torrents: { items: formattedTorrents.slice(page.offset, page.offset + page.limit), total: formattedTorrents.length },
-        usenet: { items: formattedUsenet.slice(page.offset, page.offset + page.limit), total: formattedUsenet.length }
+        torrents: { items: formattedTorrents, total: formattedTorrents.length },
+        usenet: { items: formattedUsenet, total: formattedUsenet.length },
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim())
     });

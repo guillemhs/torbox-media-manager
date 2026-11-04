@@ -105,7 +105,7 @@ async function goToPage(viewKey, page) {
         case 'movies':
         case 'shows':
         case 'music':
-            await loadPageUnified(viewKey, page);
+            void doSearch(viewKey, page);
             break;
         case 'browse-torrents':
             await loadMoreBrowse('torrents');
@@ -771,6 +771,8 @@ async function doSearch(view, page = 1) {
         // Extract torrents and usenet from results with fallbacks
         const tItems = data.results?.torrents?.items || data.torrents?.items || [];
         const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+        const lItems = data.results?.local?.items || data.local?.items || [];
+        const local = lItems.map(l => ({...l, _source: 'local'}));
         const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
         const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
 
@@ -779,20 +781,20 @@ async function doSearch(view, page = 1) {
 
         let rows = [];
         if (hasIndexers && hasUsenet) {
-            rows = [...torrents, ...usenet];
+            rows = [...torrents, ...usenet, ...local];
         } else if (hasIndexers) {
-            rows = torrents;
+            rows = [...torrents, ...local];
         } else if (hasUsenet) {
             rows = usenet;
         } else {
-            rows = torrents;
+            rows = [...torrents, ...local];
         }
 
         // Set total
         if (view === 'browse') {
             state.total[view] = (data.torrents?.total || 0) + (data.usenet?.total || 0) + (data.movies?.total || 0) + (data.shows?.total || 0) + (data.music?.total || 0);
         } else {
-            state.total[view] = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
+            state.total[view] = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0) + (data.results?.local?.total || data.local?.total || 0);
         }
 
         state.items[view] = rows;
@@ -1169,9 +1171,6 @@ async function loadMoreUnified(view){
 
 
 // Load a specific page for unified search (replaces items instead of appending)
-async function loadPageUnified(view, page){
-    void doSearch(view, page);
-}
     function titleCards(items){return items.map((item,index)=>{const kind=/^tv/i.test(item.titleType||'')?'series':'movie';const imdbId=item.imdbId||item.id||'';const route=`/title/${encodeURIComponent(imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';let categoryTag='';if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie';categoryTag=contentType}else if(item._source==='usenet'){contentType='All';categoryTag='Usenet'};const metaParts=[];const isTorrent = item._source === 'torrents';const isUsenet = item._source === 'usenet';const isLocal = item._source !== 'torrents' && item._source !== 'usenet';if(item.seeders!==null&&item.seeders!==undefined)metaParts.push(`${Number(item.seeders).toLocaleString()} seeders`);if(item.leechers!==null&&item.leechers!==undefined)metaParts.push(`${Number(item.leechers).toLocaleString()} leechers`);if(item.size)metaParts.push(fmtBytes(item.size));if(source&&!isLocal)metaParts.push(source);const metaLine=metaParts.length?`<div class="result-list-meta-line">${esc(metaParts.join(' · '))}</div>`:'';const categoryTagHtml=categoryTag?`<span class="category-tag">${esc(categoryTag)}</span>`:'';const title=item.primaryTitle||item.name||item.title||'Unknown';const year=item.startYear||item.year||'Year unknown';const titleType=item.titleType||item.type||'Unknown';const actionButtons = isTorrent ? `<div class="result-list-actions">${item.magnet?`<button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy magnet</button>`:''}${item.magnet?`<button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(title)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div>` : isUsenet ? `<div class="result-list-actions"><button class="btn btn-primary btn-sm" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name||item.primaryTitle||item.title}))}">Add to TorBox</button></div>` : '';const sourceTagHtml = isLocal ? '' : sourceTag(source, contentType);return `<article class="result-list-item"><a class="result-list-link" href="${route}" aria-label="Open ${esc(title)} details"><div class="result-list-title">${esc(title)}</div><div class="result-list-meta">${esc(year)} · ${esc(titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div>${metaLine}<div class="result-list-source">${categoryTagHtml}${sourceTagHtml}</div></a>${actionButtons}</article>`}).join('')}
     let activeCandidateSearch=null;
     async function findTorrentCandidates(imdbId,kind,title){

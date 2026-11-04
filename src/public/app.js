@@ -258,7 +258,6 @@ async function searchTorrentsUsenetSearch(query) {
 </div>`;
         }).join('');
     }
-    }
     
     // Render usenet candidates inline (no modal)
     function renderBrowseUsenetCandidates(candidates) {
@@ -275,7 +274,6 @@ async function searchTorrentsUsenetSearch(query) {
   <span class="torrent-actions"><button class="btn btn-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-source="${esc(source)}" title="Add Usenet item">Add</button></span>
 </div>`;
         }).join('');
-    }
     }
     
     // Search torrent candidates inline with pagination

@@ -716,7 +716,6 @@ async function doSearch(view, page = 1) {
     if (!input) return;
     const query = input.value.trim();
 
-    // On first load with empty query, just clear results - don't show error
     if (query.length < 2) {
         state.items[view] = [];
         state.total[view] = 0;
@@ -726,7 +725,6 @@ async function doSearch(view, page = 1) {
         if (container) container.innerHTML = '';
         const count = $(`#${view}-count`);
         if (count) { count.textContent = ''; count.style.display = 'none'; }
-        // Hide pagination and more button on empty query
         const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
         const pagContainer = document.getElementById(pagId);
         if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
@@ -737,8 +735,6 @@ async function doSearch(view, page = 1) {
     }
 
     const sources = [];
-    // Browse uses unprefixed checkbox IDs: source-indexers, source-usenet
-    // Movies/shows/music use prefixed: movies-source-indexers, etc.
     const indexersCheckboxId = view === 'browse' ? 'source-indexers' : `${view}-source-indexers`;
     const usenetCheckboxId = view === 'browse' ? 'source-usenet' : `${view}-source-usenet`;
     const indexersCheckbox = $(`#${indexersCheckboxId}`);
@@ -768,11 +764,8 @@ async function doSearch(view, page = 1) {
             data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`);
         }
 
-        // Extract torrents and usenet from results with fallbacks
         const tItems = data.results?.torrents?.items || data.torrents?.items || [];
         const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-        const lItems = data.results?.local?.items || data.local?.items || [];
-        const local = lItems.map(l => ({...l, _source: 'local'}));
         const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
         const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
 
@@ -781,20 +774,19 @@ async function doSearch(view, page = 1) {
 
         let rows = [];
         if (hasIndexers && hasUsenet) {
-            rows = [...torrents, ...usenet, ...local];
+            rows = [...torrents, ...usenet];
         } else if (hasIndexers) {
-            rows = [...torrents, ...local];
+            rows = torrents;
         } else if (hasUsenet) {
             rows = usenet;
         } else {
-            rows = [...torrents, ...local];
+            rows = torrents;
         }
 
-        // Set total
         if (view === 'browse') {
-            state.total[view] = (data.torrents?.total || 0) + (data.usenet?.total || 0) + (data.movies?.total || 0) + (data.shows?.total || 0) + (data.music?.total || 0);
+            state.total[view] = (data.torrents?.total || 0) + (data.usenet?.total || 0);
         } else {
-            state.total[view] = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0) + (data.results?.local?.total || data.local?.total || 0);
+            state.total[view] = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
         }
 
         state.items[view] = rows;
@@ -805,11 +797,9 @@ async function doSearch(view, page = 1) {
             container.innerHTML = rows.length ? rows.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
         }
 
-        // Render pagination
         const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
         renderPagination(view, pagId);
 
-        // Show More button only if there are more results
         const moreBtn = document.getElementById(`${view}-more`);
         if (moreBtn) {
             const hasMore = (state.offset[view] || 0) < state.total[view];

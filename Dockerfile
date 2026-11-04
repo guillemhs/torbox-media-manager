@@ -41,7 +41,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 # Expose application port
-EXPOSE 8666
+EXPOSE 8066
 
 # Start the application
 CMD ["npm", "start"]

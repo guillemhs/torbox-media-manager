@@ -1297,7 +1297,6 @@ async function loadPageUnified(view, page) {
             const uItems = data.results?.usenet?.items || data.usenet?.items || [];
             rows = tItems.map(t => ({...t, _source: 'torrents'})).concat(uItems.map(u => ({...u, _source: 'usenet'})));
             state.total.movies = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
-            state.total.movies = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
           } else if (view === 'movies' && loadViewMode === 'discover') {
             rows = data.results.local?.items || [];
             state.total.movies = data.results.local?.total || 0;
@@ -1309,30 +1308,31 @@ async function loadPageUnified(view, page) {
             const uItems = data.results?.usenet?.items || data.usenet?.items || [];
             rows = tItems.map(t => ({...t, _source: 'torrents'})).concat(uItems.map(u => ({...u, _source: 'usenet'})));
             state.total.shows = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
-            state.total.shows = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
           } else if (view === 'music' && loadViewMode === 'discover') {
             // Discover = MusicBrainz only
             rows = data.items || [];
             state.total.music = data.total || 0;
-          } else if (view === 'music') {
+        } else if (view === 'music') {
             // Music search: filter by selected sources
             const hasIndexers = $('#music-source-indexers')?.checked;
             const hasUsenet = $('#music-source-usenet')?.checked;
-            const torrents = data.results.torrents?.items?.map(t => ({...t, _source: 'torrents'})) || [];
-            const usenet = data.results.usenet?.items?.map(u => ({...u, _source: 'usenet'})) || [];
+            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
+            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+            const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
+            const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
             if (hasIndexers && hasUsenet) {
               rows = [...torrents, ...usenet];
-              state.total.music = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
+              state.total.music = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
             } else if (hasIndexers) {
               rows = torrents;
-              state.total.music = data.results.torrents?.total || 0;
+              state.total.music = data.results?.torrents?.total || data.torrents?.total || 0;
             } else if (hasUsenet) {
               rows = usenet;
-              state.total.music = data.results.usenet?.total || 0;
+              state.total.music = data.results?.usenet?.total || data.usenet?.total || 0;
             } else {
               // No source selected, default to indexers
               rows = torrents;
-              state.total.music = data.results.torrents?.total || 0;
+              state.total.music = data.results?.torrents?.total || data.torrents?.total || 0;
             }
           } else {
             rows = data.items;
@@ -1370,7 +1370,7 @@ async function loadPageUnified(view, page) {
             const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
           if (hasIndexers && hasUsenet) {
             rows = [...torrents, ...usenet];
-            state.total.movies = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
+            state.total.movies = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
           } else if (hasIndexers) {
             rows = torrents;
             state.total.movies = data.results.torrents?.total || 0;
@@ -1395,7 +1395,7 @@ async function loadPageUnified(view, page) {
             const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
           if (hasIndexers && hasUsenet) {
             rows = [...torrents, ...usenet];
-            state.total.shows = (data.results.torrents?.total || 0) + (data.results.usenet?.total || 0);
+            state.total.shows = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
           } else if (hasIndexers) {
             rows = torrents;
             state.total.shows = data.results.torrents?.total || 0;

@@ -730,7 +730,7 @@ async function doSearch(view, page = 1) {
         if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
         const moreBtn = document.getElementById(`${view}-more`);
         if (moreBtn) {
-            const hasMore = rows.length > 0 && (state.offset[view] || 0) < state.total[view];
+            const hasMore = false;
             moreBtn.classList.toggle('hidden', !hasMore);
         }
     }

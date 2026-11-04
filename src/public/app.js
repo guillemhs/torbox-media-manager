@@ -729,9 +729,10 @@ async function doSearch(view, page = 1) {
         const pagContainer = document.getElementById(pagId);
         if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
         const moreBtn = document.getElementById(`${view}-more`);
-        if (moreBtn) moreBtn.classList.add('hidden');
-        setStatus(view, '');
-        return;
+        if (moreBtn) {
+            const hasMore = rows.length > 0 && (state.offset[view] || 0) < state.total[view];
+            moreBtn.classList.toggle('hidden', !hasMore);
+        }
     }
 
     const sources = [];
@@ -802,7 +803,7 @@ async function doSearch(view, page = 1) {
 
         const moreBtn = document.getElementById(`${view}-more`);
         if (moreBtn) {
-            const hasMore = (state.offset[view] || 0) < state.total[view];
+            const hasMore = rows.length > 0 && (state.offset[view] || 0) < state.total[view];
             moreBtn.classList.toggle('hidden', !hasMore);
         }
 

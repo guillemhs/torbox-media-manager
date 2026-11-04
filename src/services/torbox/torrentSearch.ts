@@ -44,9 +44,9 @@ function prowlarrSearchUrl(): URL | null {
   if (!base) return null;
   const url = new URL(base);
   // Prowlarr Torznab feed: http://<host>:<port>/<apiKey>/api
-  // Return as-is; search functions add Torznab params + apikey query param
+  // Convert to Prowlarr JSON API: http://<host>:<port>/api/v1/search
   if (/\/api\/?$/.test(url.pathname)) {
-    url.pathname = url.pathname.replace(/\/$/, '');
+    url.pathname = '/api/v1/search';
     return url;
   }
   return null;

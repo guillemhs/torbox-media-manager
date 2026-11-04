@@ -319,15 +319,32 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
   url.searchParams.set('apikey', key);
   let response: Response;
-  try { response = await fetch(url, { headers: { Accept: 'application/json', 'X-Api-Key': key }, signal: AbortSignal.timeout(20_000) }); }
+  try { response = await fetch(url, { headers: { Accept: 'application/rss+xml, application/xml', 'X-Api-Key': key }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.'); }
   if (!response.ok) throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
-  const rawData = await response.json();
-  console.log('[DEBUG Prowlarr] URL:', url.toString());
-  console.log('[DEBUG Prowlarr] Response type:', Array.isArray(rawData) ? 'array' : typeof rawData);
-  console.log('[DEBUG Prowlarr] Item count:', Array.isArray(rawData) ? rawData.length : 'N/A');
-  console.log('[DEBUG Prowlarr] Sample:', JSON.stringify(Array.isArray(rawData) ? rawData.slice(0, 2) : rawData).slice(0, 500));
-  return jsonCandidates(rawData, url, key);
+  const xml = await response.text();
+  const candidates = new Map<string, MusicTorrentCandidate>();
+  for (const item of xml.match(/<item\b[\s\S]*?<\/item>/gi) || []) {
+    const name = tag(item, 'title');
+    const link = tag(item, 'link').replace(/&amp;/g, '&');
+    const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
+    const hash = (attr(item, 'infohash') || magnetHash(magnet)).toLowerCase();
+    if (!name || !magnet || !/^[a-f0-9]{40}$/.test(hash)) continue;
+    const indexer = tag(item, 'jackettindexer') || tag(item, 'prowlarrindexer') || 'Prowlarr';
+    const size = positiveNumber(attr(item, 'size'));
+    const seeders = countNumber(attr(item, 'seeders'));
+    const leechers = countNumber(attr(item, 'peers') ?? attr(item, 'leechers'));
+    candidates.set(hash, {
+      hash,
+      magnet,
+      name,
+      seeders,
+      leechers,
+      size,
+      source: indexer
+    });
+  }
+  return [...candidates.values()];
 }
 
 async function searchTorznabFeed(query: string, category: string, limit = 50, offset = 0): Promise<MusicTorrentCandidate[]> {
@@ -437,4 +454,14 @@ export async function searchMusicTorrents(query: string, indexers: string[] = ['
   }
   
   return [...unique.values()].slice(offset, offset + limit);
+}
+
+function positiveNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function countNumber(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }

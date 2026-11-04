@@ -136,7 +136,7 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   let response: Response;
   try {
     response = await fetch(url, {
-      headers: { Accept: 'application/json', 'X-Api-Key': key },
+      headers: { Accept: 'application/rss+xml, application/xml', 'X-Api-Key': key },
       signal: AbortSignal.timeout(20_000)
     });
   } catch {
@@ -144,47 +144,18 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   }
   if (!response.ok) throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
 
-  const rawData = await response.json();
-  
-  // Handle both array response and object with results/items
-  let items: unknown[];
-  if (Array.isArray(rawData)) {
-    items = rawData;
-  } else if (rawData && typeof rawData === 'object') {
-    const obj = rawData as Record<string, unknown>;
-    if (Array.isArray(obj.results)) {
-      items = obj.results;
-    } else if (Array.isArray(obj.items)) {
-      items = obj.items;
-    } else {
-      return [];
-    }
-  } else {
-    return [];
-  }
-
+  const xml = await response.text();
   const candidates = new Map<string, TorrentCandidate>();
-  
-  for (const raw of items) {
-    if (!raw || typeof raw !== 'object') continue;
-    const item = raw as Record<string, unknown>;
-    
-    const name = typeof item.title === 'string' ? item.title : '';
-    const downloadUrl = typeof item.downloadUrl === 'string' ? item.downloadUrl : '';
-    const magnetUrl = typeof item.magnetUrl === 'string' ? item.magnetUrl : '';
-    const hash = magnetHash(magnetUrl) || (typeof item.infoHash === 'string' ? item.infoHash.toLowerCase() : '') || (typeof item.infohash === 'string' ? item.infohash.toLowerCase() : '') || (typeof item.hash === 'string' ? item.hash.toLowerCase() : '');
-    
-    if (!name || !/^[a-f0-9]{40}$/.test(hash)) continue;
-    
-    const magnet = magnetUrl.startsWith('magnet:') ? magnetUrl : `magnet:?xt=urn:btih:${hash}&dn=${encodeQueryValue(name.slice(0, 180))}`;
-    const indexer = typeof item.indexer === 'string' ? item.indexer : 
-                    typeof item.prowlarrindexer === 'string' ? item.prowlarrindexer :
-                    typeof item.jackettindexer === 'string' ? item.jackettindexer : 'Prowlarr';
-    
-    const size = positiveNumber(item.size);
-    const seeders = countNumber(item.seeders);
-    const leechers = countNumber(item.leechers ?? item.peers);
-    
+  for (const item of xml.match(/<item\b[\s\S]*?<\/item>/gi) || []) {
+    const name = tag(item, 'title');
+    const link = tag(item, 'link').replace(/&amp;/g, '&');
+    const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
+    const hash = (attr(item, 'infohash') || magnetHash(magnet)).toLowerCase();
+    if (!name || !magnet || !/^[a-f0-9]{40}$/.test(hash)) continue;
+    const indexer = tag(item, 'jackettindexer') || tag(item, 'prowlarrindexer') || 'Prowlarr';
+    const size = positiveNumber(attr(item, 'size'));
+    const seeders = countNumber(attr(item, 'seeders'));
+    const leechers = countNumber(attr(item, 'peers') ?? attr(item, 'leechers'));
     candidates.set(hash, {
       hash,
       magnet,
@@ -195,8 +166,22 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
       source: indexer
     });
   }
-  
   const clampedLimit = Math.min(100, Math.max(1, limit));
   const clampedOffset = Math.max(0, offset);
   return [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);
+}
+
+function decodeXml(value: string): string {
+  return value.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'");
+}
+
+function tag(item: string, name: string): string {
+  const match = new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i').exec(item);
+  return match ? decodeXml(match[1].trim()) : '';
+}
+
+function attr(item: string, name: string): string | null {
+  const escaped = name.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+  const match = new RegExp(`<torznab:attr\\b(?=[^>]*\\bname=["']${escaped}["']) (?=[^>]*\\bvalue=["']([^"']*)["'])[^>]*\\/?\\s*>`, 'i').exec(item);
+  return match ? decodeXml(match[1]) : null;
 }

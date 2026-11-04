@@ -1223,6 +1223,7 @@ async function loadMoreUnified(view){
     void doSearch('browse', 1);
     return;
 }
+  const supported = ['browse', 'movies', 'shows', 'music', 'library'];
   if (supported.includes(view)) {
     const q = $(`#${view}-query`)?.value || '';
     if (!q) {
@@ -1242,6 +1243,7 @@ async function loadMoreUnified(view){
       if (moreBtn) moreBtn.classList.add('hidden');
       setStatus(view, '');
       return;
+
     }
     setStatus(view, 'Loading…');
     try {

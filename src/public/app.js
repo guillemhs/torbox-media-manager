@@ -241,42 +241,66 @@ async function searchTorrentsUsenetSearch(query) {
     }
     
     // Render torrent candidates inline (no modal)
-    function renderBrowseTorrentCandidates(candidates) {
-        return candidates.map((item, idx) => {
-            const source = item.source || 'Unknown';
-            const contentType = item.kind === 'series' ? 'Show' : 'Movie';
-            const size = item.size ? fmtBytes(item.size) : '';
-            const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()} seeders` : '';
-            const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()} leechers` : '';
-            const metaParts = [size, seeders, leechers, source ? sourceTag(source, contentType) : ''].filter(Boolean);
-            const meta = metaParts.join(' · ');
-            return `<div class="torrent-list-row" data-index="${idx}">
-  <span class="torrent-perm">${idx + 1}</span>
-  <span class="torrent-name">${esc(item.name)}</span>
-  <span class="torrent-meta">${esc(meta)}</span>
-  <span class="torrent-actions">${item.magnet ? `<button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy</button>` : ''}${item.magnet ? `<button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add</button>` : ''}${item.downloadToken ? `<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent" title="Download .torrent file">.torrent</a>` : ''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Cached</button></span>
-</div>`;
-        }).join('');
+// Render a single search result item as a full-width card-body
+function renderSearchItem(item, idx) {
+    const source = item._source || item.source || 'Unknown';
+    const isTorrent = item._source === 'torrents';
+    const isUsenet = item._source === 'usenet';
+    const isLocal = item._source !== 'torrents' && item._source !== 'usenet';
+
+    const kind = item.kind || (item.titleType && /^tv/i.test(item.titleType) ? 'series' : 'movie');
+    const contentType = isTorrent ? (kind === 'series' ? 'Show' : 'Movie') : (isUsenet ? 'Usenet' : 'All');
+
+    const title = item.primaryTitle || item.name || item.title || 'Unknown';
+    const year = item.startYear || item.year || 'Year unknown';
+    const titleType = item.titleType || item.type || 'Unknown';
+
+    const size = item.size ? fmtBytes(item.size) : '';
+    const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()} seeders` : '';
+    const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()} leechers` : '';
+    const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
+    const complete = item.complete === false ? 'incomplete' : '';
+
+    const metaParts = [size, seeders, leechers, posted, complete, source && !isLocal ? sourceTag(source, contentType) : ''].filter(Boolean);
+    const meta = metaParts.join(' · ');
+
+    const categoryTag = isTorrent ? `<span class="category-tag">${contentType}</span>` : (isUsenet ? '<span class="category-tag">Usenet</span>' : '');
+    const sourceTagHtml = isLocal ? '' : sourceTag(source, contentType);
+
+    const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}` : '#';
+
+    let actionButtons = '';
+    if (isTorrent && item.magnet) {
+        actionButtons = `
+            <button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy</button>
+            <button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add</button>
+            ${item.downloadToken ? `<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(title)}.torrent" title="Download .torrent file">.torrent</a>` : ''}
+            <button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Cached</button>
+        `;
+    } else if (isUsenet) {
+        actionButtons = `<button class="btn btn-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-source="${esc(source)}" title="Add to TorBox">Add to TorBox</button>`;
     }
-    
-    // Render usenet candidates inline (no modal)
-    function renderBrowseUsenetCandidates(candidates) {
-        return candidates.map((item, idx) => {
-            const source = item.source || 'Unknown';
-            const size = item.size ? fmtBytes(item.size) : '';
-            const incomplete = item.complete === false ? ' · incomplete' : '';
-            const metaParts = [sourceTag(source, 'All'), size + incomplete].filter(Boolean);
-            const meta = metaParts.join(' · ');
-            return `<div class="torrent-list-row" data-index="${idx}">
-  <span class="torrent-perm">${idx + 1}</span>
-  <span class="torrent-name">${esc(item.name)}</span>
-  <span class="torrent-meta">${esc(meta)}</span>
-  <span class="torrent-actions"><button class="btn btn-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-source="${esc(source)}" title="Add Usenet item">Add</button></span>
-</div>`;
-        }).join('');
-    }
-    
-    // Search torrent candidates inline with pagination
+
+    return `<article class="search-result-item">
+        <a class="search-result-link" href="${route}" aria-label="Open ${esc(title)} details">
+            <div class="search-result-header">
+                <div class="search-result-title">${esc(title)}</div>
+                <div class="search-result-year-type">${esc(year)} · ${esc(titleType)}</div>
+                ${categoryTag}
+            </div>
+            ${meta ? `<div class="search-result-meta">${esc(meta)}</div>` : ''}
+            ${sourceTagHtml ? `<div class="search-result-source">${sourceTagHtml}</div>` : ''}
+        </a>
+        ${actionButtons ? `<div class="search-result-actions">${actionButtons}</div>` : ''}
+    </article>`;
+}
+
+// Render all search results as full-width cards
+function renderSearchResults(container, items) {
+    if (!container) return;
+    container.innerHTML = items.length ? items.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
+}
+
     async function searchBrowseTorrentCandidates(imdbId, kind, title, offset = 0, limit = 20) {
         const season = kind === 'series' ? 1 : undefined;
         const url = `/torrents/search?imdbId=${encodeURIComponent(imdbId)}&kind=${encodeURIComponent(kind)}&season=${season || 1}&title=${encodeURIComponent(title)}&limit=${limit}&offset=${offset}`;
@@ -686,55 +710,93 @@ async function searchTorrentsUsenetSearch(query) {
         }
     }
     
-    async function searchBrowse(){
-        const input = $('#browse-query');
-        if (!input) return;
-        const query = input.value.trim();
-        if(query.length<2){state.browseResults={movie:[],series:[],music:[],torrents:[],usenet:[]};state.browseTorrentSearch={candidates:[],total:0,query:'',kind:'',imdbId:''};state.browseUsenetSearch={candidates:[],total:0,query:''};state.browseSearchInProgress=false;renderBrowseResults();setStatus('browse','Enter at least 2 characters to search.');return}state.browseSearchInProgress=true;state.browseSearched=true;setStatus('browse','Searching…');try{const sources=[];if($('#source-indexers')?.checked)sources.push('indexers');if($('#source-usenet')?.checked)sources.push('usenet');if(sources.length===0){state.browseSearchInProgress=false;setStatus('browse','Select at least one source.');return}const usenetSource=getUsenetSource();const indexers=getSelectedIndexers();const url=`/api/search?q=${encodeURIComponent(query)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=20&offset=0`;const data=await jsonFetch(url);state.browseResults={movie:data.movies?.items||[],series:data.shows?.items||[],music:data.music?.items||[],torrents:data.torrents?.items||[],usenet:data.usenet?.items||[]};state.total['browse-movies']=data.movies?.total||0;state.total['browse-shows']=data.shows?.total||0;state.total['browse-music']=data.music?.total||0;state.total['browse-torrents']=data.torrents?.total||0;state.total['browse-usenet']=data.usenet?.total||0;state.offset['browse-movies']=data.movies?.items?.length||0;state.offset['browse-shows']=data.shows?.items?.length||0;state.offset['browse-music']=data.music?.items?.length||0;state.offset['browse-torrents']=data.torrents?.items?.length||0;state.offset['browse-usenet']=data.usenet?.items?.length||0;state.browseSearchInProgress=false;renderBrowseResults();const warnings=[...(data.torrents?.warnings||[]),...(data.usenet?.warnings||[])];const total=(data.movies?.total||0)+(data.shows?.total||0)+(data.music?.total||0)+(data.torrents?.total||0)+(data.usenet?.total||0);setStatus('browse',`${total} results${warnings.length?` · ${warnings.join(' · ')}`:''}`)}catch(error){setStatus('browse',error.message)}}
-
-    function renderBrowseResults(){
-        const hasIndexers = $('#source-indexers')?.checked;
-        const hasUsenet = $('#source-usenet')?.checked;
-        const isSearching = state.browseSearchInProgress;
-
-        // Collect all results from enabled sources into a single block
-        const allItems = [];
-        if (hasIndexers) {
-            allItems.push(...(state.browseResults.movie || []).map(item => ({...item, titleType: 'movie'})));
-            allItems.push(...(state.browseResults.series || []).map(item => ({...item, titleType: 'series'})));
-            allItems.push(...(state.browseResults.music || []));
-            allItems.push(...(state.browseResults.torrents || []));
-        }
-        if (hasUsenet) {
-            allItems.push(...(state.browseResults.usenet || []));
-        }
-
-        const container = $('#browse-results');
-        if (container) {
-            container.innerHTML = allItems.length ? titleCards(allItems) : (isSearching || !state.browseSearched ? '' : empty('No results found.'));
-            observeArtwork(container);
-        }
-
-        $('#browse-more')?.classList.toggle('hidden', allItems.length >= (state.total['browse-movies'] || 0) + (state.total['browse-shows'] || 0) + (state.total['browse-music'] || 0) + (state.total['browse-torrents'] || 0) + (state.total['browse-usenet'] || 0));
-
-        if ($('#browse-torrent-search-section')) $('#browse-torrent-search-section').style.display = 'none';
-        if ($('#browse-usenet-search-section')) $('#browse-usenet-search-section').style.display = 'none';
+// Unified search for /browse, /movies, /shows, /music
+async function doSearch(view, page = 1) {
+    const input = $(`#${view}-query`);
+    if (!input) return;
+    const query = input.value.trim();
+    if (query.length < 2) {
+        const container = $(`#${view}-results`);
+        if (container) container.innerHTML = empty('Enter at least 2 characters to search.');
+        return;
     }
 
+    const sources = [];
+    const indexersCheckbox = $(`#${view}-source-indexers`);
+    const usenetCheckbox = $(`#${view}-source-usenet`);
+    if (indexersCheckbox && indexersCheckbox.checked) sources.push('indexers');
+    if (usenetCheckbox && usenetCheckbox.checked) sources.push('usenet');
+    if (sources.length === 0) {
+        setStatus(view, 'Select at least one source.');
+        return;
+    }
 
-    function renderTorrentCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType=item.kind==='series'?'Show':'Movie';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${item.seeders!==null&&item.seeders!==undefined?`${Number(item.seeders).toLocaleString()} seeders`:''}${item.leechers!==null&&item.leechers!==undefined?` · ${Number(item.leechers).toLocaleString()} leechers`:''}${item.size?` · ${fmtBytes(item.size)}`:''}${source?` · ${sourceTag(source,contentType)}`:''}</div></div><div class="candidate-actions">${item.magnet?`<a class="btn btn-secondary btn-sm" href="${esc(item.magnet)}">Magnet</a>`:''}${item.downloadToken?`<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(item.name)}.torrent">.torrent</a>`:''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(item.name)}">Add cached</button></div></article>`}).join('')}
-    function renderUsenetCandidates(candidates){return candidates.map(item=>{const source=item.source||'Unknown';const contentType='All';return `<article class="candidate-row"><div><div class="candidate-name">${esc(item.name)}</div><div class="candidate-meta">${sourceTag(source,contentType)}${item.size?` · ${fmtBytes(item.size)}`:''}${item.complete===false?' · incomplete':''}</div></div><div class="candidate-actions"><button class="btn btn-primary btn-sm" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name}))}">Add to TorBox</button></div></article>`}).join('')}
-    async function loadMoreBrowse(category){const input=$('#browse-query');if(!input)return;const query=input.value.trim();if(query.length<2)return;const sources=[];if($('#source-indexers')?.checked)sources.push('indexers');if($('#source-usenet')?.checked)sources.push('usenet');if(sources.length===0)return;const usenetSource=getUsenetSource();const indexers=getSelectedIndexers();const offset=state.offset[`browse-${category}`]||0;const limit=20;setStatus('browse',`Loading more ${category}…`);try{const url=`/api/search?q=${encodeURIComponent(query)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`;const data=await jsonFetch(url);const newItems=category==='movies'?data.movies?.items||[]:category==='shows'?data.shows?.items||[]:category==='music'?data.music?.items||[]:category==='torrents'?data.torrents?.items||[]:data.usenet?.items||[];state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]=[...(state.browseResults[category==='movies'?'movie':category==='shows'?'series':category]||[]),...newItems];state.offset[`browse-${category}`]+=newItems.length;renderBrowseResults();setStatus('browse','');// Render pagination for the category
-        const paginationMap = {
-            'movies': ['browse-movies', 'browse-torrents-pagination'],
-            'shows': ['browse-shows', 'browse-usenet-pagination'],
-            'music': ['browse-music', 'browse-torrent-pagination'],
-            'torrents': ['browse-torrents', 'browse-torrents-pagination'],
-            'usenet': ['browse-usenet', 'browse-usenet-pagination']
-        };
-        if (paginationMap[category]) {
-            renderPagination(paginationMap[category][0], paginationMap[category][1]);
-        }}catch(error){setStatus('browse',error.message)}}
+    const usenetSource = $(`#${view}-usenet-source`)?.value || 'all';
+    const indexers = getSelectedIndexers(view + '-');
+    const limit = 20;
+    const offset = (page - 1) * limit;
+
+    state.offset[view] = offset;
+    state.currentPage[view] = page;
+
+    setStatus(view, 'Searching…');
+    try {
+        let data;
+        if (view === 'browse') {
+            data = await jsonFetch(`/api/search?q=${encodeURIComponent(query)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`);
+        } else {
+            const kind = view === 'movies' ? 'movie' : view === 'shows' ? 'series' : 'music';
+            data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`);
+        }
+
+        // Extract torrents and usenet from results with fallbacks
+        const tItems = data.results?.torrents?.items || data.torrents?.items || [];
+        const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+        const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
+        const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
+
+        const hasIndexers = sources.includes('indexers');
+        const hasUsenet = sources.includes('usenet');
+
+        let rows = [];
+        if (hasIndexers && hasUsenet) {
+            rows = [...torrents, ...usenet];
+        } else if (hasIndexers) {
+            rows = torrents;
+        } else if (hasUsenet) {
+            rows = usenet;
+        } else {
+            rows = torrents;
+        }
+
+        // Set total
+        if (view === 'browse') {
+            state.total[view] = (data.torrents?.total || 0) + (data.usenet?.total || 0) + (data.movies?.total || 0) + (data.shows?.total || 0) + (data.music?.total || 0);
+        } else {
+            state.total[view] = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
+        }
+
+        state.items[view] = rows;
+        state.offset[view] = offset + rows.length;
+
+        const container = $(`#${view}-results`);
+        if (container) {
+            container.innerHTML = rows.length ? rows.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
+        }
+
+        // Render pagination
+        const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
+        renderPagination(view, pagId);
+
+        setStatus(view, '');
+    } catch (error) {
+        setStatus(view, error.message);
+    }
+}
+
+async function loadMoreBrowse(category){
+    void doSearch('browse', (state.currentPage['browse'] || 1) + 1);
+}
     function showView(view){state.view=view;document.querySelectorAll('.view').forEach(node=>node.classList.toggle('active',node.id===`view-${view}`));document.querySelectorAll('[data-view]').forEach(node=>{const active=node.dataset.view===view;node.classList.toggle('p-selected',active);if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current')});const labels={browse:'Browse',movies:'Movies',shows:'Shows',library:'Library',local:'Local Media',music:'Music',calendar:'Calendar',title:'Title details'};const titleEl=$('#page-title');if(titleEl)titleEl.textContent=labels[view]||'TorBox Media Manager';loadView(view,true)}
     async function loadTitle(imdbId,kind){const pageTitle=$('#page-title');if(pageTitle)pageTitle.textContent='Loading title…';const detailContent=$('#detail-content');if(detailContent)detailContent.innerHTML='<div class="detail-layout"><div class="detail-poster"></div><div><div class="skeleton" style="width:38%"></div><div class="skeleton" style="width:78%;height:34px;margin:14px 0"></div><div class="skeleton" style="width:52%"></div></div></div>';try{const endpoint=kind==='series'?'shows':'movies';const title=await jsonFetch(`/api/${endpoint}/${encodeURIComponent(imdbId)}`);
     if (!title.imdbId) title.imdbId = imdbId;const actualKind=/^tv/i.test(title.titleType)?'series':'movie';const genres=String(title.genres||'').split(',').map(value=>value.trim()).filter(Boolean);if(pageTitle)pageTitle.textContent=title.primaryTitle;const poster=title.artwork?.url?`<img class="loaded" src="${esc(title.artwork.url)}" alt="${esc(`${title.primaryTitle} poster`)}">`:`<img loading="eager" alt="${esc(`${title.primaryTitle} poster`)}" data-artwork-id="${esc(title.imdbId)}" data-artwork-kind="${actualKind}">`;const extra=actualKind==='series'?`${title.seasonCount?`${title.seasonCount} ${title.seasonCount===1?'season':'seasons'}`:''}${title.showStatus?` · ${title.showStatus}`:''}`:`${title.releaseDate?`Released ${esc(new Date(`${title.releaseDate}T12:00:00`).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}))}`:''}`;if(detailContent)detailContent.innerHTML=`<div class="detail-layout"><div class="detail-poster">${poster}</div><div class="detail-copy"><div class="detail-kicker">${actualKind==='series'?'TV series':'Movie'}</div><h2>${esc(title.primaryTitle)}</h2><div class="detail-subtitle">${esc([title.startYear||'Year unknown',extra,title.runtimeMinutes?`${title.runtimeMinutes} min`:null].filter(Boolean).join(' · '))}</div>${title.averageRating?`<div class="detail-tags"><span class="detail-tag">★ ${Number(title.averageRating).toFixed(1)} IMDb</span>${title.numVotes?`<span class="detail-tag">${Number(title.numVotes).toLocaleString()} votes</span>`:''}</div>`:''}<div class="detail-tags">${genres.length?genres.map(genre=>`<span class="detail-tag">${esc(genre)}</span>`).join(''):'<span class="detail-tag">Genres unavailable</span>'}</div><div class="detail-actions"><a class="btn btn-primary" href="https://www.imdb.com/title/${encodeURIComponent(title.imdbId)}/" target="_blank" rel="noopener noreferrer">Open on IMDb ↗</a></div></div></div>${title.overview?`<p class="detail-description">${esc(title.overview.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim())}</p>`:''}<div class="detail-results-link"><div class="tab-row" role="tablist" aria-label="Search result type"><button class="btn btn-secondary active" role="tab" aria-selected="true" data-title-search-tab="torrent">Torrents</button><button class="btn btn-secondary" role="tab" aria-selected="false" data-title-search-tab="usenet">Usenet</button></div><div class="status-line" id="title-search-status" role="status">Choose a tab to search.</div><div id="title-search-results"></div></div>`;observeArtwork(detailContent);document.querySelectorAll('[data-title-search-tab]').forEach(tab=>tab.onclick=()=>{document.querySelectorAll('[data-title-search-tab]').forEach(item=>{const active=item===tab;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active))});void loadTitleSearchResults(title,actualKind,tab.dataset.titleSearchTab)}); }catch(error){if(pageTitle)pageTitle.textContent='Title details';if(detailContent)detailContent.innerHTML=`<div class="empty-state detail-error">${esc(error.message)}<p>This title may not be in the local IMDb catalog yet.</p></div>`}}
@@ -1076,168 +1138,14 @@ async function searchTorrentsUsenetSearch(query) {
     
     // Load more for movies, shows, music views
 async function loadMoreUnified(view){
-    // "More" button now advances to the next page of unified search results
-    await goToPage(view, (state.currentPage[view] || 1) + 1);
+    void goToPage(view, (state.currentPage[view] || 1) + 1);
 }
 
 
 // Load a specific page for unified search (replaces items instead of appending)
-async function loadPageUnified(view, page) {
-    const query = $(`#${view}-query`)?.value.trim() || '';
-    if (query.length < 2) return;
-    
-    const sources = [];
-    const indexersCheckbox = $(`#${view}-source-indexers`);
-    const usenetCheckbox = $(`#${view}-source-usenet`);
-    
-    if (indexersCheckbox && indexersCheckbox.checked) sources.push('indexers');
-    if (usenetCheckbox && usenetCheckbox.checked) sources.push('usenet');
-    
-    if (sources.length === 0) return;
-    
-    const kind = view === 'movies' ? 'movie' : view === 'shows' ? 'series' : 'music';
-    const usenetSource = $(`#${view}-usenet-source`)?.value || 'all';
-    const indexers = getSelectedIndexers(view + '-');
-    const limit = 20;
-    const offset = (page - 1) * limit;
-    
-    // Update state
-    state.offset[view] = offset;
-    state.currentPage[view] = page;
-    
-    setStatus(view, `Loading page ${page}...`);
-    try {
-        const url = `/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`;
-        const data = await jsonFetch(url);
-        
-        let newItems = [];
-        if (view === 'movies') newItems = data.movies?.items || [];
-        else if (view === 'shows') newItems = data.shows?.items || [];
-        else if (view === 'music') newItems = data.music?.items || [];
-        
-        // REPLACE items instead of appending (for pagination)
-        state.items[view] = newItems;
-        state.total[view] = view === 'movies' ? data.movies?.total || 0 : view === 'shows' ? data.shows?.total || 0 : data.music?.total || 0;
-        state.offset[view] = offset + newItems.length;
-        
-        if (view === 'movies') {
-            // Combine movie metadata and torrent results for movies view
-            const movieMetadata = data.movies?.items || [];
-            const movieTorrents = data.torrents?.items || [];
-            // Transform torrent items to have movie metadata structure for rendering
-            const transformedTorrents = movieTorrents.map(t => ({
-                imdbId: t.hash,
-                primaryTitle: t.name,
-                titleType: 'movie',
-                startYear: '',
-                seeders: t.seeders,
-                leechers: t.leechers,
-                size: t.size,
-                source: t.source,
-                _source: t._source || 'torrents',
-                hash: t.hash,
-                magnet: t.magnet,
-                downloadToken: t.downloadToken
-            }));
-            state.items.movies = [...movieMetadata, ...transformedTorrents];
-            state.total.movies = (data.movies?.total || 0) + (data.torrents?.total || 0);
-            state.offset[view] = offset + state.items.movies.length;
-            const container = $('#movies-results');
-            if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map(item => ({...item, kind: 'movie'}))) : '';
-            observeArtwork(container);
-            
-            // Add event listener for copy magnet buttons
-            container.querySelectorAll('[data-copy-magnet]').forEach(button => {
-                button.onclick = async () => {
-                    const item = state.items.movies[Number(button.dataset.copyMagnet)];
-                    try {
-                        await navigator.clipboard.writeText(item.magnet);
-                        button.textContent = 'Copied into the clipboard';
-                        setTimeout(() => {
-                            if (button.isConnected) button.textContent = 'Copy magnet';
-                        }, 1500);
-                    } catch {
-                        const field = document.createElement('textarea');
-                        field.value = item.magnet;
-                        field.setAttribute('readonly', '');
-                        field.style.position = 'fixed';
-                        field.style.opacity = '0';
-                        document.body.append(field);
-                        field.select();
-                        const copied = document.execCommand('copy');
-                        field.remove();
-                        button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
-                        setTimeout(() => {
-                            if (button.isConnected) button.textContent = 'Copy magnet';
-                        }, 1500);
-                    }
-                };
-            });
-            renderPagination('movies', 'movies-pagination');
-        } else if (view === 'shows') {
-            // Combine show metadata and torrent results for shows view
-            const showMetadata = data.shows?.items || [];
-            const showTorrents = data.torrents?.items || [];
-            // Transform torrent items to have show metadata structure for rendering
-            const transformedTorrents = showTorrents.map(t => ({
-                imdbId: t.hash,
-                primaryTitle: t.name,
-                titleType: 'tvSeries',
-                startYear: '',
-                seeders: t.seeders,
-                leechers: t.leechers,
-                size: t.size,
-                source: t.source,
-                _source: t._source || 'torrents',
-                hash: t.hash,
-                magnet: t.magnet,
-                downloadToken: t.downloadToken
-            }));
-            state.items.shows = [...showMetadata, ...transformedTorrents];
-            state.total.shows = (data.shows?.total || 0) + (data.torrents?.total || 0);
-            state.offset[view] = offset + state.items.shows.length;
-            const container = $('#shows-results');
-            if (container) container.innerHTML = state.items.shows.length ? titleCards(state.items.shows.map(item => ({...item, kind: 'series'}))) : '';
-            observeArtwork(container);
-            renderPagination('shows', 'shows-pagination');
-        } else if (view === 'music') {
-            // Combine music metadata and torrent results for music view
-            const musicMetadata = data.music?.items || [];
-            const musicTorrents = data.music?.items || [];
-            // Transform torrent items to have music metadata structure for rendering
-            const transformedTorrents = musicTorrents.map(t => ({
-                id: t.hash,
-                title: t.name,
-                artist: t.source || 'Unknown',
-                date: '',
-                type: 'Torrent',
-                _source: t._source || 'torrents',
-                hash: t.hash,
-                magnet: t.magnet,
-                seeders: t.seeders,
-                leechers: t.leechers,
-                size: t.size,
-                source: t.source,
-                downloadToken: t.downloadToken
-            }));
-            state.items.music = [...musicMetadata, ...transformedTorrents];
-            state.total.music = (data.music?.total || 0) + (data.torrents?.total || 0);
-            state.offset[view] = offset + state.items.music.length;
-            const container = $('#music-results');
-            if (container) container.innerHTML = state.items.music.length ? musicReleaseCards(state.items.music) : '';
-            observeArtwork(container);
-            renderPagination('music', 'music-pagination');
-        }
-        
-        const warnings = [...(data.torrents?.warnings || []), ...(data.usenet?.warnings || [])];
-        const total = (data.movies?.total || 0) + (data.shows?.total || 0) + (data.music?.total || 0) + (data.torrents?.total || 0) + (data.usenet?.total || 0);
-        setStatus(view, `${total} results${warnings.length ? ` · ${warnings.join(' · ')}` : ''}`);
-    } catch (error) {
-        setStatus(view, error.message);
-    }
+async function loadPageUnified(view, page){
+    void doSearch(view, page);
 }
-
-
     function titleCards(items){return items.map((item,index)=>{const kind=/^tv/i.test(item.titleType||'')?'series':'movie';const imdbId=item.imdbId||item.id||'';const route=`/title/${encodeURIComponent(imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';let categoryTag='';if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie';categoryTag=contentType}else if(item._source==='usenet'){contentType='All';categoryTag='Usenet'};const metaParts=[];const isTorrent = item._source === 'torrents';const isUsenet = item._source === 'usenet';const isLocal = item._source !== 'torrents' && item._source !== 'usenet';if(item.seeders!==null&&item.seeders!==undefined)metaParts.push(`${Number(item.seeders).toLocaleString()} seeders`);if(item.leechers!==null&&item.leechers!==undefined)metaParts.push(`${Number(item.leechers).toLocaleString()} leechers`);if(item.size)metaParts.push(fmtBytes(item.size));if(source&&!isLocal)metaParts.push(source);const metaLine=metaParts.length?`<div class="result-list-meta-line">${esc(metaParts.join(' · '))}</div>`:'';const categoryTagHtml=categoryTag?`<span class="category-tag">${esc(categoryTag)}</span>`:'';const title=item.primaryTitle||item.name||item.title||'Unknown';const year=item.startYear||item.year||'Year unknown';const titleType=item.titleType||item.type||'Unknown';const actionButtons = isTorrent ? `<div class="result-list-actions">${item.magnet?`<button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy magnet</button>`:''}${item.magnet?`<button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(title)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div>` : isUsenet ? `<div class="result-list-actions"><button class="btn btn-primary btn-sm" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name||item.primaryTitle||item.title}))}">Add to TorBox</button></div>` : '';const sourceTagHtml = isLocal ? '' : sourceTag(source, contentType);return `<article class="result-list-item"><a class="result-list-link" href="${route}" aria-label="Open ${esc(title)} details"><div class="result-list-title">${esc(title)}</div><div class="result-list-meta">${esc(year)} · ${esc(titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div>${metaLine}<div class="result-list-source">${categoryTagHtml}${sourceTagHtml}</div></a>${actionButtons}</article>`}).join('')}
     let activeCandidateSearch=null;
     async function findTorrentCandidates(imdbId,kind,title){
@@ -1277,173 +1185,50 @@ async function loadPageUnified(view, page) {
     state.offset[view] = 0;
     state.items[view] = [];
   }
-  if (view === 'browse') return searchBrowse();
+  if (view === 'browse') {
+    void doSearch('browse', 1);
+    return;
+  }
   const supported = ['browse', 'movies', 'shows', 'music', 'library'];
   if (supported.includes(view)) {
     setStatus(view, 'Loading…');
     try {
-      const limit = view === 'library' ? 1000 : 50;
-      const offset = view === 'library' ? 0 : (state.offset[view] || 0);
-      let data, rows = [];
-      if (view === 'movies' || view === 'shows' || view === 'music') {
-        const q = $(`#${view}-query`)?.value || '';
-        if (!q && (view === 'movies' || view === 'shows' || view === 'music')) {
-          rows = [];
-          state.total[view] = 0;
-        } else {
-          data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(q)}&limit=${limit}&offset=${offset}`);
-          if (view === 'movies' && loadViewMode === 'search') {
-            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
-            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-            rows = tItems.map(t => ({...t, _source: 'torrents'})).concat(uItems.map(u => ({...u, _source: 'usenet'})));
-            state.total.movies = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
-          } else if (view === 'movies' && loadViewMode === 'discover') {
-            rows = data.results.local?.items || [];
-            state.total.movies = data.results.local?.total || 0;
-          } else if (view === 'shows' && loadViewMode === 'discover') {
-            rows = data.results.local?.items || [];
-            state.total.shows = data.results.local?.total || 0;
-          } else if (view === 'shows' && loadViewMode === 'search') {
-            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
-            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-            rows = tItems.map(t => ({...t, _source: 'torrents'})).concat(uItems.map(u => ({...u, _source: 'usenet'})));
-            state.total.shows = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
-          } else if (view === 'music' && loadViewMode === 'discover') {
-            // Discover = MusicBrainz only
-            rows = data.items || [];
-            state.total.music = data.total || 0;
-        } else if (view === 'music') {
-            // Music search: filter by selected sources
-            const hasIndexers = $('#music-source-indexers')?.checked;
-            const hasUsenet = $('#music-source-usenet')?.checked;
-            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
-            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-            const torrents = tItems.map(t => ({...t, _source: 'torrents', kind: 'music'}));
-            const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
-            if (hasIndexers && hasUsenet) {
-              rows = [...torrents, ...usenet];
-              state.total.music = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
-            } else if (hasIndexers) {
-              rows = torrents;
-              state.total.music = data.results?.torrents?.total || data.torrents?.total || 0;
-            } else if (hasUsenet) {
-              rows = usenet;
-              state.total.music = data.results?.usenet?.total || data.usenet?.total || 0;
-            } else {
-              rows = torrents;
-              state.total.music = data.results?.torrents?.total || data.torrents?.total || 0;
-            }
-            results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
-            renderPagination('music', 'music-pagination');
-          } else {
-            rows = data.items;
-            state.total[view] = data.total;
-          }
-        }
-      } else if (view === 'library') {
-        data = await jsonFetch(`/library?limit=${limit}&offset=${offset}`);
-        rows = data.torbox || [];
-      }
       if (view === 'library') {
+        const data = await jsonFetch(`/library?limit=1000&offset=0`);
+        let rows = data.torbox || [];
         const recentIds = new Set(state.recentTorrents.map(item => Number(item.id)));
         rows = [...state.recentTorrents, ...rows.filter(item => !recentIds.has(Number(item.id)))];
-      }
-      state.items[view] = reset ? rows : [...state.items[view], ...rows];
-      state.offset[view] = state.items[view].length;
-      const count = $(`#${view}-count`);
-      if (count) {
-        if (state.items[view].length === 0) {
-          count.textContent = '';
-          count.style.display = 'none';
-        } else {
-          count.style.display = '';
-          count.textContent = state.items[view].length + (state.total[view] > state.items[view].length ? ' of ' + state.total[view] : '') + ' items';
+        state.items[view] = reset ? rows : [...state.items[view], ...rows];
+        state.offset[view] = state.items[view].length;
+        const results = $('#library-results');
+        if (results) {
+          results.innerHTML = state.items[view].length ? renderTorboxLibrary(state.items[view]) : empty('No Library items found.');
+          observeArtwork(results);
         }
+        setStatus(view, data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
+        updateMore(view);
+        return;
       }
-      const results = $(`#${view}-results`);
-      if (results) {
-        if (view === 'movies' && loadViewMode === 'search') {
-          const hasIndexers = $('#movies-source-indexers')?.checked;
-          const hasUsenet = $('#movies-source-usenet')?.checked;
-            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
-            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-            const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
-            const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
-          if (hasIndexers && hasUsenet) {
-            rows = [...torrents, ...usenet];
-            state.total.movies = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
-          } else if (hasIndexers) {
-            rows = torrents;
-            state.total.movies = data.results?.torrents?.total || data.torrents?.total || 0;
-          } else if (hasUsenet) {
-            rows = usenet;
-            state.total.movies = data.results.usenet?.total || 0;
-          } else {
-            rows = torrents;
-            state.total.movies = data.results?.torrents?.total || data.torrents?.total || 0;
-          }
-          results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
-          renderPagination('movies', 'movies-pagination');
-        } else if (view === 'movies' && loadViewMode === 'discover') {
-        } else if (view === 'movies' && loadViewMode === 'discover') {
-          results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'movie'}))) : empty('Search for movies or click Discover to see recent releases.');
-        } else if (view === 'shows' && loadViewMode === 'search') {
-          const hasIndexers = $('#shows-source-indexers')?.checked;
-          const hasUsenet = $('#shows-source-usenet')?.checked;
-            const tItems = data.results?.torrents?.items || data.torrents?.items || [];
-            const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-            const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
-            const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
-          if (hasIndexers && hasUsenet) {
-            rows = [...torrents, ...usenet];
-            state.total.shows = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
-          } else if (hasIndexers) {
-            rows = torrents;
-            state.total.shows = data.results?.torrents?.total || data.torrents?.total || 0;
-          } else if (hasUsenet) {
-            rows = usenet;
-            state.total.shows = data.results?.usenet?.total || data.usenet?.total || 0;
-          } else {
-            rows = torrents;
-            state.total.shows = data.results?.torrents?.total || data.torrents?.total || 0;
-          }
-          results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
-          renderPagination('shows', 'shows-pagination');
-        } else if (view === 'shows' && loadViewMode === 'discover') {
-          results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'series'}))) : empty('Search for shows or click Discover to see recent releases.');
-        } else if (view === 'music' && loadViewMode === 'discover') {
-          results.innerHTML = rows.length ? musicReleaseCards(rows) : empty('No results yet. Try searching for artists, albums, or tracks.');
-        } else if (view === 'music') {
-          const torrents = state.items[view].filter(item => item._source === 'torrents');
-          const usenet = state.items[view].filter(item => item._source === 'usenet');
-          const emptyMsg = state.musicSearched ? 'No results yet. Try searching for artists, albums, or tracks.' : null;
-          if (torrents.length) {
-            results.innerHTML = renderBrowseTorrentCandidates(torrents.map(t => ({...t, kind: 'music'})));
-          } else if (usenet.length) {
-            results.innerHTML = renderBrowseUsenetCandidates(usenet);
-          } else {
-            results.innerHTML = emptyMsg ? empty(emptyMsg) : '';
-          }
-        } else {
-          const emptyMsg = view === 'library' ? 'No Library items found.' : view === 'music' ? (state.musicSearched ? 'No results yet. Try searching for artists, albums, or tracks.' : null) : view === 'movies' ? (state.moviesSearched ? 'Search for movies or click Discover to see recent releases.' : null) : view === 'shows' ? (state.showsSearched ? 'No results yet. Try searching for shows.' : null) : 'No results yet. The IMDb catalog may still be importing.';
-          results.innerHTML = state.items[view].length ? (view === 'library' ? renderTorboxLibrary(state.items[view]) : view === 'music' ? musicReleaseCards(state.items[view]) : titleCards(state.items[view])) : (emptyMsg ? empty(emptyMsg) : '');
-        }
-        observeArtwork(results);
+
+      const q = $(`#${view}-query`)?.value || '';
+      if (!q) {
+        state.items[view] = [];
+        state.total[view] = 0;
+        const results = $(`#${view}-results`);
+        if (results) results.innerHTML = empty('');
+        const count = $(`#${view}-count`);
+        if (count) { count.textContent = ''; count.style.display = 'none'; }
+        return;
       }
-      setStatus(view, view === 'library' && data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
-      updateMore(view);
+
+      void doSearch(view, 1);
     } catch (error) {
       setStatus(view, error.message);
-      if (reset) {
-        const results = $(`#${view}-results`);
-        if (results) results.innerHTML = empty(error.message);
-      }
     }
-  } else if (view === 'calendar') {
-    await loadCalendar();
   }
   loadViewMode = null;
 }
+
 document.addEventListener('click', event => {
   const target = event.target instanceof Element ? event.target : null;
   if (!target) return;
@@ -1605,52 +1390,43 @@ initHamburgerMenu();
 
 // Search button click handlers
 document.getElementById('browse-search-btn')?.addEventListener('click', () => {
-  void searchBrowse();
+  void doSearch('browse', 1);
 });
 
 document.getElementById('movies-search-btn')?.addEventListener('click', () => {
-  loadViewMode = 'search';
   state.moviesSearched = true;
-  void loadView('movies', true);
+  void doSearch('movies', 1);
 });
 
 document.getElementById('shows-search-btn')?.addEventListener('click', () => {
-  loadViewMode = 'search';
   state.showsSearched = true;
-  void loadView('shows', true);
+  void doSearch('shows', 1);
 });
 
 document.getElementById('music-search-btn')?.addEventListener('click', () => {
-  loadViewMode = 'search';
   state.musicSearched = true;
-  void loadView('music', true);
+  void doSearch('music', 1);
 });
 
-// Discover button click handlers
 document.getElementById('movies-discover-btn')?.addEventListener('click', () => {
-  loadViewMode = 'discover';
-  void loadView('movies', true);
+  state.moviesSearched = false;
+  void doSearch('movies', 1);
 });
 
 document.getElementById('shows-discover-btn')?.addEventListener('click', () => {
-  loadViewMode = 'discover';
-  void loadView('shows', true);
+  state.showsSearched = false;
+  void doSearch('shows', 1);
 });
 
 document.getElementById('music-discover-btn')?.addEventListener('click', () => {
-  loadViewMode = 'discover';
-  void loadView('music', true);
+  state.musicSearched = false;
+  void doSearch('music', 1);
 });
 
-// More button click handlers (classic pagination)
 document.getElementById('movies-more')?.addEventListener('click', () => { void loadMoreUnified('movies'); });
 document.getElementById('shows-more')?.addEventListener('click', () => { void loadMoreUnified('shows'); });
 document.getElementById('music-more')?.addEventListener('click', () => { void loadMoreUnified('music'); });
 document.getElementById('browse-more')?.addEventListener('click', () => { void loadMoreUnified('browse'); });
-
-
-// App initialization: render the current URL on load and restore
-// the view on browser back/forward navigation.
 function initApp() {
   window.addEventListener('popstate', routeFromLocation);
   routeFromLocation();

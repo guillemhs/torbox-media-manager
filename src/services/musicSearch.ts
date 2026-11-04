@@ -299,32 +299,32 @@ function prowlarrSearchUrl(): URL | null {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) return null;
   const url = new URL(base);
-  // Use the configured Torznab feed URL directly (e.g. http://prowlarr:9696/api).
-  // The API key is sent as the apikey query parameter.
-  return url;
+  // Prowlarr Torznab feed: http://<host>:<port>/<apiKey>/api
+  // Convert to Prowlarr JSON API: http://<host>:<port>/api/v1/search
+  if (/\/api\/?$/.test(url.pathname)) {
+    url.pathname = '/api/v1/search';
+    return url;
+  }
+  return null;
 }
 async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movie' | 'music', categories: string[], limit = 50, offset = 0): Promise<MusicTorrentCandidate[] | null> {
   const url = prowlarrSearchUrl();
   if (!url) return null;
-  url.searchParams.set('q', query);
-  url.searchParams.set('t', type);
-  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
-  url.searchParams.set('offset', String(Math.max(0, offset)));
-  url.searchParams.set('cat', categories.join(','));
+  url.searchParams.set('query', query);
+  url.searchParams.set('category', categories.join(','));
+  url.searchParams.set('take', String(Math.min(100, Math.max(1, limit))));
+  url.searchParams.set('skip', String(Math.max(0, offset)));
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
 
-  // Prowlarr Torznab API expects the API key as a query parameter
-  url.searchParams.set('apikey', key);
-
   console.warn('[Prowlarr] search request:', {
     url: url.toString().replace(key, '***REDACTED***'),
-    params: { q: query, t: type, limit, offset, cat: categories.join(',') },
+    params: { query, type, category: categories.join(','), take: limit, skip: offset },
     hasApiKey: Boolean(key)
   });
 
   let response: Response;
-  try { response = await fetch(url, { headers: { Accept: 'application/xml, application/rss+xml, */*' }, signal: AbortSignal.timeout(20_000) }); }
+  try { response = await fetch(url, { headers: { 'X-Api-Key': key, 'Accept': 'application/json' }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.'); }
   if (!response.ok) {
     let body: string;
@@ -336,59 +336,48 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
     });
     throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
   }
-  const xml = await response.text();
-  const rawItems = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
-  console.warn('[Prowlarr] search response:', {
-    status: response.status,
-    itemCount: rawItems.length,
-    bodyPreview: xml.slice(0, 500)
-  });
+  const data = await response.json();
   const candidates = new Map<string, MusicTorrentCandidate>();
-  for (const item of rawItems) {
-    const name = tag(item, 'title');
-    const link = tag(item, 'link').replace(/&amp;/g, '&');
-    const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
-    const hash = (attr(item, 'infohash') || magnetHash(magnet)).toLowerCase();
-    if (!name || !magnet || !/^[a-f0-9]{40}$/.test(hash)) continue;
-    const indexer = tag(item, 'jackettindexer') || tag(item, 'prowlarrindexer') || 'Prowlarr';
-    const size = positiveNumber(attr(item, 'size'));
-    const seeders = countNumber(attr(item, 'seeders'));
-    const leechers = countNumber(attr(item, 'peers') ?? attr(item, 'leechers'));
-    candidates.set(hash, {
-      hash,
-      magnet,
-      name,
+  for (const item of data) {
+    const infoHash = item.infoHash?.toLowerCase();
+    const title = item.title;
+    const size = item.size;
+    const seeders = item.seeders;
+    const leechers = item.leechers;
+    const magnetUrl = item.magnetUrl || item.downloadUrl;
+
+    if (!title || !/^[a-f0-9]{40}$/.test(infoHash)) continue;
+    candidates.set(infoHash, {
+      hash: infoHash,
+      magnet: magnetUrl || `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
+      name: title,
       seeders,
       leechers,
       size,
-      source: indexer
+      source: item.indexer || 'Prowlarr'
     });
   }
-  const result = [...candidates.values()];
-  console.warn('[Prowlarr] search candidates returned:', result.length);
-  return result;
+  return [...candidates.values()];
 }
 
 async function searchTorznabFeed(query: string, category: string, limit = 50, offset = 0): Promise<MusicTorrentCandidate[]> {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) throw new Error('Torrent search is not configured. Set TORZNAB_URL to a Torznab feed URL.');
   const url = new URL(base);
-  url.searchParams.set('t', 'search');
-  url.searchParams.set('cat', category);
-  url.searchParams.set('q', query);
-  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
-  url.searchParams.set('offset', String(Math.max(0, offset)));
+  url.searchParams.set('query', query);
+  url.searchParams.set('category', category);
+  url.searchParams.set('take', String(Math.min(100, Math.max(1, limit))));
+  url.searchParams.set('skip', String(Math.max(0, offset)));
   const key = process.env.TORZNAB_API_KEY?.trim();
-  if (key) url.searchParams.set('apikey', key);
 
   console.warn('[Torznab] search request:', {
     url: url.toString().replace(key || '', '***REDACTED***'),
-    params: { q: query, t: 'search', limit, offset, cat: category },
+    params: { query, t: 'search', take: limit, skip: offset, category },
     hasApiKey: Boolean(key)
   });
 
   let response: Response;
-  try { response = await fetch(url, { headers: { Accept: 'application/xml, application/rss+xml, */*' }, signal: AbortSignal.timeout(20_000) }); }
+  try { response = await fetch(url, { headers: { 'X-Api-Key': key || '', 'Accept': 'application/json' }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Torznab search service is unavailable. Check your configured endpoint.'); }
   if (!response.ok) {
     let body: string;
@@ -400,37 +389,28 @@ async function searchTorznabFeed(query: string, category: string, limit = 50, of
     });
     throw new Error(`Torznab returned HTTP ${response.status}.`);
   }
-  const xml = await response.text();
-  const rawItems = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
-  console.warn('[Torznab] search response:', {
-    status: response.status,
-    itemCount: rawItems.length,
-    bodyPreview: xml.slice(0, 500)
-  });
+  const data = await response.json();
   const candidates = new Map<string, MusicTorrentCandidate>();
-  for (const item of rawItems) {
-    const name = tag(item, 'title');
-    const link = tag(item, 'link').replace(/&amp;/g, '&');
-    const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
-    const hash = (attr(item, 'infohash') || magnetHash(magnet)).toLowerCase();
-    if (!name || !magnet || !/^[a-f0-9]{40}$/.test(hash)) continue;
-    const indexer = tag(item, 'jackettindexer') || tag(item, 'prowlarrindexer') || 'Torznab';
-    const number = (value: string | null): number | null => {
-      if (value === null) return null;
-      const n = Number(value);
-      return Number.isFinite(n) && n >= 0 ? n : null;
-    };
-    candidates.set(hash, {
-      hash, magnet, name,
-      seeders: number(attr(item, 'seeders')),
-      leechers: number(attr(item, 'peers') ?? attr(item, 'leechers')),
-      size: number(attr(item, 'size')),
-      source: indexer
+  for (const item of data) {
+    const infoHash = item.infoHash?.toLowerCase();
+    const title = item.title;
+    const size = item.size;
+    const seeders = item.seeders;
+    const leechers = item.leechers;
+    const magnetUrl = item.magnetUrl || item.downloadUrl;
+
+    if (!title || !/^[a-f0-9]{40}$/.test(infoHash)) continue;
+    candidates.set(infoHash, {
+      hash: infoHash,
+      magnet: magnetUrl || `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
+      name: title,
+      seeders,
+      leechers,
+      size,
+      source: item.indexer || 'Torznab'
     });
   }
-  const result = [...candidates.values()];
-  console.warn('[Torznab] search candidates returned:', result.length);
-  return result;
+  return [...candidates.values()];
 }
 
 export async function searchIndexerTorrents(

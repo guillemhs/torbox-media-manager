@@ -43,30 +43,13 @@ function prowlarrSearchUrl(): URL | null {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) return null;
   const url = new URL(base);
-  // Use the configured Torznab feed URL directly (e.g. http://prowlarr:9696/api).
-  // The API key is sent via the X-Api-Key header.
-  return url;
-}
-
-/**
- * Redacts potential API keys and tokens from a URL for safe logging.
- */
-function redactUrl(url: URL): string {
-  try {
-    const redacted = new URL(url.toString());
-    for (const param of ['apikey', 'api_key', 'apiKey']) {
-      if (redacted.searchParams.has(param)) redacted.searchParams.set(param, '***REDACTED***');
-    }
-    // Redact an API key embedded in the first path segment (Prowlarr Torznab style: /<apiKey>/api)
-    const parts = redacted.pathname.split('/').filter(Boolean);
-    if (parts.length >= 2 && /^[a-f0-9]{32}$/i.test(parts[0])) {
-      parts[0] = '***REDACTED***';
-      redacted.pathname = '/' + parts.join('/');
-    }
-    return redacted.toString();
-  } catch {
-    return '[unparseable url]';
+  // Prowlarr Torznab feed: http://<host>:<port>/<apiKey>/api
+  // Convert to Prowlarr JSON API: http://<host>:<port>/api/v1/search
+  if (/\/api\/?$/.test(url.pathname)) {
+    url.pathname = '/api/v1/search';
+    return url;
   }
+  return null;
 }
 export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
   if (!/^tt\d+$/.test(imdbId)) throw new Error('A valid IMDb ID is required for torrent search.');
@@ -136,32 +119,27 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
     throw new Error('Prowlarr is not configured. Set TORZNAB_URL to a Prowlarr Torznab feed URL.');
   }
 
-  url.searchParams.set('q', query);
-  url.searchParams.set('t', 'search');
-  url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
-  url.searchParams.set('offset', String(Math.max(0, offset)));
-  
-  // Add category filtering if provided
-  if (categories && categories.length > 0) {
-    url.searchParams.set('cat', categories.join(','));
-  }
+  // Prowlarr JSON API: /api/v1/search with X-Api-Key header
+  const take = Math.min(100, Math.max(1, limit));
+  const skip = Math.max(0, offset);
+  url.searchParams.set('query', query);
+  url.searchParams.set('category', categories?.join(',') || '');
+  url.searchParams.set('take', String(take));
+  url.searchParams.set('skip', String(skip));
 
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
 
-  // Prowlarr Torznab API expects the API key as a query parameter
-  url.searchParams.set('apikey', key);
-
   console.warn('[Prowlarr] search request:', {
-    url: redactUrl(url),
-    params: { q: url.searchParams.get('q'), t: url.searchParams.get('t'), limit: url.searchParams.get('limit'), offset: url.searchParams.get('offset'), cat: url.searchParams.get('cat') },
+    url: url.toString(),
+    params: { query, category: categories?.join(','), take, skip },
     hasApiKey: Boolean(key)
   });
 
   let response: Response;
   try {
     response = await fetch(url, {
-      headers: { Accept: 'application/xml, application/rss+xml, */*' },
+      headers: { 'X-Api-Key': key, 'Accept': 'application/json' },
       signal: AbortSignal.timeout(20_000)
     });
   } catch {
@@ -178,45 +156,36 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
     console.warn('[Prowlarr] search error response:', {
       status: response.status,
       statusText: response.statusText,
-      url: redactUrl(url),
+      url: url.toString(),
       body: body.slice(0, 1000)
     });
     throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
   }
 
-  const xml = await response.text();
-  const rawItems = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
-  console.warn('[Prowlarr] search response:', {
-    status: response.status,
-    itemCount: rawItems.length,
-    bodyPreview: xml.slice(0, 500)
-  });
+  const data = await response.json();
   const candidates = new Map<string, TorrentCandidate>();
-  for (const item of rawItems) {
-    const name = tag(item, 'title');
-    const link = tag(item, 'link').replace(/&amp;/g, '&');
-    const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
-    const hash = (attr(item, 'infohash') || magnetHash(magnet)).toLowerCase();
-    if (!name || !magnet || !/^[a-f0-9]{40}$/.test(hash)) continue;
-    const indexer = tag(item, 'jackettindexer') || tag(item, 'prowlarrindexer') || 'Prowlarr';
-    const size = positiveNumber(attr(item, 'size'));
-    const seeders = countNumber(attr(item, 'seeders'));
-    const leechers = countNumber(attr(item, 'peers') ?? attr(item, 'leechers'));
-    candidates.set(hash, {
-      hash,
-      magnet,
-      name,
+  for (const item of data) {
+    const infoHash = item.infoHash?.toLowerCase();
+    const title = item.title;
+    const size = item.size;
+    const seeders = item.seeders;
+    const leechers = item.leechers;
+    const magnetUrl = item.magnetUrl || item.downloadUrl;
+
+    if (!title || !/^[a-f0-9]{40}$/.test(infoHash)) continue;
+    candidates.set(infoHash, {
+      hash: infoHash,
+      magnet: magnetUrl || `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
+      name: title,
       seeders,
       leechers,
-      size,
-      source: indexer
+      size: size ? Number((size / (1024 * 1024 * 1024)).toFixed(1)) : null,
+      source: item.indexer || 'Prowlarr'
     });
   }
   const clampedLimit = Math.min(100, Math.max(1, limit));
   const clampedOffset = Math.max(0, offset);
-  const result = [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);
-  console.warn('[Prowlarr] search candidates returned:', result.length);
-  return result;
+  return [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);
 }
 
 function decodeXml(value: string): string {

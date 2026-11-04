@@ -136,6 +136,7 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
 
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
+  url.searchParams.set('apikey', key);
 
   let response: Response;
   try {

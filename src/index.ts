@@ -91,22 +91,32 @@ app.get(['/', '/browse', '/movies', '/shows', '/torrents', '/local', '/calendar'
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+function log(message: string): void {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+}
+
+function logError(message: string): void {
+  console.error(`[${new Date().toISOString()}] ${message}`);
+}
+
 async function start(): Promise<void> {
   await initializeDatabase();
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Torbox Media Manager running on port ${PORT}`);
-    console.log(`Mode: ${process.env.TORBOX_API_KEY?.trim() ? 'Torbox Integrated' : 'Local Offline'}`);
-    console.log(`IMDb titles currently stored: startup import may add more`);
+    log(`Torbox Media Manager running on port ${PORT}`);
+    log(`Mode: ${process.env.TORBOX_API_KEY?.trim() ? 'Torbox Integrated' : 'Local Offline'}`);
+    log(`IMDb titles currently stored: startup import may add more`);
+    log(`Prowlarr/Torznab URL: ${process.env.TORZNAB_URL?.trim() || '(not configured)'}`);
+    log(`Prowlarr API key configured: ${Boolean(process.env.TORZNAB_API_KEY?.trim())}`);
   });
   if (process.env.IMDB_AUTO_IMPORT !== 'false' && await needsImdbImport()) {
-    console.info('Starting or resuming the IMDb dataset import in the background');
+    log('Starting or resuming the IMDb dataset import in the background');
     void importImdbDatasets().catch((error: unknown) => {
-      console.error('IMDb initial import failed:', error instanceof Error ? error.message : 'unknown error');
+      logError('IMDb initial import failed:' + (error instanceof Error ? error.message : ' unknown error'));
     });
   }
 }
 
 void start().catch((error: unknown) => {
-  console.error('Application failed to start:', error instanceof Error ? error.message : error);
+  logError('Application failed to start:' + (error instanceof Error ? error.message : String(error)));
   process.exitCode = 1;
 });

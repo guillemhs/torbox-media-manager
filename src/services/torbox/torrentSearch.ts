@@ -43,13 +43,30 @@ function prowlarrSearchUrl(): URL | null {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) return null;
   const url = new URL(base);
-  // Prowlarr Torznab feed: http://<host>:<port>/<apiKey>/api
-  // Convert to Prowlarr JSON API: http://<host>:<port>/api/v1/search
-  if (/\/api\/?$/.test(url.pathname)) {
-    url.pathname = '/api/v1/search';
-    return url;
+  // Use the configured Torznab feed URL directly (e.g. http://prowlarr:9696/api).
+  // The API key is sent via the X-Api-Key header.
+  return url;
+}
+
+/**
+ * Redacts potential API keys and tokens from a URL for safe logging.
+ */
+function redactUrl(url: URL): string {
+  try {
+    const redacted = new URL(url.toString());
+    for (const param of ['apikey', 'api_key', 'apiKey']) {
+      if (redacted.searchParams.has(param)) redacted.searchParams.set(param, '***REDACTED***');
+    }
+    // Redact an API key embedded in the first path segment (Prowlarr Torznab style: /<apiKey>/api)
+    const parts = redacted.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && /^[a-f0-9]{32}$/i.test(parts[0])) {
+      parts[0] = '***REDACTED***';
+      redacted.pathname = '/' + parts.join('/');
+    }
+    return redacted.toString();
+  } catch {
+    return '[unparseable url]';
   }
-  return null;
 }
 export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
   if (!/^tt\d+$/.test(imdbId)) throw new Error('A valid IMDb ID is required for torrent search.');
@@ -132,17 +149,40 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
 
+  // Prowlarr Torznab API expects the API key as a query parameter
+  url.searchParams.set('apikey', key);
+
+  console.warn('[Prowlarr] search request:', {
+    url: redactUrl(url),
+    params: { q: url.searchParams.get('q'), t: url.searchParams.get('t'), limit: url.searchParams.get('limit'), offset: url.searchParams.get('offset'), cat: url.searchParams.get('cat') },
+    hasApiKey: Boolean(key)
+  });
 
   let response: Response;
   try {
     response = await fetch(url, {
-      headers: { Accept: 'application/rss+xml, application/xml', 'X-Api-Key': key },
+      headers: { Accept: 'application/rss+xml, application/xml' },
       signal: AbortSignal.timeout(20_000)
     });
   } catch {
     throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.');
   }
-  if (!response.ok) throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
+
+  if (!response.ok) {
+    let body: string;
+    try {
+      body = await response.text();
+    } catch {
+      body = '<unreadable response body>';
+    }
+    console.warn('[Prowlarr] search error response:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: redactUrl(url),
+      body: body.slice(0, 1000)
+    });
+    throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
+  }
 
   const xml = await response.text();
   const candidates = new Map<string, TorrentCandidate>();

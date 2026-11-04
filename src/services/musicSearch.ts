@@ -299,13 +299,9 @@ function prowlarrSearchUrl(): URL | null {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) return null;
   const url = new URL(base);
-  // Prowlarr Torznab feed: http://<host>:<port>/<apiKey>/api
-  // Convert to Prowlarr JSON API: http://<host>:<port>/api/v1/search
-  if (/\/api\/?$/.test(url.pathname)) {
-    url.pathname = '/api/v1/search';
-    return url;
-  }
-  return null;
+  // Use the configured Torznab feed URL directly (e.g. http://prowlarr:9696/api).
+  // The API key is sent as the apikey query parameter.
+  return url;
 }
 async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movie' | 'music', categories: string[], limit = 50, offset = 0): Promise<MusicTorrentCandidate[] | null> {
   const url = prowlarrSearchUrl();
@@ -318,10 +314,28 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
 
+  // Prowlarr Torznab API expects the API key as a query parameter
+  url.searchParams.set('apikey', key);
+
+  console.warn('[Prowlarr] search request:', {
+    url: url.toString().replace(key, '***REDACTED***'),
+    params: { q: query, t: type, limit, offset, cat: categories.join(',') },
+    hasApiKey: Boolean(key)
+  });
+
   let response: Response;
-  try { response = await fetch(url, { headers: { Accept: 'application/rss+xml, application/xml', 'X-Api-Key': key }, signal: AbortSignal.timeout(20_000) }); }
+  try { response = await fetch(url, { headers: { Accept: 'application/rss+xml, application/xml' }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.'); }
-  if (!response.ok) throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
+  if (!response.ok) {
+    let body: string;
+    try { body = await response.text(); } catch { body = '<unreadable response body>'; }
+    console.warn('[Prowlarr] search error response:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: body.slice(0, 1000)
+    });
+    throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
+  }
   const xml = await response.text();
   const candidates = new Map<string, MusicTorrentCandidate>();
   for (const item of xml.match(/<item\b[\s\S]*?<\/item>/gi) || []) {
@@ -357,11 +371,27 @@ async function searchTorznabFeed(query: string, category: string, limit = 50, of
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('offset', String(Math.max(0, offset)));
   const key = process.env.TORZNAB_API_KEY?.trim();
+  if (key) url.searchParams.set('apikey', key);
+
+  console.warn('[Torznab] search request:', {
+    url: url.toString().replace(key || '', '***REDACTED***'),
+    params: { q: query, t: 'search', limit, offset, cat: category },
+    hasApiKey: Boolean(key)
+  });
 
   let response: Response;
   try { response = await fetch(url, { headers: { Accept: 'application/rss+xml, application/xml' }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Torznab search service is unavailable. Check your configured endpoint.'); }
-  if (!response.ok) throw new Error(`Torznab returned HTTP ${response.status}.`);
+  if (!response.ok) {
+    let body: string;
+    try { body = await response.text(); } catch { body = '<unreadable response body>'; }
+    console.warn('[Torznab] search error response:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: body.slice(0, 1000)
+    });
+    throw new Error(`Torznab returned HTTP ${response.status}.`);
+  }
   const xml = await response.text();
   const candidates = new Map<string, MusicTorrentCandidate>();
   for (const item of xml.match(/<item\b[\s\S]*?<\/item>/gi) || []) {

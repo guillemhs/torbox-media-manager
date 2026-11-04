@@ -299,25 +299,27 @@ function prowlarrSearchUrl(): URL | null {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) return null;
   const url = new URL(base);
+  // Prowlarr Torznab feed endpoint: http://<host>:<port>/<apiKey>/api
+  if (/\/api\/?$/.test(url.pathname)) {
+    url.pathname = url.pathname.replace(/\/$/, '');
+    return url;
+  }
+  // Also accept an already-configured /api/v1/search endpoint
   if (/\/api\/v1\/search\/?$/.test(url.pathname)) {
     url.pathname = url.pathname.replace(/\/$/, '');
     return url;
   }
-  const indexerFeed = /^(.*)\/\d+\/api\/?$/.exec(url.pathname);
-  if (!indexerFeed) return null;
-  url.pathname = `${indexerFeed[1].replace(/\/+$/, '')}/api/v1/search`;
-  url.search = '';
-  return url;
+  return null;
 }
 
 async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movie' | 'music', categories: string[], limit = 50, offset = 0): Promise<MusicTorrentCandidate[] | null> {
   const url = prowlarrSearchUrl();
   if (!url) return null;
-  url.searchParams.set('query', query);
-  url.searchParams.set('type', type);
+  url.searchParams.set('q', query);
+  url.searchParams.set('t', type);
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('offset', String(Math.max(0, offset)));
-  for (const category of categories) url.searchParams.append('categories', category);
+  url.searchParams.set('cat', categories.join(','));
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
   let response: Response;

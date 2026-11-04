@@ -43,16 +43,17 @@ function prowlarrSearchUrl(): URL | null {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) return null;
   const url = new URL(base);
-  // Convert to /api/v1/search endpoint if it's an indexer feed URL
+  // Prowlarr Torznab feed endpoint: http://<host>:<port>/<apiKey>/api
+  if (/\/api\/?$/.test(url.pathname)) {
+    url.pathname = url.pathname.replace(/\/$/, '');
+    return url;
+  }
+  // Also accept an already-configured /api/v1/search endpoint
   if (/\/api\/v1\/search\/?$/.test(url.pathname)) {
     url.pathname = url.pathname.replace(/\/$/, '');
     return url;
   }
-  const indexerFeed = /^(.*)\/\d+\/api\/?$/.exec(url.pathname);
-  if (!indexerFeed) return null;
-  url.pathname = `${indexerFeed[1].replace(/\/+$/, '')}/api/v1/search`;
-  url.search = '';
-  return url;
+  return null;
 }
 
 export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
@@ -124,6 +125,7 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   }
 
   url.searchParams.set('q', query);
+  url.searchParams.set('t', 'search');
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('offset', String(Math.max(0, offset)));
   

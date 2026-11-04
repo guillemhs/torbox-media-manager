@@ -87,6 +87,18 @@
       .pagination-btn{padding:.375rem .75rem;font-size:.875rem}
       .pagination-info{font-size:.875rem;color:#6c757d}
       .pagination-ellipsis{padding:.375rem .5rem;color:#6c757d}
+      .result-list-item{border:1px solid #dee2e6;border-radius:.5rem;padding:1rem;margin-bottom:.75rem;background:#fff;display:block}
+      .result-list-item a{text-decoration:none;color:inherit;display:block}
+      .result-list-item a:hover{color:#0d6efd;background:#f8f9fa}
+      .result-list-title{font-weight:600;color:#212529;font-size:1.05rem;word-break:break-word;line-height:1.35;margin-bottom:.15rem}
+      .result-list-meta{font-size:.875rem;color:#6c757d;margin-bottom:.1rem}
+      .result-list-meta-line{font-size:.8rem;color:#6c757d;margin-bottom:.2rem}
+      .result-list-source{font-size:.75rem;margin-bottom:.35rem}
+      .result-list-actions{margin-top:.4rem;display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end}
+      .result-list-actions .btn{font-size:.85rem;padding:.35rem .6rem}
+      .pagination{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;justify-content:flex-end;margin-top:.5rem}
+      .pagination .btn{font-size:.875rem}
+      .pagination .pagination-btn.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
       .card{transition:transform .2s,box-shadow .2s}
       .card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
       .card-img-top{height:200px;object-fit:cover}
@@ -158,6 +170,7 @@
         </div>
 
         <div id="browse-results" class="results"></div>
+        <div id="browse-pagination" class="pagination my-3"></div>
         <button id="browse-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
@@ -178,6 +191,7 @@
           </div>
         </div>
         <div id="movies-results" class="results"></div>
+        <div id="movies-pagination" class="pagination my-3"></div>
         <button id="movies-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
@@ -198,6 +212,7 @@
           </div>
         </div>
         <div id="shows-results" class="results"></div>
+        <div id="shows-pagination" class="pagination my-3"></div>
         <button id="shows-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 
@@ -236,6 +251,7 @@
           </div>
         </div>
         <div id="music-results" class="results"></div>
+        <div id="music-pagination" class="pagination my-3"></div>
         <button id="music-more" class="btn btn-outline-secondary btn-sm">More</button>
       </section>
 

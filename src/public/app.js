@@ -22,77 +22,68 @@ function sourceTag(source, contentType) {
 function renderPagination(viewKey, paginationId) {
     const container = document.getElementById(paginationId);
     if (!container) return;
-    
+
     const total = state.total[viewKey] || 0;
     const limit = 20;
     const totalPages = Math.max(1, Math.ceil(total / limit));
-    const currentPage = state.currentPage[viewKey] || 1;
-    
-    // Update state
+    let currentPage = state.currentPage[viewKey] || 1;
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
     state.totalPages[viewKey] = totalPages;
     state.currentPage[viewKey] = currentPage;
-    
-    // Hide if only one page
+
     if (totalPages <= 1) {
         container.classList.add('hidden');
         container.innerHTML = '';
         return;
     }
-    
+
     container.classList.remove('hidden');
-    
-    // Generate page numbers
+
     let pages = [];
-    const maxVisible = 5;
-    
-    if (totalPages <= maxVisible) {
-        // Show all pages
+    const showMax = 5;
+
+    if (totalPages <= showMax) {
         for (let i = 1; i <= totalPages; i++) {
             pages.push(i);
         }
     } else {
-        // Show first, last, current, and neighbors
         pages.push(1);
-        
         if (currentPage > 3) {
             pages.push('...');
         }
-        
         const start = Math.max(2, currentPage - 1);
         const end = Math.min(totalPages - 1, currentPage + 1);
-        
         for (let i = start; i <= end; i++) {
             pages.push(i);
         }
-        
         if (currentPage < totalPages - 2) {
             pages.push('...');
         }
-        
         pages.push(totalPages);
     }
-    
-    // Build pagination HTML
-    let html = '<span class="pagination-info">Page ' + currentPage + ' of ' + totalPages + ' (' + total + ' results)</span>';
-    
-    // Previous button
-    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" data-page="' + (currentPage - 1) + '"' + (currentPage === 1 ? ' disabled' : '') + ' aria-label="Previous page">&laquo;</button>';
-    
-    // Page numbers
+
+    let html = '<span class="pagination-info">Page <strong>' + currentPage + '</strong> of ' + totalPages + ' (' + total + ' results)</span> ';
+
+    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" data-page="1" aria-label="First page">First</button> ';
+
+    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" data-page="' + (currentPage - 1) + '" aria-label="Previous page">&lsaquo;</button> ';
+
     for (const page of pages) {
         if (page === '...') {
-            html += '<span class="pagination-ellipsis">...</span>';
+            html += '<span class="pagination-ellipsis">…</span> ';
         } else {
-            html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (page === currentPage ? ' active' : '') + '" data-page="' + page + '">' + page + '</button>';
+            html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (page === currentPage ? ' active' : '') + '" data-page="' + page + '">' + page + '</button> ';
         }
     }
-    
-    // Next button
-    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" data-page="' + (currentPage + 1) + '"' + (currentPage === totalPages ? ' disabled' : '') + ' aria-label="Next page">&raquo;</button>';
-    
+
+    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" data-page="' + (currentPage + 1) + '" aria-label="Next page">&rsaquo;</button> ';
+
+    html += '<button class="btn btn-outline-secondary btn-sm pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" data-page="' + totalPages + '" aria-label="Last page">Last</button>';
+
     container.innerHTML = html;
-    
-    // Add click handlers
+
     container.querySelectorAll('.pagination-btn[data-page]').forEach(btn => {
         btn.addEventListener('click', () => {
             const page = parseInt(btn.dataset.page);
@@ -1066,148 +1057,10 @@ async function searchTorrentsUsenetSearch(query) {
     }
     
     // Load more for movies, shows, music views
-    async function loadMoreUnified(view){
-        const query=$(`#${view}-query`)?.value.trim()||'';
-        if(query.length<2)return;
-        
-        const sources=[];
-        const indexersCheckbox=$(`#${view}-source-indexers`);
-        const usenetCheckbox=$(`#${view}-source-usenet`);
-        
-        if(indexersCheckbox && indexersCheckbox.checked) sources.push('indexers');
-        if(usenetCheckbox && usenetCheckbox.checked) sources.push('usenet');
-        
-        if(sources.length===0)return;
-        
-        const kind=view==='movies'?'movie':view==='shows'?'series':'music';
-        const usenetSource=$(`#${view}-usenet-source`)?.value||'all';
-        const indexers=getSelectedIndexers(view+'-');
-        const offset=state.offset[view]||0;
-        const limit=20;
-        
-        setStatus(view,`Loading more…`);
-        try{
-            const url=`/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`;
-            const data=await jsonFetch(url);
-            
-            let newItems=[];
-            if(view==='movies') newItems=data.movies?.items||[];
-            else if(view==='shows') newItems=data.shows?.items||[];
-            else if(view==='music') newItems=data.music?.items||[];
-            
-            state.items[view]=[...state.items[view],...newItems];
-            state.offset[view]+=newItems.length;
-            
-            if(view==='movies'){
-                const container=$('#movies-results');
-                if(container) container.innerHTML=state.items.movies.length?titleCards(state.items.movies.map(item=>({...item,kind:'movie'}))):'';
-                $('#movies-more')?.classList.toggle('hidden',state.items.movies.length>=state.total.movies);
-                observeArtwork(container);
-                // Render pagination
-                state.currentPage.movies = 1;
-                renderPagination('movies', 'movies-pagination');
-            }else if(view==='shows'){
-                const container=$('#shows-results');
-                if(container) container.innerHTML=state.items.shows.length?titleCards(state.items.shows.map(item=>({...item,kind:'series'}))):'';
-                $('#shows-more')?.classList.toggle('hidden',state.items.shows.length>=state.total.shows);
-                observeArtwork(container);
-                // Render pagination
-                state.currentPage.shows = 1;
-                renderPagination('shows', 'shows-pagination');
-            }else if(view==='music'){
-                const container=$('#music-results');
-                if(container) container.innerHTML=state.items.music.length?musicReleaseCards(state.items.music):'';
-                $('#music-more')?.classList.toggle('hidden',state.items.music.length>=state.total.music);
-                observeArtwork(container);
-                // Add event listener for music copy magnet buttons
-                container.querySelectorAll('[data-copy-magnet]').forEach(button => {
-                    button.onclick = async () => {
-                        const item = state.items.music[Number(button.dataset.copyMagnet)];
-                        try {
-                            await navigator.clipboard.writeText(item.magnet);
-                            button.textContent = 'Copied into the clipboard';
-                            setTimeout(() => {
-                                if (button.isConnected) button.textContent = 'Copy magnet';
-                            }, 1500);
-                        } catch {
-                            const field = document.createElement('textarea');
-                            field.value = item.magnet;
-                            field.setAttribute('readonly', '');
-                            field.style.position = 'fixed';
-                            field.style.opacity = '0';
-                            document.body.append(field);
-                            field.select();
-                            const copied = document.execCommand('copy');
-                            field.remove();
-                            button.textContent = copied ? 'Copied into the clipboard' : 'Copy failed';
-                            setTimeout(() => {
-                                if (button.isConnected) button.textContent = 'Copy magnet';
-                            }, 1500);
-                        }
-                    };
-                });
-                // Add event listener for music add-torrent buttons
-                container.querySelectorAll('[data-add-torrent]').forEach(button => {
-                    button.onclick = async () => {
-                        const item = state.items.music[Number(button.dataset.addTorrent)];
-                        button.disabled = true;
-                        button.textContent = 'Adding…';
-                        try {
-                            await jsonFetch('/torbox/torrents', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({magnet: item.magnet, name: item.title, addOnlyIfCached: button.dataset.cachedOnly === 'true'})
-                            });
-                            button.textContent = 'Added';
-                            setTimeout(() => {
-                                if (button.isConnected) button.textContent = 'Add cached';
-                            }, 1500);
-                        } catch (error) {
-                            button.textContent = 'Add failed';
-                            button.disabled = false;
-                            setTimeout(() => {
-                                if (button.isConnected) button.textContent = 'Add cached';
-                            }, 1500);
-                        }
-                    };
-                });
-                // Add event listener for music add-usenet buttons
-                container.querySelectorAll('[data-add-usenet]').forEach(button => {
-                    button.onclick = async () => {
-                        const item = state.items.music[Number(button.dataset.addUsenet)];
-                        button.disabled = true;
-                        button.textContent = 'Adding…';
-                        try {
-                            const usenetData = JSON.parse(decodeURIComponent(item.dataset.addUsenet));
-                            await jsonFetch('/torbox/usenet', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({...usenetData, addOnlyIfCached: false})
-                            });
-                            button.textContent = 'Added';
-                            setTimeout(() => {
-                                if (button.isConnected) button.textContent = 'Add to TorBox';
-                            }, 1500);
-                        } catch (error) {
-                            button.textContent = 'Add failed';
-                            button.disabled = false;
-                            setTimeout(() => {
-                                if (button.isConnected) button.textContent = 'Add to TorBox';
-                            }, 1500);
-                        }
-                    };
-                });
-
-                // Render pagination
-                state.currentPage.music = 1;
-                renderPagination('music', 'music-pagination');
-            }
-            
-            setStatus(view,'')
-        }catch(error){
-            setStatus(view,error.message)
-        }
-    }
+async function loadMoreUnified(view){
+    // "More" button now advances to the next page of unified search results
+    await goToPage(view, (state.currentPage[view] || 1) + 1);
+}
 
 
 // Load a specific page for unified search (replaces items instead of appending)
@@ -1367,7 +1220,7 @@ async function loadPageUnified(view, page) {
 }
 
 
-    function titleCards(items){return items.map(item=>{const kind=/^tv/i.test(item.titleType||'')?'series':'movie';const imdbId=item.imdbId||item.id||'';const route=`/title/${encodeURIComponent(imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';let categoryTag='';if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie';categoryTag=contentType}else if(item._source==='usenet'){contentType='All';categoryTag='Usenet'};const metaParts=[];const isTorrent = item._source === 'torrents';const isUsenet = item._source === 'usenet';const isLocal = item._source !== 'torrents' && item._source !== 'usenet';if(item.seeders!==null&&item.seeders!==undefined)metaParts.push(`${Number(item.seeders).toLocaleString()} seeders`);if(item.leechers!==null&&item.leechers!==undefined)metaParts.push(`${Number(item.leechers).toLocaleString()} leechers`);if(item.size)metaParts.push(fmtBytes(item.size));if(source && !isLocal)metaParts.push(source);const metaLine=metaParts.length?`<div class="result-row-meta-line">${esc(metaParts.join(' · '))}</div>`:'';const categoryTagHtml=categoryTag?`<span class="category-tag">${esc(categoryTag)}</span>`:'';const title=item.primaryTitle||item.name||item.title||'Unknown';const year=item.startYear||item.year||'Year unknown';const titleType=item.titleType||item.type||'Unknown';const actionButtons = isTorrent ? `<div class="candidate-actions">${item.magnet?`<button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy magnet</button>`:''}${item.magnet?`<button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(title)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div>` : isUsenet ? `<div class="candidate-actions"><button class="btn btn-primary btn-sm" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name||item.primaryTitle||item.title}))}">Add to TorBox</button></div>` : '';const sourceTagHtml = isLocal ? '' : sourceTag(source, contentType);return `<article class="card result-row"><a class="result-row-link" href="${route}" aria-label="Open ${esc(title)} details"><div><div class="result-row-title">${esc(title)}</div>${metaLine}<div class="result-row-meta">${esc(year)} · ${esc(titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div><div class="result-row-source">${categoryTagHtml}${sourceTagHtml}</div></div><span class="result-row-arrow" aria-hidden="true">›</span></a>${actionButtons}</article>`}).join('')}
+    function titleCards(items){return items.map((item,index)=>{const kind=/^tv/i.test(item.titleType||'')?'series':'movie';const imdbId=item.imdbId||item.id||'';const route=`/title/${encodeURIComponent(imdbId)}?kind=${kind}`;const source=item._source||item.source||'Unknown';let contentType='All';let categoryTag='';if(item._source==='torrents'){contentType=kind==='series'?'Show':'Movie';categoryTag=contentType}else if(item._source==='usenet'){contentType='All';categoryTag='Usenet'};const metaParts=[];const isTorrent = item._source === 'torrents';const isUsenet = item._source === 'usenet';const isLocal = item._source !== 'torrents' && item._source !== 'usenet';if(item.seeders!==null&&item.seeders!==undefined)metaParts.push(`${Number(item.seeders).toLocaleString()} seeders`);if(item.leechers!==null&&item.leechers!==undefined)metaParts.push(`${Number(item.leechers).toLocaleString()} leechers`);if(item.size)metaParts.push(fmtBytes(item.size));if(source&&!isLocal)metaParts.push(source);const metaLine=metaParts.length?`<div class="result-list-meta-line">${esc(metaParts.join(' · '))}</div>`:'';const categoryTagHtml=categoryTag?`<span class="category-tag">${esc(categoryTag)}</span>`:'';const title=item.primaryTitle||item.name||item.title||'Unknown';const year=item.startYear||item.year||'Year unknown';const titleType=item.titleType||item.type||'Unknown';const actionButtons = isTorrent ? `<div class="result-list-actions">${item.magnet?`<button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy magnet</button>`:''}${item.magnet?`<button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add to TorBox</button>`:''}${item.downloadToken?`<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(title)}.torrent" title="Download .torrent file">.torrent</a>`:''}<button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Add if Cached</button></div>` : isUsenet ? `<div class="result-list-actions"><button class="btn btn-primary btn-sm" data-add-usenet="${encodeURIComponent(JSON.stringify({source:item.source,id:item.id,name:item.name||item.primaryTitle||item.title}))}">Add to TorBox</button></div>` : '';const sourceTagHtml = isLocal ? '' : sourceTag(source, contentType);return `<article class="result-list-item"><a class="result-list-link" href="${route}" aria-label="Open ${esc(title)} details"><div class="result-list-title">${esc(title)}</div><div class="result-list-meta">${esc(year)} · ${esc(titleType)}${item.averageRating?` · ★ ${esc(item.averageRating)}`:''}</div>${metaLine}<div class="result-list-source">${categoryTagHtml}${sourceTagHtml}</div></a>${actionButtons}</article>`}).join('')}
     let activeCandidateSearch=null;
     async function findTorrentCandidates(imdbId,kind,title){
         activeCandidateSearch={imdbId,kind,title};
@@ -1503,6 +1356,7 @@ async function loadPageUnified(view, page) {
             state.total.movies = data.results.torrents?.total || 0;
           }
           results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
+          renderPagination('movies', 'movies-pagination');
         } else if (view === 'movies' && loadViewMode === 'discover') {
         } else if (view === 'movies' && loadViewMode === 'discover') {
           results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'movie'}))) : empty('Search for movies or click Discover to see recent releases.');
@@ -1525,6 +1379,7 @@ async function loadPageUnified(view, page) {
             state.total.shows = data.results.torrents?.total || 0;
           }
           results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
+          renderPagination('shows', 'shows-pagination');
         } else if (view === 'shows' && loadViewMode === 'discover') {
           results.innerHTML = rows.length ? titleCards(rows.map(item => ({...item, titleType: 'series'}))) : empty('Search for shows or click Discover to see recent releases.');
         } else if (view === 'music' && loadViewMode === 'discover') {
@@ -1658,6 +1513,13 @@ document.getElementById('music-discover-btn')?.addEventListener('click', () => {
   loadViewMode = 'discover';
   void loadView('music', true);
 });
+
+// More button click handlers (classic pagination)
+document.getElementById('movies-more')?.addEventListener('click', () => { void loadMoreUnified('movies'); });
+document.getElementById('shows-more')?.addEventListener('click', () => { void loadMoreUnified('shows'); });
+document.getElementById('music-more')?.addEventListener('click', () => { void loadMoreUnified('music'); });
+document.getElementById('browse-more')?.addEventListener('click', () => { void loadMoreUnified('browse'); });
+
 
 // App initialization: render the current URL on load and restore
 // the view on browser back/forward navigation.

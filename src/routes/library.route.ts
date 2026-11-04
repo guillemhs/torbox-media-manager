@@ -825,8 +825,8 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
               } : candidate);
             }
             torrentCandidates.push(...[...unique.values()]);
-          } else if (kind === 'all' && hasIndexerConfig) {
-            // Fallback: search for movie/series torrents directly via Prowlarr when no local title match
+          } else if (hasIndexerConfig) {
+            // Fallback: search torrents directly via Prowlarr when no local title match (covers movie/series kinds where the IMDb database may be empty)
             try {
               const prowlarrResults = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
               for (const candidate of prowlarrResults) {
@@ -855,7 +855,7 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
         if (!['all', 'NZBIndex', 'Binsearch'].includes(sourceValue)) {
           throw new Error('usenetSource must be all, NZBIndex, or Binsearch.');
         }
-        const usenetResult = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch', 200, 0);
+        const usenetResult = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
         const candidates = usenetResult.candidates || [];
         for (const candidate of candidates) {
           combined.push({ ...candidate, _source: 'usenet' });

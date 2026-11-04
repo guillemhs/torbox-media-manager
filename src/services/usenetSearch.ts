@@ -62,6 +62,13 @@ export async function searchUsenet(query: string, source: 'all' | 'NZBIndex' | '
   const candidates = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
   const warnings = results.flatMap((result, index) => result.status === 'rejected'
     ? [`${sources[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`] : []);
+  console.warn('[Usenet] search response:', {
+    source,
+    query,
+    nzbIndexCount: results[0]?.status === 'fulfilled' ? results[0].value.length : 0,
+    binsearchCount: results[1]?.status === 'fulfilled' ? results[1].value.length : 0,
+    warnings
+  });
   return { candidates: candidates.slice(offset, offset + limit), warnings, configured: { NZBIndex: true, Binsearch: true } };
 }
 

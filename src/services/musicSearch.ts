@@ -337,8 +337,14 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
     throw new Error(`Prowlarr search returned HTTP ${response.status}.`);
   }
   const xml = await response.text();
+  const rawItems = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
+  console.warn('[Prowlarr] search response:', {
+    status: response.status,
+    itemCount: rawItems.length,
+    bodyPreview: xml.slice(0, 500)
+  });
   const candidates = new Map<string, MusicTorrentCandidate>();
-  for (const item of xml.match(/<item\b[\s\S]*?<\/item>/gi) || []) {
+  for (const item of rawItems) {
     const name = tag(item, 'title');
     const link = tag(item, 'link').replace(/&amp;/g, '&');
     const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
@@ -358,7 +364,9 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
       source: indexer
     });
   }
-  return [...candidates.values()];
+  const result = [...candidates.values()];
+  console.warn('[Prowlarr] search candidates returned:', result.length);
+  return result;
 }
 
 async function searchTorznabFeed(query: string, category: string, limit = 50, offset = 0): Promise<MusicTorrentCandidate[]> {
@@ -393,8 +401,14 @@ async function searchTorznabFeed(query: string, category: string, limit = 50, of
     throw new Error(`Torznab returned HTTP ${response.status}.`);
   }
   const xml = await response.text();
+  const rawItems = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
+  console.warn('[Torznab] search response:', {
+    status: response.status,
+    itemCount: rawItems.length,
+    bodyPreview: xml.slice(0, 500)
+  });
   const candidates = new Map<string, MusicTorrentCandidate>();
-  for (const item of xml.match(/<item\b[\s\S]*?<\/item>/gi) || []) {
+  for (const item of rawItems) {
     const name = tag(item, 'title');
     const link = tag(item, 'link').replace(/&amp;/g, '&');
     const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
@@ -414,7 +428,9 @@ async function searchTorznabFeed(query: string, category: string, limit = 50, of
       source: indexer
     });
   }
-  return [...candidates.values()];
+  const result = [...candidates.values()];
+  console.warn('[Torznab] search candidates returned:', result.length);
+  return result;
 }
 
 export async function searchIndexerTorrents(

@@ -185,8 +185,14 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   }
 
   const xml = await response.text();
+  const rawItems = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
+  console.warn('[Prowlarr] search response:', {
+    status: response.status,
+    itemCount: rawItems.length,
+    bodyPreview: xml.slice(0, 500)
+  });
   const candidates = new Map<string, TorrentCandidate>();
-  for (const item of xml.match(/<item\b[\s\S]*?<\/item>/gi) || []) {
+  for (const item of rawItems) {
     const name = tag(item, 'title');
     const link = tag(item, 'link').replace(/&amp;/g, '&');
     const magnet = (/magnet:\?[^\s<]+/i.exec(link)?.[0] || '').replace(/&amp;/g, '&');
@@ -208,7 +214,9 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   }
   const clampedLimit = Math.min(100, Math.max(1, limit));
   const clampedOffset = Math.max(0, offset);
-  return [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);
+  const result = [...candidates.values()].slice(clampedOffset, clampedOffset + clampedLimit);
+  console.warn('[Prowlarr] search candidates returned:', result.length);
+  return result;
 }
 
 function decodeXml(value: string): string {

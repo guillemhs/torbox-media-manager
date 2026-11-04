@@ -323,7 +323,7 @@ export const musicRoute: RequestHandler = async (req, res) => {
       _source: 'local-music'
     }));
     
-    return res.json({
+    const musicResponse = {
       items: itemsWithSource,
       total: localResult.length,
       limit: page.limit,
@@ -337,7 +337,14 @@ export const musicRoute: RequestHandler = async (req, res) => {
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
       browseLink: '/browse?q=' + encodeURIComponent(query) + '&kind=music'
+    };
+    console.warn('[Music route] response:', {
+      query,
+      localCount: localItems.length,
+      torrentCount: formattedTorrents.length,
+      usenetCount: formattedUsenet.length
     });
+    return res.json(musicResponse);
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
 
@@ -443,7 +450,7 @@ export const moviesRoute: RequestHandler = async (req, res) => {
       _source: 'local-movies'
     }));
     
-    return res.json({
+    const movieResponse = {
       items: itemsWithSource,
       total: localResult.total,
       limit: page.limit,
@@ -457,7 +464,14 @@ export const moviesRoute: RequestHandler = async (req, res) => {
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
       browseLink: '/browse?q=' + encodeURIComponent(query) + '&kind=movie'
+    };
+    console.warn('[Movies route] response:', {
+      query,
+      localCount: localResult.items.length,
+      torrentCount: formattedTorrents.length,
+      usenetCount: formattedUsenet.length
     });
+    return res.json(movieResponse);
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
 
@@ -546,7 +560,7 @@ export const showsRoute: RequestHandler = async (req, res) => {
       _source: 'local-shows'
     }));
     
-    return res.json({
+    const showResponse = {
       items: itemsWithSource,
       total: localResult.total,
       limit: page.limit,
@@ -560,7 +574,14 @@ export const showsRoute: RequestHandler = async (req, res) => {
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
       browseLink: '/browse?q=' + encodeURIComponent(query) + '&kind=series'
+    };
+    console.warn('[Shows route] response:', {
+      query,
+      localCount: localResult.items.length,
+      torrentCount: formattedTorrents.length,
+      usenetCount: formattedUsenet.length
     });
+    return res.json(showResponse);
   } catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' }); }
 };
 
@@ -657,7 +678,7 @@ export const browseRoute: RequestHandler = async (req, res) => {
       _metadata: formatUsenetMetadata(u)
     }));
     
-    return res.json({
+    const browseResponse = {
       query,
       kind,
       results: {
@@ -666,7 +687,15 @@ export const browseRoute: RequestHandler = async (req, res) => {
         usenet: { items: formattedUsenet, total: formattedUsenet.length },
       },
       torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim())
+    };
+    console.warn('[Browse route] response:', {
+      query,
+      kind,
+      localCount: localResult.items.length,
+      torrentCount: formattedTorrents.length,
+      usenetCount: formattedUsenet.length
     });
+    return res.json(browseResponse);
   } catch (error) {
     return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid query' });
   }

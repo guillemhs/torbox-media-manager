@@ -255,10 +255,10 @@ export const musicRoute: RequestHandler = async (req, res) => {
     let torrentResults: Array<Record<string, unknown>> = [];
     
     if (hasIndexerConfig) {
-      const audioCategories = ['3000', '3010', '3020', '3030', '3040', '3050', '3060'];
+
       let torrentCandidates: any[] = [];
       try {
-        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, audioCategories);
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
       } catch (prowlarrError) {
         console.warn('Prowlarr search unavailable for music:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
       }
@@ -371,10 +371,10 @@ export const moviesRoute: RequestHandler = async (req, res) => {
     let torrentResults: Array<Record<string, unknown>> = [];
     
     if (hasIndexerConfig) {
-      const movieCategories = ['2000', '2010', '2020', '2030', '2040', '2045', '2050', '2060', '2070', '2080', '2090'];
+
       let torrentCandidates: any[] = [];
       try {
-        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, movieCategories);
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
       } catch (prowlarrError) {
         console.warn('Prowlarr search unavailable for movies:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
       }
@@ -474,10 +474,10 @@ export const showsRoute: RequestHandler = async (req, res) => {
     let torrentResults: Array<Record<string, unknown>> = [];
     
     if (hasIndexerConfig) {
-      const tvCategories = ['5000', '5010', '5020', '5030', '5040', '5045', '5050', '5060', '5070', '5080', '5090'];
+
       let torrentCandidates: any[] = [];
       try {
-        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, tvCategories);
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
       } catch (prowlarrError) {
         console.warn('Prowlarr search unavailable for shows:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
       }

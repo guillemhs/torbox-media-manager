@@ -299,19 +299,19 @@ function prowlarrSearchUrl(): URL | null {
   const base = process.env.TORZNAB_URL?.trim();
   if (!base) return null;
   const url = new URL(base);
-  // Prowlarr Torznab feed endpoint: http://<host>:<port>/<apiKey>/api
-  if (/\/api\/?$/.test(url.pathname)) {
-    url.pathname = url.pathname.replace(/\/$/, '');
-    return url;
-  }
-  // Also accept an already-configured /api/v1/search endpoint
+  // Already a Prowlarr JSON API endpoint
   if (/\/api\/v1\/search\/?$/.test(url.pathname)) {
     url.pathname = url.pathname.replace(/\/$/, '');
     return url;
   }
-  return null;
+  // Prowlarr Torznab feed: http://<host>:<port>/<apiKey>/api
+  // Convert to Prowlarr JSON API: http://<host>:<port>/api/v1/search
+  const indexerFeed = /^(.*)\/[^/]+\/api\/?$/.exec(url.pathname);
+  if (!indexerFeed) return null;
+  url.pathname = indexerFeed[1].replace(/\/+$/, '') + '/api/v1/search';
+  url.search = '';
+  return url;
 }
-
 async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movie' | 'music', categories: string[], limit = 50, offset = 0): Promise<MusicTorrentCandidate[] | null> {
   const url = prowlarrSearchUrl();
   if (!url) return null;

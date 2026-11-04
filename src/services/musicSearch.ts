@@ -317,7 +317,7 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
   url.searchParams.set('cat', categories.join(','));
   const key = process.env.TORZNAB_API_KEY?.trim();
   if (!key) throw new Error('TORZNAB_API_KEY is required for Prowlarr search.');
-  url.searchParams.set('apikey', key);
+
   let response: Response;
   try { response = await fetch(url, { headers: { Accept: 'application/rss+xml, application/xml', 'X-Api-Key': key }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.'); }
@@ -357,7 +357,7 @@ async function searchTorznabFeed(query: string, category: string, limit = 50, of
   url.searchParams.set('limit', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('offset', String(Math.max(0, offset)));
   const key = process.env.TORZNAB_API_KEY?.trim();
-  if (key) url.searchParams.set('apikey', key);
+
   let response: Response;
   try { response = await fetch(url, { headers: { Accept: 'application/rss+xml, application/xml' }, signal: AbortSignal.timeout(20_000) }); }
   catch { throw new Error('Torznab search service is unavailable. Check your configured endpoint.'); }

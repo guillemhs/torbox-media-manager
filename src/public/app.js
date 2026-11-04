@@ -1202,11 +1202,27 @@ async function loadMoreUnified(view){
     state.items[view] = [];
   }
   if (view === 'browse') {
-    // On first load, just clear results - don't search until user clicks Search
+    // On first load with empty query, just clear results - don't search
+    const q = $('#browse-query')?.value || '';
+    if (!q || q.length < 2) {
+        state.items[view] = [];
+        state.total[view] = 0;
+        state.offset[view] = 0;
+        state.currentPage[view] = 1;
+        const container = $('#browse-results');
+        if (container) container.innerHTML = '';
+        const count = $('#browse-count');
+        if (count) { count.textContent = ''; count.style.display = 'none'; }
+        const pagContainer = document.getElementById('browse-pagination');
+        if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
+        const moreBtn = document.getElementById('browse-more');
+        if (moreBtn) moreBtn.classList.add('hidden');
+        setStatus(view, '');
+        return;
+    }
     void doSearch('browse', 1);
     return;
-  }
-  const supported = ['browse', 'movies', 'shows', 'music', 'library'];
+}
   if (supported.includes(view)) {
     const q = $(`#${view}-query`)?.value || '';
     if (!q) {

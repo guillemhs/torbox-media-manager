@@ -1318,7 +1318,7 @@ async function loadPageUnified(view, page) {
             const hasUsenet = $('#music-source-usenet')?.checked;
             const tItems = data.results?.torrents?.items || data.torrents?.items || [];
             const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-            const torrents = tItems.map(t => ({...t, _source: 'torrents'}));
+            const torrents = tItems.map(t => ({...t, _source: 'torrents', kind: 'music'}));
             const usenet = uItems.map(u => ({...u, _source: 'usenet'}));
             if (hasIndexers && hasUsenet) {
               rows = [...torrents, ...usenet];
@@ -1330,10 +1330,11 @@ async function loadPageUnified(view, page) {
               rows = usenet;
               state.total.music = data.results?.usenet?.total || data.usenet?.total || 0;
             } else {
-              // No source selected, default to indexers
               rows = torrents;
               state.total.music = data.results?.torrents?.total || data.torrents?.total || 0;
             }
+            results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
+            renderPagination('music', 'music-pagination');
           } else {
             rows = data.items;
             state.total[view] = data.total;
@@ -1373,13 +1374,13 @@ async function loadPageUnified(view, page) {
             state.total.movies = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
           } else if (hasIndexers) {
             rows = torrents;
-            state.total.movies = data.results.torrents?.total || 0;
+            state.total.movies = data.results?.torrents?.total || data.torrents?.total || 0;
           } else if (hasUsenet) {
             rows = usenet;
             state.total.movies = data.results.usenet?.total || 0;
           } else {
             rows = torrents;
-            state.total.movies = data.results.torrents?.total || 0;
+            state.total.movies = data.results?.torrents?.total || data.torrents?.total || 0;
           }
           results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
           renderPagination('movies', 'movies-pagination');
@@ -1398,13 +1399,13 @@ async function loadPageUnified(view, page) {
             state.total.shows = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
           } else if (hasIndexers) {
             rows = torrents;
-            state.total.shows = data.results.torrents?.total || 0;
+            state.total.shows = data.results?.torrents?.total || data.torrents?.total || 0;
           } else if (hasUsenet) {
             rows = usenet;
-            state.total.shows = data.results.usenet?.total || 0;
+            state.total.shows = data.results?.usenet?.total || data.usenet?.total || 0;
           } else {
             rows = torrents;
-            state.total.shows = data.results.torrents?.total || 0;
+            state.total.shows = data.results?.torrents?.total || data.torrents?.total || 0;
           }
           results.innerHTML = rows.length ? renderBrowseTorrentCandidates(rows) : empty('No torrent results found.');
           renderPagination('shows', 'shows-pagination');

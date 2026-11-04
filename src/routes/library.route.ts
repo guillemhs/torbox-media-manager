@@ -258,7 +258,7 @@ export const musicRoute: RequestHandler = async (req, res) => {
 
       let torrentCandidates: any[] = [];
       try {
-        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, ['3000']);
       } catch (prowlarrError) {
         console.warn('Prowlarr search unavailable for music:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
       }
@@ -374,7 +374,7 @@ export const moviesRoute: RequestHandler = async (req, res) => {
 
       let torrentCandidates: any[] = [];
       try {
-        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, ['2000']);
       } catch (prowlarrError) {
         console.warn('Prowlarr search unavailable for movies:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
       }
@@ -477,7 +477,7 @@ export const showsRoute: RequestHandler = async (req, res) => {
 
       let torrentCandidates: any[] = [];
       try {
-        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
+        torrentCandidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, ['5000']);
       } catch (prowlarrError) {
         console.warn('Prowlarr search unavailable for shows:', prowlarrError instanceof Error ? prowlarrError.message : String(prowlarrError));
       }

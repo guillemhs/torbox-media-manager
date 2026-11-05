@@ -45,20 +45,8 @@ export async function doSearch(view, page = 1) {
   if (!input) return;
   const query = input.value.trim();
 
-  if (query.length < 2) {
-    state.items[view] = [];
-    state.total[view] = 0;
-    state.offset[view] = 0;
-    state.currentPage[view] = 1;
-    const container = $(`#${view}-results`);
-    if (container) container.innerHTML = '';
-    const count = $(`#${view}-count`);
-    if (count) { count.textContent = ''; count.style.display = 'none'; }
-    const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
-    const pagContainer = document.getElementById(pagId);
-    if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-    return;
-  }
+  // Allow empty query for discover mode - API returns recent/popular content
+  // when q is empty or short
 
   const sources = [];
   const indexersCheckboxId = view === 'browse' ? 'source-indexers' : `${view}-source-indexers`;
@@ -135,10 +123,6 @@ export async function doSearch(view, page = 1) {
 // Search unified for movies/shows/music
 export async function searchUnified(view) {
   const query = $(`#${view}-query`)?.value.trim() || '';
-  if (query.length < 2) {
-    setStatus(view, 'Enter at least 2 characters to search.');
-    return;
-  }
 
   state.offset[view] = 0;
   state.items[view] = [];
@@ -277,45 +261,10 @@ export async function loadView(view, reset = false) {
     state.items[view] = [];
   }
 
-  if (view === 'browse') {
-    const q = $('#browse-query')?.value || '';
-    if (!q || q.length < 2) {
-      state.items[view] = [];
-      state.total[view] = 0;
-      state.offset[view] = 0;
-      state.currentPage[view] = 1;
-      const container = $('#browse-results');
-      if (container) container.innerHTML = '';
-      const count = $('#browse-count');
-      if (count) { count.textContent = ''; count.style.display = 'none'; }
-      const pagContainer = document.getElementById('browse-pagination');
-      if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-      setStatus(view, '');
-      return;
-    }
-    void doSearch('browse', 1);
-    return;
-  }
+  // Browse view loads discover content via doSearch (handles empty query)
 
   const supported = ['browse', 'movies', 'shows', 'music', 'library'];
   if (supported.includes(view)) {
-    const q = $(`#${view}-query`)?.value || '';
-    if (!q) {
-      state.items[view] = [];
-      state.total[view] = 0;
-      state.offset[view] = 0;
-      state.currentPage[view] = 1;
-      const results = $(`#${view}-results`);
-      if (results) results.innerHTML = '';
-      const count = $(`#${view}-count`);
-      if (count) { count.textContent = ''; count.style.display = 'none'; }
-      const pagId = `${view}-pagination`;
-      const pagContainer = document.getElementById(pagId);
-      if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-      setStatus(view, '');
-      return;
-    }
-
     setStatus(view, 'Loading…');
     try {
       if (view === 'library') {
@@ -334,6 +283,7 @@ export async function loadView(view, reset = false) {
         return;
       }
 
+      // Load discover content when no query, or search when query provided
       void doSearch(view, 1);
     } catch (error) {
       setStatus(view, error.message);

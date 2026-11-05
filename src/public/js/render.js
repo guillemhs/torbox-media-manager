@@ -93,7 +93,7 @@ export function renderSearchItem(item, idx) {
   const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
   const complete = item.complete === false ? 'incomplete' : '';
 
-  const metaParts = [size, seeders, leechers, posted, complete, source && !isLocal ? sourceTag(source, contentType) : ''].filter(Boolean);
+  const metaParts = [size, seeders, leechers, posted, complete].filter(Boolean);
   const meta = metaParts.join(' · ');
 
   const categoryTag = isTorrent ? `<span class="category-tag">${contentType}</span>` : (isUsenet ? '<span class="category-tag">Usenet</span>' : '');

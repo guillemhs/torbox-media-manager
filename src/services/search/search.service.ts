@@ -25,46 +25,38 @@ export interface MediaSearchOptions {
   browseLink?: string;
   /** Max usenet results to fetch. */
   usenetLimit?: number;
-}
-
-export interface MediaSearchResult {
-  items: Array<Record<string, unknown>>;
-  total: number;
-  limit: number;
-  offset: number;
-  query: string;
-  kind: string;
-  results: {
-    local: { items: Array<Record<string, unknown>>; total: number };
-    torrents: { items: Array<Record<string, unknown>>; total: number };
-    usenet: { items: Array<Record<string, unknown>>; total: number };
-  };
-  torboxCacheCheckAvailable: boolean;
-  browseLink?: string;
+  /** Include local (IMDb/MusicBrainz) results. Default true when localKind/useMusicBrainz is set. */
+  includeLocal?: boolean;
+  /** Include indexer (Prowlarr) results. Default true when hasIndexerConfig. */
+  includeIndexers?: boolean;
+  /** Include usenet results. Default true when hasIndexerConfig. */
+  includeUsenet?: boolean;
 }
 
 /** Shared search pipeline: local titles + indexer torrents + usenet, combined and tagged. */
 export async function searchMedia(options: MediaSearchOptions): Promise<MediaSearchResult> {
-  const { query, kind, page, localKind, useMusicBrainz, localSourceLabel, indexerCategories, indexerType, categoryMode, fixedCategory, browseLink, usenetLimit = 50 } = options;
+  const { query, kind, page, localKind, useMusicBrainz, localSourceLabel, indexerCategories, indexerType, categoryMode, fixedCategory, browseLink, usenetLimit = 50, includeLocal = true, includeIndexers = true, includeUsenet = true } = options;
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
 
   // 1. Local search
   let localItems: Array<Record<string, unknown>> = [];
   let localTotal = 0;
   try {
-    if (useMusicBrainz) {
-      const releases = await searchMusicMetadata(query);
-      localItems = releases.map((item) => ({ ...item, _type: 'local', _category: fixedCategory || 'Music' }));
-      localTotal = releases.length;
-    } else if (localKind) {
-      const result = await searchTitles({ ...page, q: query, kind: localKind });
-      localItems = result.items.map((item: Record<string, unknown>) => ({
-        ...item,
-        _type: 'local',
-        _category: extractCategoryFromTitle(String(item.primaryTitle || ''), String(item.titleType || '')),
-        ...(localSourceLabel ? { _source: localSourceLabel } : {}),
-      }));
-      localTotal = result.total;
+    if (includeLocal !== false) {
+      if (useMusicBrainz) {
+        const releases = await searchMusicMetadata(query);
+        localItems = releases.map((item) => ({ ...item, _type: 'local', _category: fixedCategory || 'Music' }));
+        localTotal = releases.length;
+      } else if (localKind) {
+        const result = await searchTitles({ ...page, q: query, kind: localKind });
+        localItems = result.items.map((item: Record<string, unknown>) => ({
+          ...item,
+          _type: 'local',
+          _category: extractCategoryFromTitle(String(item.primaryTitle || ''), String(item.titleType || '')),
+          ...(localSourceLabel ? { _source: localSourceLabel } : {}),
+        }));
+        localTotal = result.total;
+      }
     }
   } catch (error) {
     console.warn(`[searchMedia] local search unavailable:`, error instanceof Error ? error.message : String(error));
@@ -72,7 +64,7 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
 
   // 2. Indexer (Prowlarr) torrent search
   let torrentResults: Array<Record<string, unknown>> = [];
-  if (hasIndexerConfig) {
+  if (includeIndexers !== false && hasIndexerConfig) {
     try {
       const candidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, indexerCategories);
       for (const candidate of candidates) {
@@ -95,7 +87,7 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
 
   // 3. Usenet search
   let usenetResults: Array<Record<string, unknown>> = [];
-  if (hasIndexerConfig) {
+  if (includeUsenet !== false && hasIndexerConfig) {
     try {
       const usenetResult = await searchUsenet(query, 'all', usenetLimit, 0);
       for (const candidate of usenetResult.candidates) {
@@ -153,4 +145,20 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
     torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
     ...(browseLink ? { browseLink } : {}),
   };
+}
+
+export interface MediaSearchResult {
+  items: Array<Record<string, unknown>>;
+  total: number;
+  limit: number;
+  offset: number;
+  query: string;
+  kind: string;
+  results: {
+    local: { items: Array<Record<string, unknown>>; total: number };
+    torrents: { items: Array<Record<string, unknown>>; total: number };
+    usenet: { items: Array<Record<string, unknown>>; total: number };
+  };
+  torboxCacheCheckAvailable: boolean;
+  browseLink?: string;
 }

@@ -5,17 +5,31 @@ import { getTvmazeShowByImdb } from '../services/tvmaze/schedule.service';
 import { searchMedia } from '../services/search/search.service';
 import { pagination, sendError, extractCategoryFromTitle } from './routeUtils';
 
+function parseSources(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  return value.split(',').filter(s => ['local', 'indexers', 'usenet'].includes(s));
+}
+
 export const moviesRoute: RequestHandler = async (req, res) => {
+  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
+  const sources = parseSources(scalar(req.query.sources));
+  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+  const searchIndexers = sources.includes('indexers') && hasIndexerConfig;
+  const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
+  const searchLocal = sources.includes('local') || sources.length === 0;
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',
       kind: 'movie',
       page: pagination(req.query as Record<string, unknown>),
-      localKind: 'movie',
+      localKind: searchLocal ? 'movie' : undefined,
       localSourceLabel: 'local-movies',
-      indexerCategories: ['2000'],
-      indexerType: 'movie',
+      indexerCategories: searchIndexers ? ['2000'] : undefined,
+      indexerType: searchIndexers ? 'movie' : undefined,
       categoryMode: 'title',
+      includeLocal: searchLocal,
+      includeIndexers: searchIndexers,
+      includeUsenet: searchUsenet,
       browseLink: `/browse?q=${encodeURIComponent(typeof req.query.q === 'string' ? req.query.q : '')}&kind=movie`,
     });
     console.warn('[Movies route] response:', {
@@ -29,16 +43,25 @@ export const moviesRoute: RequestHandler = async (req, res) => {
 };
 
 export const showsRoute: RequestHandler = async (req, res) => {
+  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
+  const sources = parseSources(scalar(req.query.sources));
+  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+  const searchIndexers = sources.includes('indexers') && hasIndexerConfig;
+  const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
+  const searchLocal = sources.includes('local') || sources.length === 0;
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',
       kind: 'series',
       page: pagination(req.query as Record<string, unknown>),
-      localKind: 'series',
+      localKind: searchLocal ? 'series' : undefined,
       localSourceLabel: 'local-shows',
-      indexerCategories: ['5000'],
-      indexerType: 'tvsearch',
+      indexerCategories: searchIndexers ? ['5000'] : undefined,
+      indexerType: searchIndexers ? 'tvsearch' : undefined,
       categoryMode: 'title',
+      includeLocal: searchLocal,
+      includeIndexers: searchIndexers,
+      includeUsenet: searchUsenet,
       browseLink: `/browse?q=${encodeURIComponent(typeof req.query.q === 'string' ? req.query.q : '')}&kind=series`,
     });
     console.warn('[Shows route] response:', {
@@ -59,14 +82,22 @@ export const browseRoute: RequestHandler = async (req, res) => {
     try { return res.json({ cachedTorrent: await checkCachedTorrent(hash) }); }
     catch (error) { return sendError(res, error); }
   }
+  const sources = parseSources(scalar(req.query.sources));
+  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+  const searchIndexers = sources.includes('indexers') && hasIndexerConfig;
+  const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
+  const searchLocal = sources.includes('local') || sources.length === 0;
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',
       kind: ((scalar(req.query.kind) === 'movie' || scalar(req.query.kind) === 'series') ? scalar(req.query.kind) : 'all') as 'movie' | 'series' | 'all',
       page: pagination(req.query as Record<string, unknown>),
-      localKind: 'all',
+      localKind: searchLocal ? 'all' : undefined,
       indexerCategories: undefined,
       categoryMode: 'name',
+      includeLocal: searchLocal,
+      includeIndexers: searchIndexers,
+      includeUsenet: searchUsenet,
       browseLink: undefined,
     });
     console.warn('[Browse route] response:', {

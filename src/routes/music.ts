@@ -2,8 +2,13 @@ import type { RequestHandler } from 'express';
 import { searchMusicMetadata, searchMusicTorrents, getMusicTorrentDownload } from '../services/musicSearch';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup } from '../services/artwork.service';
 import { pagination, sendError } from './routeUtils';
+
 import { searchMedia } from '../services/search/search.service';
 
+function parseSources(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  return value.split(',').filter(s => ['local', 'indexers', 'usenet'].includes(s));
+}
 export const musicMetadataSearchRoute: RequestHandler = async (req, res) => {
   const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const query = scalar(req.query.q)?.trim() || '';

@@ -84,8 +84,9 @@ export function renderSearchItem(item, idx) {
   const contentType = isTorrent ? (kind === 'series' ? 'Show' : 'Movie') : (isUsenet ? 'Usenet' : 'All');
 
   const title = item.primaryTitle || item.name || item.title || 'Unknown';
-  const year = item.startYear || item.year || 'Year unknown';
-  const titleType = item.titleType || item.type || 'Unknown';
+  const year = item.startYear || item.year || '';
+  const titleType = item.titleType || item.type || '';
+  const hasYearType = Boolean(item.startYear || item.year || item.titleType || item.type);
 
   const size = item.size ? fmtBytes(item.size) : '';
   const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()} seeders` : '';
@@ -116,8 +117,8 @@ export function renderSearchItem(item, idx) {
     <a class="search-result-link" href="${route}" aria-label="Open ${esc(title)} details">
       <div class="search-result-header">
         <div class="search-result-title">${esc(title)}</div>
-        <div class="search-result-year-type">${esc(year)} · ${esc(titleType)}</div>
-        ${categoryTag}
+        ${hasYearType ? `<div class="search-result-year-type">${esc(year || 'Year unknown')} · ${esc(titleType || 'Unknown')}</div>` : ''}
+        ${isLocal && categoryTag ? categoryTag : ''}
       </div>
       ${meta ? `<div class="search-result-meta">${esc(meta)}</div>` : ''}
       ${sourceTagHtml ? `<div class="search-result-source">${sourceTagHtml}</div>` : ''}
@@ -194,19 +195,20 @@ export function titleCards(items) {
     const isUsenet = item._source === 'usenet';
 
     const title = item.primaryTitle || item.name || item.title || 'Unknown';
-    const year = item.startYear || item.year || 'Year unknown';
+    const year = item.startYear || item.year || '';
     const size = item.size ? fmtBytes(item.size) : '';
     const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()} seeders` : '';
     const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()} leechers` : '';
 
     const metaParts = [size, seeders, leechers, source && !isTorrent && !isUsenet ? sourceTag(source, kind) : ''].filter(Boolean);
+    const hasYearType = Boolean(item.startYear || item.year || item.titleType || item.type);
 
     return `<article class="card search-card">
       <div class="card-body">
         <div class="result-list-header">
           <a class="result-list-link" href="${route}">
             <div class="result-list-title">${esc(title)}</div>
-            <div class="result-list-year-type">${esc(year)} · ${esc(item.titleType || item.type || 'Unknown')}</div>
+            ${hasYearType ? `<div class="result-list-year-type">${esc(year || 'Year unknown')} · ${esc(item.titleType || item.type || 'Unknown')}</div>` : ''}
           </a>
         </div>
         ${metaParts.length ? `<div class="result-list-meta">${metaParts.join(' · ')}</div>` : ''}

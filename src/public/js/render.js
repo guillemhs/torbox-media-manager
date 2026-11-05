@@ -343,3 +343,50 @@ export function pinRecentTorrent(torrent) {
   const id = Number(torrent.id);
   state.recentTorrents = [torrent, ...state.recentTorrents.filter((item) => Number(item.id) !== id)];
 }
+
+// Title detail page rendering
+export function renderTitleDetail(title) {
+  const kind = typeof title.titleType === 'string' && /^tv/i.test(title.titleType) ? 'series' : 'movie';
+  const artworkUrl = title.artwork?.url || '';
+  const artworkSource = title.artwork?.source || '';
+  
+  return `<article class="title-detail">
+    <div class="title-detail-header">
+      <h1>${esc(title.primaryTitle || title.name || 'Unknown Title')}</h1>
+      <div class="title-meta">
+        ${esc(kind === 'series' ? 'TV Series' : 'Movie')}
+        ${title.startYear ? `· ${esc(title.startYear)}` : ''}
+        ${title.runtimeMinutes ? `· ${esc(title.runtimeMinutes)} min` : ''}
+        ${title.averageRating ? `· ⭐ ${esc(title.averageRating)}` : ''}
+      </div>
+    </div>
+    
+    <div class="detail-content">
+      <div class="detail-poster">
+        ${artworkUrl ? `<img src="${esc(artworkUrl)}" alt="${esc(title.primaryTitle || title.name || '')} poster" onerror="this.style.display='none'">` : '<div class="no-poster">No Poster Available</div>'}
+        ${artworkSource ? `<div class="artwork-source">${esc(artworkSource)}</div>` : ''}
+      </div>
+      
+      <div class="detail-info">
+        <h2>Details</h2>
+        ${title.overview ? `<p>${esc(title.overview)}</p>` : ''}
+        ${title.releaseDate ? `<p><strong>Release Date:</strong> ${esc(title.releaseDate)}</p>` : ''}
+        ${title.seasonCount ? `<p><strong>Seasons:</strong> ${esc(title.seasonCount)}</p>` : ''}
+        ${title.showStatus ? `<p><strong>Status:</strong> ${esc(title.showStatus)}</p>` : ''}
+        ${title.genres ? `<p><strong>Genres:</strong> ${esc(title.genres)}</p>` : ''}
+      </div>
+    </div>
+  </article>`;
+}
+
+export function renderTitleNotFound() {
+  return `<article class="title-detail">
+    <div class="title-detail-header">
+      <h1>Title Not Found</h1>
+    </div>
+    <div class="detail-content">
+      <p>The requested title could not be found.</p>
+    </div>
+  </article>`;
+}
+

@@ -4,7 +4,7 @@ import {
   renderPagination, renderSearchResults, renderSearchItem,
   renderBrowseTorrentSearchResults, renderBrowseUsenetSearchResults,
   titleCards, musicReleaseCards, localCards, renderTorboxLibrary,
-  renderCalendar, pinRecentTorrent,
+  renderCalendar, pinRecentTorrent, renderTitleDetail,
 } from './render.js';
 
 let calendarRequest = 0;
@@ -439,8 +439,7 @@ export function routeFromLocation() {
   if (titleMatch) {
     const imdbId = titleMatch[1];
     const kind = params.get('kind') || 'movie';
-    // Title detail view not yet implemented in modular frontend - load browse
-    void loadView('browse', true);
+    void loadTitle(imdbId, kind);
     return;
   }
   if (tvmazeMatch) {

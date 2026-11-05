@@ -4,31 +4,36 @@ import express from 'express';
 import path from 'node:path';
 import { initializeDatabase, getImportStatus } from './db/database';
 import {
-  browseRoute,
-  calendarRoute,
-  addTorrentToTorboxRoute,
   getLibraryRoute,
-  getLibraryStatusRoute,
-  imdbImportRoute,
-  musicArtworkRoute,
-  musicMetadataSearchRoute,
-  musicRoute,
-  musicTorrentDownloadRoute,
-  musicTorrentSearchRoute,
-  moviesRoute,
-  showsRoute,
-  streamTorboxTrackRoute,
-  syncLibraryTorboxRoute,
-  titleRoute,
-  titleArtworkRoute,
-  torrentSearchRoute,
-  tvmazeShowRoute,
-  triggerLibraryScanRoute,
-  unifiedSearchRoute,
   usenetSearchRoute,
   addUsenetToTorboxRoute,
-  downloadUsenetFileRoute
-} from './routes/library.route';
+  downloadUsenetFileRoute,
+  streamTorboxTrackRoute,
+  triggerLibraryScanRoute,
+  syncLibraryTorboxRoute,
+  getLibraryStatusRoute,
+} from './routes/library';
+import {
+  addTorrentToTorboxRoute,
+  torrentSearchRoute,
+} from './routes/torrent';
+import {
+  musicMetadataSearchRoute,
+  musicTorrentSearchRoute,
+  musicRoute,
+  musicTorrentDownloadRoute,
+  musicArtworkRoute,
+} from './routes/music';
+import {
+  moviesRoute,
+  showsRoute,
+  browseRoute,
+  titleRoute,
+  titleArtworkRoute,
+} from './routes/catalog';
+import { unifiedSearchRoute } from './routes/search';
+import { calendarRoute, tvmazeShowRoute } from './routes/calendar';
+import { imdbImportRoute } from './routes/import';
 import { getImdbImportProgress, importImdbDatasets, needsImdbImport } from './services/imdb/import.service';
 
 const app = express();

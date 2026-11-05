@@ -1,4 +1,4 @@
-import { state, $, esc, setStatus, empty } from './state.js';
+import { state, $, esc, setStatus, empty, observeArtwork } from './state.js';
 import { jsonFetch } from './api.js';
 import {
   renderPagination, renderSearchResults, renderSearchItem,
@@ -185,7 +185,7 @@ export async function searchUnified(view) {
       const container = $('#movies-results');
       if (container) container.innerHTML = state.items.movies.length ? titleCards(state.items.movies.map((item) => ({ ...item, kind: 'movie' }))) : '';
       $('#movies-more')?.classList.toggle('hidden', state.items.movies.length >= state.total.movies);
-      import('./render.js').then(({ observeArtwork }) => observeArtwork(container));
+      observeArtwork(container);
     } else if (view === 'shows') {
       const showMetadata = data.shows?.items || [];
       const showTorrents = data.torrents?.items || [];
@@ -206,7 +206,7 @@ export async function searchUnified(view) {
       const container = $('#shows-results');
       if (container) container.innerHTML = state.items.shows.length ? titleCards(state.items.shows.map((item) => ({ ...item, kind: 'series' }))) : '';
       $('#shows-more')?.classList.toggle('hidden', state.items.shows.length >= state.total.shows);
-      import('./render.js').then(({ observeArtwork }) => observeArtwork(container));
+      observeArtwork(container);
     } else if (view === 'music') {
       const musicMetadata = data.music?.items || [];
       const musicTorrents = data.torrents?.items || [];
@@ -228,7 +228,7 @@ export async function searchUnified(view) {
       $('#music-more')?.classList.toggle('hidden', state.items.music.length >= state.total.music);
       const countEl = $('#music-count');
       if (countEl) countEl.textContent = `${state.items.music.length}${state.total.music > state.items.music.length ? ` of ${state.total.music}` : ''} items`;
-      import('./render.js').then(({ observeArtwork }) => observeArtwork(container));
+      observeArtwork(container);
     }
 
     const warnings = [...(data.torrents?.warnings || []), ...(data.usenet?.warnings || [])];
@@ -284,6 +284,7 @@ export async function loadView(view, reset = false) {
 
   const supported = ['browse', 'movies', 'shows', 'music', 'library'];
   if (supported.includes(view)) {
+    showView(view);
     setStatus(view, 'Loading…');
     try {
       if (view === 'library') {
@@ -296,7 +297,7 @@ export async function loadView(view, reset = false) {
         const results = $('#library-results');
         if (results) {
           results.innerHTML = state.items[view].length ? renderTorboxLibrary(state.items[view]) : empty('No Library items found.');
-          import('./render.js').then(({ observeArtwork }) => observeArtwork(results));
+          observeArtwork(results);
         }
         setStatus(view, data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
         return;
@@ -309,6 +310,13 @@ export async function loadView(view, reset = false) {
     }
   }
 }
+
+// Show the requested view by adding the 'active' class
+export function showView(viewName) {
+    document.querySelectorAll('.view').forEach(node => {
+      node.classList.toggle('active', node.id === `view-${viewName}`);
+    });
+  }
 
 // Search torrent candidates for a specific title
 async function searchBrowseTorrentCandidates(imdbId, kind, title, offset = 0, limit = 20) {
@@ -349,6 +357,7 @@ export function routeFromLocation() {
     music: 'music', library: 'library', calendar: 'calendar',
   };
   const view = viewMap[path] || 'browse';
+  showView(view);
   void loadView(view, true);
 }
 

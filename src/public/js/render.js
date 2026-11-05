@@ -104,13 +104,12 @@ export function renderSearchItem(item, idx) {
   let actionButtons = '';
   if (isTorrent && item.magnet) {
     actionButtons = `
-      <button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy</button>
-      <button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="false" title="Add to TorBox (download if needed)">Add</button>
+      <button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy Magnet</button>
+      <button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" title="Add to Torbox">Add to Torbox</button>
       ${item.downloadToken ? `<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(title)}.torrent" title="Download .torrent file">.torrent</a>` : ''}
-      <button class="btn btn-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" data-cached-only="true" title="Add to TorBox only if cached (instant)">Cached</button>
     `;
   } else if (isUsenet) {
-    actionButtons = `<button class="btn btn-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-source="${esc(source)}" title="Add to TorBox">Add to TorBox</button>`;
+    actionButtons = `<button class="btn btn-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-id="${encodeURIComponent(item.id || '')}" data-usenet-source="${esc(source)}" title="Add to Torbox">Add to Torbox</button>`;
   }
 
   return `<article class="search-result-item">

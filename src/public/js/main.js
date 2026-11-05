@@ -6,8 +6,8 @@ import {
   renderCandidateRows, renderTorboxLibrary,
 } from './render.js';
 import {
-  getSelectedIndexers, getUsenetSource, goToPage, doSearch, searchUnified,
-  loadView, loadCalendar, shiftCalendarDay,
+  getSelectedIndexers, getUsenetSource, goToPage, doSearch, searchLocal,
+  searchUnified, loadView, loadCalendar, shiftCalendarDay,
   routeFromLocation, setRoute, searchRoute,
 } from './views.js';
 

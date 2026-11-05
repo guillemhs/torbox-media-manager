@@ -358,9 +358,13 @@ export async function loadView(view, reset = false) {
 
   // Browse view loads discover content via doSearch (handles empty query)
 
-  const supported = ['browse', 'movies', 'shows', 'music', 'library'];
+  const supported = ['browse', 'movies', 'shows', 'music', 'library', 'calendar'];
   if (supported.includes(view)) {
     showView(view);
+    if (view === 'calendar') {
+      void loadCalendar();
+      return;
+    }
     const q = $(`#${view}-query`)?.value || '';
     if (!q || q.length < 2) {
       // On first load with no query, just show the search box - no content

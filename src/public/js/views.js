@@ -1,4 +1,4 @@
-import { state, $, esc, setStatus, empty, loadViewMode } from './state.js';
+import { state, $, esc, setStatus, empty } from './state.js';
 import { jsonFetch } from './api.js';
 import {
   renderPagination, renderSearchResults, renderSearchItem,
@@ -339,7 +339,6 @@ export async function loadView(view, reset = false) {
       setStatus(view, error.message);
     }
   }
-  loadViewMode = null;
 }
 
 // Search torrent candidates for a specific title

@@ -15,6 +15,10 @@ import {
 document.getElementById('browse-search-btn')?.addEventListener('click', () => {
   void doSearch('browse', 1);
 });
+
+document.getElementById('browse-discover-btn')?.addEventListener('click', () => {
+  void searchLocal('browse', 1);
+});
 document.getElementById('movies-search-btn')?.addEventListener('click', () => {
   state.moviesSearched = true;
   void doSearch('movies', 1);
@@ -31,15 +35,15 @@ document.getElementById('music-search-btn')?.addEventListener('click', () => {
 // ---- Discover button handlers ----
 document.getElementById('movies-discover-btn')?.addEventListener('click', () => {
   state.moviesSearched = false;
-  void doSearch('movies', 1);
+  void searchLocal('movies', 1);
 });
 document.getElementById('shows-discover-btn')?.addEventListener('click', () => {
   state.showsSearched = false;
-  void doSearch('shows', 1);
+  void searchLocal('shows', 1);
 });
 document.getElementById('music-discover-btn')?.addEventListener('click', () => {
   state.musicSearched = false;
-  void doSearch('music', 1);
+  void searchLocal('music', 1);
 });
 
 

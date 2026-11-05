@@ -94,41 +94,26 @@ export async function doSearch(view, page = 1) {
 
     const tItems = data.results?.torrents?.items || data.torrents?.items || [];
     const uItems = data.results?.usenet?.items || data.usenet?.items || [];
-    const lItems = data.results?.local?.items || [];
 
     const torrents = tItems.map((t) => ({ ...t, _source: 'torrents' }));
     const usenet = uItems.map((u) => ({ ...u, _source: 'usenet' }));
-    const local = lItems.map((l) => ({ ...l, _source: 'local' }));
 
     const hasIndexers = sources.includes('indexers');
     const hasUsenet = sources.includes('usenet');
 
     let rows = [];
-    if (view === 'browse') {
-      // Browse: combine local + torrents + usenet based on selected sources
-      if (hasIndexers && hasUsenet) {
-        rows = [...local, ...torrents, ...usenet];
-      } else if (hasIndexers) {
-        rows = [...local, ...torrents];
-      } else if (hasUsenet) {
-        rows = [...local, ...usenet];
-      } else {
-        rows = [...local];
-      }
+    if (hasIndexers && hasUsenet) {
+      rows = [...torrents, ...usenet];
+    } else if (hasIndexers) {
+      rows = torrents;
+    } else if (hasUsenet) {
+      rows = usenet;
     } else {
-      if (hasIndexers && hasUsenet) {
-        rows = [...torrents, ...usenet];
-      } else if (hasIndexers) {
-        rows = torrents;
-      } else if (hasUsenet) {
-        rows = usenet;
-      } else {
-        rows = torrents;
-      }
+      rows = torrents;
     }
 
     if (view === 'browse') {
-      state.total[view] = (data.results?.local?.total || 0) + (data.results?.torrents?.total || 0) + (data.results?.usenet?.total || 0);
+      state.total[view] = (data.results?.torrents?.total || 0) + (data.results?.usenet?.total || 0);
     } else {
       state.total[view] = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
     }
@@ -139,6 +124,68 @@ export async function doSearch(view, page = 1) {
     const container = $(`#${view}-results`);
     if (container) {
       container.innerHTML = rows.length ? rows.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
+    }
+
+    const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
+    renderPagination(view, pagId);
+
+    setStatus(view, '');
+  } catch (error) {
+    setStatus(view, error.message);
+  }
+}
+
+// Local search for Discover buttons - IMDb and MusicBrainz only
+export async function searchLocal(view, page = 1) {
+  const input = $(`#${view}-query`);
+  if (!input) return;
+  const query = input.value.trim();
+
+  if (query.length < 2) {
+    state.items[view] = [];
+    state.total[view] = 0;
+    state.offset[view] = 0;
+    state.currentPage[view] = 1;
+    const container = $(`#${view}-results`);
+    if (container) container.innerHTML = '';
+    const count = $(`#${view}-count`);
+    if (count) { count.textContent = ''; count.style.display = 'none'; }
+    const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
+    const pagContainer = document.getElementById(pagId);
+    if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
+    setStatus(view, '');
+    return;
+  }
+
+  const limit = 20;
+  const offset = (page - 1) * limit;
+
+  state.offset[view] = offset;
+  state.currentPage[view] = page;
+
+  setStatus(view, 'Searching…');
+  try {
+    let data;
+    if (view === 'browse') {
+      data = await jsonFetch(`/api/browse?q=${encodeURIComponent(query)}&kind=all&limit=${limit}&offset=${offset}`);
+    } else {
+      const kind = view === 'movies' ? 'movie' : view === 'shows' ? 'series' : 'music';
+      data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&limit=${limit}&offset=${offset}`);
+    }
+
+    const lItems = data.results?.local?.items || [];
+    const local = lItems.map((l) => ({ ...l, _source: 'local' }));
+
+    state.total[view] = view === 'browse'
+      ? (data.results?.local?.total || 0)
+      : (data.results?.local?.total || 0);
+
+    state.items[view] = local;
+    state.offset[view] = offset + local.length;
+
+    const container = $(`#${view}-results`);
+    if (container) {
+      container.innerHTML = local.length ? local.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
     }
 
     const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;

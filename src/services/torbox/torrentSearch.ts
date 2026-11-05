@@ -175,7 +175,9 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
     if (!title || !/^[a-f0-9]{40}$/.test(infoHash)) continue;
     candidates.set(infoHash, {
       hash: infoHash,
-      magnet: magnetUrl || `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
+      magnet: magnetUrl && /^magnet:\?xt=urn:btih:[a-f0-9]{40}/i.test(magnetUrl)
+      ? magnetUrl
+      : `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
       name: title,
       seeders,
       leechers,

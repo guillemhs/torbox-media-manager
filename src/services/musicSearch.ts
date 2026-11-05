@@ -349,7 +349,9 @@ async function searchProwlarr(query: string, type: 'search' | 'tvsearch' | 'movi
     if (!title || !/^[a-f0-9]{40}$/.test(infoHash)) continue;
     candidates.set(infoHash, {
       hash: infoHash,
-      magnet: magnetUrl || `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
+      magnet: magnetUrl && /^magnet:\?xt=urn:btih:[a-f0-9]{40}/i.test(magnetUrl)
+      ? magnetUrl
+      : `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
       name: title,
       seeders,
       leechers,
@@ -402,7 +404,9 @@ async function searchTorznabFeed(query: string, category: string, limit = 50, of
     if (!title || !/^[a-f0-9]{40}$/.test(infoHash)) continue;
     candidates.set(infoHash, {
       hash: infoHash,
-      magnet: magnetUrl || `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
+      magnet: magnetUrl && /^magnet:\?xt=urn:btih:[a-f0-9]{40}/i.test(magnetUrl)
+      ? magnetUrl
+      : `magnet:?xt=urn:btih:${infoHash}&dn=${encodeURIComponent(title.slice(0, 180))}`,
       name: title,
       seeders,
       leechers,

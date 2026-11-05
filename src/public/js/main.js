@@ -69,24 +69,15 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
     const magnet = decodeURIComponent(addBtn.dataset.addTorrent);
     const name = addBtn.dataset.torrentName || '';
-    addBtn.disabled = true;
-    addBtn.textContent = 'Adding…';
     void (async () => {
       try {
-        const data = await jsonFetch('/torbox/torrents', {
+        await jsonFetch('/torbox/torrents', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ magnet, name, addOnlyIfCached: false }),
         });
-        addBtn.textContent = 'Added';
-        setTimeout(() => {
-          if (addBtn.isConnected) addBtn.textContent = 'Add to Torbox';
-          addBtn.disabled = false;
-        }, 1500);
-        void loadView('library', true);
+        alert('Added to Torbox');
       } catch (error) {
-        addBtn.textContent = 'Add to Torbox';
-        addBtn.disabled = false;
         alert(error.message);
       }
     })();
@@ -133,24 +124,15 @@ document.addEventListener('click', (event) => {
     const name = usenetBtn.dataset.usenetAdd;
     const id = usenetBtn.dataset.usenetId || '';
     const source = usenetBtn.dataset.usenetSource;
-    usenetBtn.disabled = true;
-    usenetBtn.textContent = 'Adding…';
     void (async () => {
       try {
-        const result = await jsonFetch('/torbox/usenet', {
+        await jsonFetch('/torbox/usenet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source, id, name, addOnlyIfCached: false }),
         });
-        usenetBtn.textContent = 'Added';
-        setTimeout(() => {
-          if (usenetBtn.isConnected) usenetBtn.textContent = 'Add to Torbox';
-          usenetBtn.disabled = false;
-        }, 1500);
-        void loadView('library', true);
+        alert('Added to Torbox');
       } catch (error) {
-        usenetBtn.textContent = 'Add to Torbox';
-        usenetBtn.disabled = false;
         alert(error.message);
       }
     })();

@@ -167,7 +167,7 @@ export function renderBrowseTorrentSearchResults(candidates, total) {
             button.textContent = 'Add cached';
             button.disabled = false;
           }, 1500);
-          import('./views.js').then(({ pinRecentTorrent, loadView }) => {
+          import('./views.js').then(({ loadView }) => {
             pinRecentTorrent(data.torrent);
             loadView('library', true);
           });
@@ -182,7 +182,7 @@ export function renderBrowseTorrentSearchResults(candidates, total) {
 
   const moreBtn = document.getElementById('browse-torrent-more');
   if (moreBtn) moreBtn.classList.toggle('hidden', candidates.length >= total);
-  import('./views.js').then(({ renderPagination: rp }) => rp('browse-torrent-search', 'browse-torrent-pagination'));
+  renderPagination('browse-torrent-search', 'browse-torrent-pagination');
 }
 
 // Usenet search results (browse)
@@ -231,7 +231,7 @@ export function renderBrowseUsenetSearchResults(candidates, total) {
 
   const moreBtn = document.getElementById('browse-usenet-search-more');
   if (moreBtn) moreBtn.classList.toggle('hidden', candidates.length >= total);
-  import('./views.js').then(({ renderPagination: rp }) => rp('browse-usenet-search', 'browse-usenet-search-pagination'));
+  renderPagination('browse-usenet-search', 'browse-usenet-search-pagination');
 }
 
 // Title cards for movies/shows

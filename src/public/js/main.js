@@ -7,7 +7,7 @@ import {
 } from './render.js';
 import {
   getSelectedIndexers, getUsenetSource, goToPage, doSearch, searchUnified,
-  loadView, loadCalendar, shiftCalendarDay, loadTitle, loadTvmazeTitle,
+  loadView, loadCalendar, shiftCalendarDay,
   routeFromLocation, setRoute, searchRoute,
 } from './views.js';
 

@@ -5,9 +5,9 @@ WORKDIR /app
 
 # Install dependencies first (layer caching)
 COPY package*.json ./
-RUN apk add --no-cache --virtual .build-deps python3 make g++ \
-    && npm install \
-    && apk del .build-deps
+RUN apk add --no-cache --virtual .build-deps python3 make g++
+RUN npm install --legacy-peer-deps --no-audit --no-fund
+RUN apk del .build-deps
 
 # Copy source code
 COPY src ./src
@@ -27,9 +27,9 @@ RUN apk add --no-cache libstdc++
 
 # Copy built assets from builder
 COPY --from=builder /app/package*.json ./
-RUN apk add --no-cache --virtual .build-deps python3 make g++ \
-    && npm install --only=production \
-    && apk del .build-deps
+RUN apk add --no-cache --virtual .build-deps python3 make g++
+RUN npm install --only=production --legacy-peer-deps --no-audit --no-fund
+RUN apk del .build-deps
 
 # Copy built code
 COPY --from=builder /app/dist ./dist

@@ -429,6 +429,28 @@ async function searchBrowseUsenetCandidates(query, source = 'all', offset = 0, l
 }
 
 
+// Load title detail page
+export async function loadTitle(imdbId, kind = 'movie') {
+  try {
+    setStatus('title', 'Loading…');
+    const endpoint = kind === 'series' ? 'shows' : 'movies';
+    const title = await jsonFetch(`/api/${endpoint}/${encodeURIComponent(imdbId)}`);
+    
+    const detailContent = $('#detail-content');
+    if (detailContent) {
+      detailContent.innerHTML = renderTitleDetail(title);
+      observeArtwork(detailContent);
+    }
+    setStatus(view, '');
+  } catch (error) {
+    const detailContent = $('#detail-content');
+    if (detailContent) {
+      detailContent.innerHTML = renderTitleNotFound();
+    }
+    setStatus(view, error.message);
+  }
+}
+
 // Route from browser location
 export function routeFromLocation() {
   const path = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '');

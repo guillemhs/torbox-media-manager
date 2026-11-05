@@ -441,13 +441,13 @@ export async function loadTitle(imdbId, kind = 'movie') {
       detailContent.innerHTML = renderTitleDetail(title);
       observeArtwork(detailContent);
     }
-    setStatus(view, '');
+    setStatus('title', '');
   } catch (error) {
     const detailContent = $('#detail-content');
     if (detailContent) {
       detailContent.innerHTML = renderTitleNotFound();
     }
-    setStatus(view, error.message);
+    setStatus('title', error.message);
   }
 }
 

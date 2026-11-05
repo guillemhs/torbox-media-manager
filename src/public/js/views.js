@@ -45,7 +45,21 @@ export async function doSearch(view, page = 1) {
   if (!input) return;
   const query = input.value.trim();
 
-  // Allow empty query for discover mode - API returns recent/popular content
+  if (query.length < 2) {
+    state.items[view] = [];
+    state.total[view] = 0;
+    state.offset[view] = 0;
+    state.currentPage[view] = 1;
+    const container = $(`#${view}-results`);
+    if (container) container.innerHTML = '';
+    const count = $(`#${view}-count`);
+    if (count) { count.textContent = ''; count.style.display = 'none'; }
+    const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
+    const pagContainer = document.getElementById(pagId);
+    if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
+    setStatus(view, '');
+    return;
+  }
 
   const sources = [];
   const indexersCheckboxId = view === 'browse' ? 'source-indexers' : `${view}-source-indexers`;
@@ -139,6 +153,22 @@ export async function doSearch(view, page = 1) {
 // Search unified for movies/shows/music
 export async function searchUnified(view) {
   const query = $(`#${view}-query`)?.value.trim() || '';
+
+  if (query.length < 2) {
+    state.items[view] = [];
+    state.total[view] = 0;
+    state.offset[view] = 0;
+    state.currentPage[view] = 1;
+    const container = $(`#${view}-results`);
+    if (container) container.innerHTML = '';
+    const count = $(`#${view}-count`);
+    if (count) { count.textContent = ''; count.style.display = 'none'; }
+    const pagId = `${view}-pagination`;
+    const pagContainer = document.getElementById(pagId);
+    if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
+    setStatus(view, '');
+    return;
+  }
 
   state.offset[view] = 0;
   state.items[view] = [];
@@ -284,6 +314,23 @@ export async function loadView(view, reset = false) {
   const supported = ['browse', 'movies', 'shows', 'music', 'library'];
   if (supported.includes(view)) {
     showView(view);
+    const q = $(`#${view}-query`)?.value || '';
+    if (!q || q.length < 2) {
+      // On first load with no query, just show the search box - no content
+      state.items[view] = [];
+      state.total[view] = 0;
+      state.offset[view] = 0;
+      state.currentPage[view] = 1;
+      const container = $(`#${view}-results`);
+      if (container) container.innerHTML = '';
+      const count = $(`#${view}-count`);
+      if (count) { count.textContent = ''; count.style.display = 'none'; }
+      const pagId = `${view}-pagination`;
+      const pagContainer = document.getElementById(pagId);
+      if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
+      setStatus(view, '');
+      return;
+    }
     setStatus(view, 'Loading…');
     try {
       if (view === 'library') {

@@ -150,34 +150,7 @@ export function renderBrowseTorrentSearchResults(candidates, total) {
   const resultsContainer = document.getElementById('browse-torrent-results');
   if (resultsContainer) {
     resultsContainer.innerHTML = candidates.length ? candidates.map(renderSearchItem).join('') : empty('No torrent candidates found.');
-    resultsContainer.querySelectorAll('[data-add-torrent]').forEach((button) => {
-      button.onclick = async () => {
-        const magnet = decodeURIComponent(button.dataset.addTorrent);
-        const name = button.dataset.torrentName || '';
-        button.disabled = true;
-        button.textContent = 'Adding…';
-        try {
-          const data = await fetch('/torbox/torrents', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ magnet, name, addOnlyIfCached: true }),
-          }).then((r) => r.json());
-          button.textContent = 'Added';
-          setTimeout(() => {
-            button.textContent = 'Add cached';
-            button.disabled = false;
-          }, 1500);
-          import('./views.js').then(({ loadView }) => {
-            pinRecentTorrent(data.torrent);
-            loadView('library', true);
-          });
-        } catch (error) {
-          button.textContent = 'Add cached';
-          button.disabled = false;
-          alert(error.message);
-        }
-      };
-    });
+    // Torrent add buttons are handled by the delegated click listener in main.js
   }
 
   const moreBtn = document.getElementById('browse-torrent-more');
@@ -203,30 +176,7 @@ export function renderBrowseUsenetSearchResults(candidates, total) {
   const resultsContainer = document.getElementById('browse-usenet-search-results');
   if (resultsContainer) {
     resultsContainer.innerHTML = candidates.length ? candidates.map(renderSearchItem).join('') : empty('No usenet results found.');
-    resultsContainer.querySelectorAll('[data-add-usenet]').forEach((button) => {
-      button.onclick = async () => {
-        const usenetData = JSON.parse(decodeURIComponent(button.dataset.addUsenet));
-        button.disabled = true;
-        button.textContent = 'Adding…';
-        try {
-          const result = await fetch('/torbox/usenet', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...usenetData, addOnlyIfCached: true }),
-          }).then((r) => r.json());
-          button.textContent = 'Added';
-          setTimeout(() => {
-            button.textContent = 'Add to TorBox';
-            button.disabled = false;
-          }, 1500);
-          import('./views.js').then(({ loadView }) => loadView('library', true));
-        } catch (error) {
-          button.disabled = false;
-          button.textContent = 'Add to TorBox';
-          alert(error.message);
-        }
-      };
-    });
+    // Usenet add buttons are handled by the delegated click listener in main.js
   }
 
   const moreBtn = document.getElementById('browse-usenet-search-more');

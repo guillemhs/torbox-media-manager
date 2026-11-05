@@ -7,11 +7,8 @@ import {
 } from './render.js';
 import {
   getSelectedIndexers, getUsenetSource, goToPage, doSearch, searchUnified,
-  loadMoreUnified, loadMoreBrowse, loadMoreBrowseTorrentSearch,
-  loadMoreBrowseUsenetSearch, loadMoreTitleTorrentSearch,
-  loadMoreTitleUsenetSearch, loadMoreTorrentsUsenetSearch,
   loadView, loadCalendar, shiftCalendarDay, loadTitle, loadTvmazeTitle,
-  routeFromLocation, setRoute, searchRoute, updateMore,
+  routeFromLocation, setRoute, searchRoute,
 } from './views.js';
 
 // ---- Search button handlers ----
@@ -45,11 +42,6 @@ document.getElementById('music-discover-btn')?.addEventListener('click', () => {
   void doSearch('music', 1);
 });
 
-// ---- More button handlers ----
-document.getElementById('movies-more')?.addEventListener('click', () => { void loadMoreUnified('movies'); });
-document.getElementById('shows-more')?.addEventListener('click', () => { void loadMoreUnified('shows'); });
-document.getElementById('music-more')?.addEventListener('click', () => { void loadMoreUnified('music'); });
-document.getElementById('browse-more')?.addEventListener('click', () => { void loadMoreUnified('browse'); });
 
 // ---- Link interception ----
 document.addEventListener('click', (event) => {

@@ -32,39 +32,12 @@ export async function goToPage(viewKey, page) {
     case 'movies':
     case 'shows':
     case 'music':
-      void doSearch(viewKey, page);
-      break;
     case 'browse':
-      void doSearch('browse', page);
-      break;
-    case 'browse-torrents':
-      await loadMoreBrowse('torrents');
-      break;
-    case 'browse-usenet':
-      await loadMoreBrowse('usenet');
-      break;
-    case 'browse-torrent-search':
-      await loadMoreBrowseTorrentSearch();
-      break;
-    case 'browse-usenet-search':
-      await loadMoreBrowseUsenetSearch();
-      break;
-    case 'torrents-usenet-search':
-      await loadMoreTorrentsUsenetSearch();
-      break;
-    case 'title-torrent-search':
-      await loadMoreTitleTorrentSearch();
-      break;
-    case 'title-usenet-search':
-      await loadMoreTitleUsenetSearch();
+      void doSearch(viewKey, page);
       break;
   }
 }
 
-// Load more browse category
-export async function loadMoreBrowse(category) {
-  void doSearch('browse', (state.currentPage['browse'] || 1) + 1);
-}
 
 // Unified search for /browse, /movies, /shows, /music
 export async function doSearch(view, page = 1) {
@@ -84,8 +57,6 @@ export async function doSearch(view, page = 1) {
     const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
     const pagContainer = document.getElementById(pagId);
     if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-    const moreBtn = document.getElementById(`${view}-more`);
-    if (moreBtn) moreBtn.classList.toggle('hidden', true);
     return;
   }
 
@@ -155,21 +126,10 @@ export async function doSearch(view, page = 1) {
     const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
     renderPagination(view, pagId);
 
-    const moreBtn = document.getElementById(`${view}-more`);
-    if (moreBtn) {
-      const hasMore = rows.length > 0 && (state.offset[view] || 0) < state.total[view];
-      moreBtn.classList.toggle('hidden', !hasMore);
-    }
-
     setStatus(view, '');
   } catch (error) {
     setStatus(view, error.message);
   }
-}
-
-// Load more for unified search
-export async function loadMoreUnified(view) {
-  void goToPage(view, (state.currentPage[view] || 1) + 1);
 }
 
 // Search unified for movies/shows/music
@@ -330,8 +290,6 @@ export async function loadView(view, reset = false) {
       if (count) { count.textContent = ''; count.style.display = 'none'; }
       const pagContainer = document.getElementById('browse-pagination');
       if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-      const moreBtn = document.getElementById('browse-more');
-      if (moreBtn) moreBtn.classList.add('hidden');
       setStatus(view, '');
       return;
     }
@@ -354,8 +312,6 @@ export async function loadView(view, reset = false) {
       const pagId = `${view}-pagination`;
       const pagContainer = document.getElementById(pagId);
       if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-      const moreBtn = document.getElementById(`${view}-more`);
-      if (moreBtn) moreBtn.classList.add('hidden');
       setStatus(view, '');
       return;
     }
@@ -375,7 +331,6 @@ export async function loadView(view, reset = false) {
           import('./render.js').then(({ observeArtwork }) => observeArtwork(results));
         }
         setStatus(view, data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
-        updateMore(view);
         return;
       }
 
@@ -385,11 +340,6 @@ export async function loadView(view, reset = false) {
     }
   }
   loadViewMode = null;
-}
-
-export function updateMore(view) {
-  const button = $(`#${view}-more`);
-  if (button) button.classList.toggle('hidden', state.items[view].length >= state.total[view]);
 }
 
 // Search torrent candidates for a specific title
@@ -404,194 +354,4 @@ async function searchBrowseUsenetCandidates(query, source = 'all', offset = 0, l
   const url = `/usenet/search?q=${encodeURIComponent(query)}&source=${encodeURIComponent(source)}&limit=${limit}&offset=${offset}`;
   return await jsonFetch(url);
 }
-
-// Load more torrent search results (browse)
-export async function loadMoreBrowseTorrentSearch() {
-  const { query, kind, imdbId } = state.browseTorrentSearch;
-  if (!query || !imdbId) return;
-  const offset = state.offset['browse-torrent-search'] || 0;
-  const limit = 20;
-  setStatus('browse', 'Loading more torrent results…');
-  try {
-    const data = await searchBrowseTorrentCandidates(imdbId, kind, query, offset, limit);
-    const newItems = data.candidates || [];
-    state.browseTorrentSearch.candidates = [...state.browseTorrentSearch.candidates, ...newItems];
-    state.offset['browse-torrent-search'] += newItems.length;
-    import('./render.js').then(({ renderBrowseTorrentSearchResults }) => renderBrowseTorrentSearchResults(state.browseTorrentSearch.candidates, state.browseTorrentSearch.total));
-    setStatus('browse', '');
-  } catch (error) {
-    setStatus('browse', error.message);
-  }
-}
-
-// Load more usenet search results (browse)
-export async function loadMoreBrowseUsenetSearch() {
-  const { query } = state.browseUsenetSearch;
-  if (!query) return;
-  const offset = state.offset['browse-usenet-search'] || 0;
-  const limit = 20;
-  const source = $('#browse-usenet-search-source')?.value || 'all';
-  setStatus('browse', 'Loading more usenet results…');
-  try {
-    const data = await searchBrowseUsenetCandidates(query, source, offset, limit);
-    const newItems = data.candidates || [];
-    state.browseUsenetSearch.candidates = [...state.browseUsenetSearch.candidates, ...newItems];
-    state.offset['browse-usenet-search'] += newItems.length;
-    import('./render.js').then(({ renderBrowseUsenetSearchResults }) => renderBrowseUsenetSearchResults(state.browseUsenetSearch.candidates, state.browseUsenetSearch.total));
-    setStatus('browse', '');
-  } catch (error) {
-    setStatus('browse', error.message);
-  }
-}
-
-// Load more title torrent search
-export async function loadMoreTitleTorrentSearch() {
-  const { query, kind, imdbId } = state.titleTorrentSearch;
-  if (!query || !imdbId) return;
-  const offset = state.offset['title-torrent-search'] || 0;
-  const limit = 20;
-  setStatus('browse', 'Loading more torrent results…');
-  try {
-    const data = await searchBrowseTorrentCandidates(imdbId, kind, query, offset, limit);
-    const newItems = data.candidates || [];
-    state.titleTorrentSearch.candidates = [...state.titleTorrentSearch.candidates, ...newItems];
-    state.offset['title-torrent-search'] += newItems.length;
-    import('./render.js').then(() => {
-      // Title torrent search results rendered inline
-    });
-    setStatus('browse', '');
-  } catch (error) {
-    setStatus('browse', error.message);
-  }
-}
-
-// Load more title usenet search
-export async function loadMoreTitleUsenetSearch() {
-  const { query } = state.titleUsenetSearch;
-  if (!query) return;
-  const offset = state.offset['title-usenet-search'] || 0;
-  const limit = 20;
-  const source = $('#title-usenet-search-source')?.value || 'all';
-  setStatus('browse', 'Loading more usenet results…');
-  try {
-    const data = await searchBrowseUsenetCandidates(query, source, offset, limit);
-    const newItems = data.candidates || [];
-    state.titleUsenetSearch.candidates = [...state.titleUsenetSearch.candidates, ...newItems];
-    state.offset['title-usenet-search'] += newItems.length;
-    import('./render.js').then(() => {});
-    setStatus('browse', '');
-  } catch (error) {
-    setStatus('browse', error.message);
-  }
-}
-
-// Load more torrents/usenet search
-export async function loadMoreTorrentsUsenetSearch() {
-  const { query } = state.torrentsUsenetSearch;
-  if (!query) return;
-  const offset = state.offset['torrents-usenet-search'] || 0;
-  const limit = 20;
-  const source = $('#torrents-usenet-search-source')?.value || 'all';
-  setStatus('library', 'Loading more usenet results…');
-  try {
-    const data = await searchBrowseUsenetCandidates(query, source, offset, limit);
-    const newItems = data.candidates || [];
-    state.torrentsUsenetSearch.candidates = [...state.torrentsUsenetSearch.candidates, ...newItems];
-    state.offset['torrents-usenet-search'] += newItems.length;
-    import('./render.js').then(() => {});
-    setStatus('library', '');
-  } catch (error) {
-    setStatus('library', error.message);
-  }
-}
-
-// Load title detail
-export async function loadTitle(imdbId, kind) {
-  const pageTitle = $('#page-title');
-  if (pageTitle) pageTitle.textContent = 'Loading title…';
-  const detailContent = $('#detail-content');
-  if (detailContent) detailContent.innerHTML = '<div class="detail-layout"><div class="detail-poster"></div><div><div class="skeleton" style="width:38%"></div><div class="skeleton" style="width:78%;height:34px;margin:14px 0"></div><div class="skeleton" style="width:52%"></div></div></div>';
-  try {
-    const endpoint = kind === 'series' ? 'shows' : 'movies';
-    const title = await jsonFetch(`/api/${endpoint}/${encodeURIComponent(imdbId)}`);
-    if (!title.imdbId) title.imdbId = imdbId;
-    const actualKind = /^tv/i.test(title.titleType) ? 'series' : 'movie';
-    const genres = String(title.genres || '').split(',').map((v) => v.trim()).filter(Boolean);
-    if (pageTitle) pageTitle.textContent = title.primaryTitle;
-    // Render detail (simplified - full HTML in original app.js)
-    detailContent.innerHTML = `<div class="detail-layout"><div class="detail-poster"><img loading="lazy" data-artwork-id="${esc(imdbId)}" data-artwork-kind="${esc(actualKind)}" alt="${esc(title.primaryTitle)} poster" /></div><div class="detail-copy"><h2>${esc(title.primaryTitle)}</h2><div class="detail-meta">${esc(genres.join(', '))} · ${esc(title.startYear || '')}</div><div class="detail-description">${esc(title.overview || '')}</div></div></div>`;
-    import('./render.js').then(({ observeArtwork }) => observeArtwork(detailContent));
-  } catch (error) {
-    const detailContent = $('#detail-content');
-    if (detailContent) detailContent.innerHTML = `<div class="detail-error">${esc(error.message)}</div>`;
-    setStatus('title', error.message);
-  }
-}
-
-// Load TVMaze title
-export async function loadTvmazeTitle(id) {
-  const pageTitle = $('#page-title');
-  if (pageTitle) pageTitle.textContent = 'Loading title…';
-  const detailContent = $('#detail-content');
-  if (detailContent) detailContent.innerHTML = '<div class="empty-state"><span class="spinner"></span>Loading…</div>';
-  try {
-    // TVMaze show lookup
-    setStatus('title', '');
-  } catch (error) {
-    setStatus('title', error.message);
-  }
-}
-
-// Route from location
-export function routeFromLocation() {
-  const path = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '');
-  const params = new URLSearchParams(location.search);
-  const titleMatch = /^title\/(tt\d+)$/i.exec(path);
-  const tvmazeMatch = /^tvmaze\/(\d+)$/i.exec(path);
-
-  if (titleMatch) {
-    const imdbId = titleMatch[1];
-    const kind = params.get('kind') || 'movie';
-    void loadTitle(imdbId, kind);
-    return;
-  }
-  if (tvmazeMatch) {
-    void loadTvmazeTitle(tvmazeMatch[1]);
-    return;
-  }
-
-  // Map URL paths to views
-  const viewMap = {
-    '': 'browse', browse: 'browse', movies: 'movies', shows: 'shows',
-    music: 'music', library: 'library', calendar: 'calendar',
-  };
-  const view = viewMap[path] || 'browse';
-  void loadView(view, true);
-}
-
-// Set route
-export function setRoute(path) {
-  const destination = path.startsWith('/') ? path : `/${path}`;
-  if (location.pathname + location.search === destination) {
-    routeFromLocation();
-  } else {
-    history.pushState(null, '', destination);
-    routeFromLocation();
-    if (typeof window.closeSidebar === 'function') window.closeSidebar();
-  }
-}
-
-// Search route
-export function searchRoute(view) {
-  if (view === 'browse') {
-    const q = $('#browse-query')?.value.trim() || '';
-    setRoute(`/browse?q=${encodeURIComponent(q)}`);
-  } else if (view === 'movies') {
-    loadViewMode = 'search';
-    void loadView('movies', true);
-  } else if (view === 'shows' || view === 'music') {
-    void searchUnified(view);
-  } else {
-    void loadView(view, true);
-  }
 }

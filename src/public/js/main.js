@@ -1,4 +1,4 @@
-import { state, $, esc, artworkObserver, observeArtwork } from './state.js';
+import { state, $, esc, artworkObserver, observeArtwork, showModal } from './state.js';
 import { jsonFetch } from './api.js';
 import {
   renderPagination, renderSearchItem, renderSearchResults,
@@ -76,9 +76,9 @@ document.addEventListener('click', (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ magnet, name, addOnlyIfCached: false }),
         });
-        alert('Added to Torbox');
+        showModal('Added to Torbox', 'The item has been added to your Torbox library.');
       } catch (error) {
-        alert(error.message);
+        showModal('Error', error.message);
       }
     })();
     return;
@@ -131,9 +131,9 @@ document.addEventListener('click', (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source, id, name, addOnlyIfCached: false }),
         });
-        alert('Added to Torbox');
+        showModal('Added to Torbox', 'The item has been added to your Torbox library.');
       } catch (error) {
-        alert(error.message);
+        showModal('Error', error.message);
       }
     })();
     return;

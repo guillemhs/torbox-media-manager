@@ -118,3 +118,16 @@ export const observeArtwork = (root) => {
     else loadArtwork(img);
   });
 };
+
+// Show a Bootstrap modal notification instead of alert()
+export function showModal(title, message) {
+  const titleEl = document.getElementById('notification-title');
+  const msgEl = document.getElementById('notification-message');
+  if (titleEl) titleEl.textContent = title || 'Notification';
+  if (msgEl) msgEl.textContent = message || '';
+  const modalEl = document.getElementById('notification-modal');
+  if (modalEl) {
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+};

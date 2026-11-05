@@ -1,4 +1,4 @@
-import { state, $, esc, fmtBytes, empty, observeArtwork } from './state.js';
+import { state, $, esc, setStatus, fmtBytes, empty, observeArtwork } from './state.js';
 
 // Source tag helper
 export function sourceTag(source, contentType) {
@@ -249,25 +249,25 @@ export function renderTorboxLibrary(items) {
   const videoExt = /\.(?:mp4|m4v|mkv|avi|mov|wmv|flv|webm|m4v|mpeg|mpg|ts)/;
 
   let filtered = items.filter((item) => {
-    const name = item.name || item.title || '';
+    const name = item.name || item.title || item.original_name || '';
     if (query && !name.toLocaleLowerCase().includes(query)) return false;
-    if (filter === 'video' && !videoExt.test(item.extension || '')) return false;
-    if (filter === 'music' && !/\.(?:mp3|wav|flac|m4a|aac|ogg|opus|wma|alac|ape)$/i.test(item.extension || '')) return false;
-    if (filter === 'other' && videoExt.test(item.extension || '')) return false;
+    if (filter === 'video' && !videoExt.test(item.extension || item.file_extension || '')) return false;
+    if (filter === 'music' && !/\.(?:mp3|wav|flac|m4a|aac|ogg|opus|wma|alac|ape)$/i.test(item.extension || item.file_extension || '')) return false;
+    if (filter === 'other' && videoExt.test(item.extension || item.file_extension || '')) return false;
     return true;
   });
 
   if (sort === 'name') filtered.sort((a, b) => (a.name || a.title || '').localeCompare(b.name || b.title || ''));
-  else if (sort === 'size') filtered.sort((a, b) => (b.bytes || 0) - (a.bytes || 0));
-  else if (sort === 'status') filtered.sort((a, b) => (b.download_state || '').localeCompare(a.download_state || ''));
+  else if (sort === 'size') filtered.sort((a, b) => (b.bytes || b.size || 0) - (a.bytes || a.size || 0));
+  else if (sort === 'status') filtered.sort((a, b) => (b.download_state || b.status || '').localeCompare(a.download_state || a.status || ''));
   else filtered.sort((a, b) => (b.id || 0) - (a.id || 0));
 
   return filtered.map((item) => `<article class="library-item">
     <div class="library-item-main">
-      <div class="library-item-title">${esc(item.name || item.title || 'Unknown')}</div>
-      <div class="library-item-meta">${esc(item.extension || '')} · ${fmtBytes(item.bytes || 0)}</div>
+      <div class="library-item-title">${esc(item.name || item.title || item.original_name || 'Unknown')}</div>
+      <div class="library-item-meta">${esc(item.extension || item.file_extension || '')} · ${fmtBytes(item.bytes || item.size || 0)}</div>
     </div>
-    <div class="library-state">${esc(item.download_state || 'unknown')}</div>
+    <div class="library-state">${esc(item.download_state || item.status || 'unknown')}</div>
   </article>`).join('');
 }
 

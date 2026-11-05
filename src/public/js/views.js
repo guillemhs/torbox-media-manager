@@ -4,7 +4,7 @@ import {
   renderPagination, renderSearchResults, renderSearchItem,
   renderBrowseTorrentSearchResults, renderBrowseUsenetSearchResults,
   titleCards, musicReleaseCards, localCards, renderTorboxLibrary,
-  renderCalendar, pinRecentTorrent, renderTitleDetail,
+  renderCalendar, pinRecentTorrent, renderTitleDetail, renderTitleNotFound,
 } from './render.js';
 
 let calendarRequest = 0;

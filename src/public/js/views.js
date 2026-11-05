@@ -354,3 +354,58 @@ async function searchBrowseUsenetCandidates(query, source = 'all', offset = 0, l
   const url = `/usenet/search?q=${encodeURIComponent(query)}&source=${encodeURIComponent(source)}&limit=${limit}&offset=${offset}`;
   return await jsonFetch(url);
 }
+
+
+// Route from browser location
+export function routeFromLocation() {
+  const path = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '');
+  const params = new URLSearchParams(location.search);
+  const titleMatch = /^title\/(tt\d+)$/i.exec(path);
+  const tvmazeMatch = /^tvmaze\/(\d+)$/i.exec(path);
+
+  if (titleMatch) {
+    const imdbId = titleMatch[1];
+    const kind = params.get('kind') || 'movie';
+    // Title detail view not yet implemented in modular frontend - load browse
+    void loadView('browse', true);
+    return;
+  }
+  if (tvmazeMatch) {
+    // TVMaze title detail view not yet implemented - load calendar
+    void loadView('calendar', true);
+    return;
+  }
+
+  const viewMap = {
+    '': 'browse', browse: 'browse', movies: 'movies', shows: 'shows',
+    music: 'music', library: 'library', calendar: 'calendar',
+  };
+  const view = viewMap[path] || 'browse';
+  void loadView(view, true);
+}
+
+// Set browser route
+export function setRoute(path) {
+  const destination = path.startsWith('/') ? path : `/${path}`;
+  if (location.pathname + location.search === destination) {
+    routeFromLocation();
+  } else {
+    history.pushState(null, '', destination);
+    routeFromLocation();
+    if (typeof window.closeSidebar === 'function') window.closeSidebar();
+  }
+}
+
+// Search route navigation
+export function searchRoute(view) {
+  if (view === 'browse') {
+    const q = $('#browse-query')?.value.trim() || '';
+    setRoute(`/browse?q=${encodeURIComponent(q)}`);
+  } else if (view === 'movies') {
+    void loadView('movies', true);
+  } else if (view === 'shows' || view === 'music') {
+    void searchUnified(view);
+  } else {
+    void loadView(view, true);
+  }
+}

@@ -72,7 +72,8 @@ export async function doSearch(view, page = 1) {
   try {
     let data;
     if (view === 'browse') {
-      data = await jsonFetch(`/api/search?q=${encodeURIComponent(query)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`);
+      // /api/browse supports empty q for discover mode; /api/search requires q >= 2
+      data = await jsonFetch(`/api/browse?q=${encodeURIComponent(query)}&kind=all&limit=${limit}&offset=${offset}`);
     } else {
       const kind = view === 'movies' ? 'movie' : view === 'shows' ? 'series' : 'music';
       data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`);
@@ -80,25 +81,41 @@ export async function doSearch(view, page = 1) {
 
     const tItems = data.results?.torrents?.items || data.torrents?.items || [];
     const uItems = data.results?.usenet?.items || data.usenet?.items || [];
+    const lItems = data.results?.local?.items || [];
+
     const torrents = tItems.map((t) => ({ ...t, _source: 'torrents' }));
     const usenet = uItems.map((u) => ({ ...u, _source: 'usenet' }));
+    const local = lItems.map((l) => ({ ...l, _source: 'local' }));
 
     const hasIndexers = sources.includes('indexers');
     const hasUsenet = sources.includes('usenet');
 
     let rows = [];
-    if (hasIndexers && hasUsenet) {
-      rows = [...torrents, ...usenet];
-    } else if (hasIndexers) {
-      rows = torrents;
-    } else if (hasUsenet) {
-      rows = usenet;
+    if (view === 'browse') {
+      // Browse: combine local + torrents + usenet based on selected sources
+      if (hasIndexers && hasUsenet) {
+        rows = [...local, ...torrents, ...usenet];
+      } else if (hasIndexers) {
+        rows = [...local, ...torrents];
+      } else if (hasUsenet) {
+        rows = [...local, ...usenet];
+      } else {
+        rows = [...local];
+      }
     } else {
-      rows = torrents;
+      if (hasIndexers && hasUsenet) {
+        rows = [...torrents, ...usenet];
+      } else if (hasIndexers) {
+        rows = torrents;
+      } else if (hasUsenet) {
+        rows = usenet;
+      } else {
+        rows = torrents;
+      }
     }
 
     if (view === 'browse') {
-      state.total[view] = (data.torrents?.total || 0) + (data.usenet?.total || 0);
+      state.total[view] = (data.results?.local?.total || 0) + (data.results?.torrents?.total || 0) + (data.results?.usenet?.total || 0);
     } else {
       state.total[view] = (data.results?.torrents?.total || data.torrents?.total || 0) + (data.results?.usenet?.total || data.usenet?.total || 0);
     }
@@ -143,7 +160,9 @@ export async function searchUnified(view) {
     const usenetSource = $(`#${view}-usenet-source`)?.value || 'all';
     const indexers = getSelectedIndexers(`${view}-`);
 
-    const url = `/api/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=20&offset=0`;
+    // Use individual endpoints (/api/movies, /api/shows, /api/music) which support
+    // empty q for discover mode. /api/search requires q >= 2.
+    const url = `/api/${view}?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=20&offset=0`;
     const data = await jsonFetch(url);
 
     if (view === 'movies') {

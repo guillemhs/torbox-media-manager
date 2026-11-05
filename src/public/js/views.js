@@ -354,4 +354,3 @@ async function searchBrowseUsenetCandidates(query, source = 'all', offset = 0, l
   const url = `/usenet/search?q=${encodeURIComponent(query)}&source=${encodeURIComponent(source)}&limit=${limit}&offset=${offset}`;
   return await jsonFetch(url);
 }
-}

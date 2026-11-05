@@ -461,6 +461,7 @@ export function routeFromLocation() {
   if (titleMatch) {
     const imdbId = titleMatch[1];
     const kind = params.get('kind') || 'movie';
+    showView('title');
     void loadTitle(imdbId, kind);
     return;
   }

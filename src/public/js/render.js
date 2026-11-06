@@ -71,27 +71,6 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   return html;
 }
 
-// ── Skeleton grid HTML ──
-export function renderSkeletonGrid(count = 8, kind = 'movie') {
-  const isMusic = kind === 'music';
-  let html = '';
-  for (let i = 0; i < count; i++) {
-    html += `
-      <div class="tb-skeleton-card">
-        <div class="tb-skeleton-cover ${isMusic ? 'music' : ''}"></div>
-        <div class="tb-skeleton-body">
-          <div class="tb-skeleton-line title"></div>
-          <div class="tb-skeleton-line meta"></div>
-          <div class="tb-skeleton-line meta" style="width:40%"></div>
-        </div>
-      </div>
-    `;
-  }
-  return html;
-}
-
-// ── Media card (search results) ──
-export function renderSearchItem(item, idx) {
   const source = item._source || item.source || 'Unknown';
   const isTorrent = item._source === 'torrents';
   const isUsenet = item._source === 'usenet';

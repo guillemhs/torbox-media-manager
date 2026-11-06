@@ -1,4 +1,4 @@
-import { state, $, esc, setStatus, empty, observeArtwork, renderSkeletonGrid } from './state.js';
+import { state, $, esc, setStatus, empty, observeArtwork } from './state.js';
 import { jsonFetch } from './api.js';
 import {
   renderPaginationHtml, renderSearchResults, renderSearchItem,

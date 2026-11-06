@@ -14,6 +14,25 @@ export function sourceBadge(source, contentType) {
   return `<span class="tb-source-badge ${info.class}" title="${esc(typeLabel)}">${esc(info.label)}</span>`;
 }
 
+// ── Skeleton grid HTML ──
+export function renderSkeletonGrid(count = 8, kind = 'movie') {
+  const isMusic = kind === 'music';
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    html += `
+      <div class="tb-skeleton-card">
+        <div class="tb-skeleton-cover ${isMusic ? 'music' : ''}"></div>
+        <div class="tb-skeleton-body">
+          <div class="tb-skeleton-line title"></div>
+          <div class="tb-skeleton-line meta"></div>
+          <div class="tb-skeleton-line meta" style="width:40%"></div>
+        </div>
+      </div>
+    `;
+  }
+  return html;
+}
+
 // ── Pagination HTML (string) ──
 export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));

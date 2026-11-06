@@ -124,6 +124,29 @@
       .results { display: flex; flex-direction: column; gap: 0.5rem; }
       .status-line { font-size: 0.875rem; color: var(--tb-text-muted); margin-bottom: 0.75rem; }
 
+      /* ── Source select styling ── */
+      .tb-source-select {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .tb-source-select .form-check-input {
+        width: 1.1rem;
+        height: 1.1rem;
+        margin-top: 0.15rem;
+      }
+      .tb-source-select .form-check-label {
+        color: var(--tb-text-muted);
+        font-size: 0.875rem;
+        cursor: pointer;
+        user-select: none;
+      }
+      .tb-source-select .form-check-input:checked + .form-check-label {
+        color: var(--tb-text);
+        font-weight: 600;
+      }
+
       /* ── Hero search (initial load) ── */
       .tb-hero {
         min-height: 50vh;
@@ -521,6 +544,10 @@
                 <button id="browse-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="browse-discover-btn" class="btn btn-tb-secondary">Discover</button>
               </div>
+              <div class="tb-source-select mt-2">
+                <label class="form-check form-check-inline me-3"><input id="source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
+                <label class="form-check form-check-inline me-3"><input id="source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
+              </div>
               <span class="tb-route-badge" id="browse-route-badge">Filtering: All Categories</span>
             </div>
           </div>
@@ -547,6 +574,10 @@
                 <input id="movies-query" type="search" class="form-control form-control-dark form-control-lg" placeholder="Search movies…" autocomplete="off">
                 <button id="movies-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="movies-discover-btn" class="btn btn-tb-secondary">Discover</button>
+              </div>
+              <div class="tb-source-select mt-2">
+                <label class="form-check form-check-inline me-3"><input id="movies-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
+                <label class="form-check form-check-inline me-3"><input id="movies-source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
               </div>
               <span class="tb-route-badge" id="movies-route-badge">Filtering: Movies Category 2000</span>
             </div>
@@ -575,6 +606,10 @@
                 <button id="shows-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="shows-discover-btn" class="btn btn-tb-secondary">Discover</button>
               </div>
+              <div class="tb-source-select mt-2">
+                <label class="form-check form-check-inline me-3"><input id="shows-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
+                <label class="form-check form-check-inline me-3"><input id="shows-source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
+              </div>
               <span class="tb-route-badge" id="shows-route-badge">Filtering: TV Category 5000</span>
             </div>
           </div>
@@ -601,6 +636,10 @@
                 <input id="music-query" type="search" class="form-control form-control-dark form-control-lg" placeholder="Search music…" autocomplete="off">
                 <button id="music-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="music-discover-btn" class="btn btn-tb-secondary">Discover</button>
+              </div>
+              <div class="tb-source-select mt-2">
+                <label class="form-check form-check-inline me-3"><input id="music-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
+                <label class="form-check form-check-inline me-3"><input id="music-source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
               </div>
               <span class="tb-route-badge" id="music-route-badge">Filtering: Audio Category 3000</span>
             </div>

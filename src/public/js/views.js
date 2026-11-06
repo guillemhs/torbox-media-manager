@@ -454,6 +454,50 @@ export function showView(viewName) {
   });
 }
 
+// ── Load calendar ──
+export async function loadCalendar() {
+  try {
+    setStatus('calendar', 'Loading…');
+    const date = new Date().toISOString().slice(0, 10);
+    const data = await jsonFetch(`/api/calendar?date=${date}`);
+    state.calendarData = data;
+    const container = $('#calendar-results');
+    if (container) {
+      container.innerHTML = renderCalendar();
+    }
+    const summary = $('#calendar-summary');
+    if (summary && data.episodes) {
+      summary.textContent = \`\${data.episodes.length} episode\${data.episodes.length !== 1 ? 's' : ''}\`;
+    }
+    setStatus('calendar', '');
+  } catch (error) {
+    setStatus('calendar', error.message);
+  }
+}
+
+// ── Shift calendar day ──
+export async function shiftCalendarDay(offset) {
+  try {
+    setStatus('calendar', 'Loading…');
+    const today = new Date();
+    today.setDate(today.getDate() + offset);
+    const date = today.toISOString().slice(0, 10);
+    const data = await jsonFetch(`/api/calendar?date=${date}`);
+    state.calendarData = data;
+    const container = $('#calendar-results');
+    if (container) {
+      container.innerHTML = renderCalendar();
+    }
+    const summary = $('#calendar-summary');
+    if (summary && data.episodes) {
+      summary.textContent = \`\${data.episodes.length} episode\${data.episodes.length !== 1 ? 's' : ''}\`;
+    }
+    setStatus('calendar', '');
+  } catch (error) {
+    setStatus('calendar', error.message);
+  }
+}
+
 // ── Library pagination click handler ──
 document.addEventListener('click', (event) => {
   const target = event.target instanceof Element ? event.target : null;

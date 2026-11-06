@@ -174,6 +174,37 @@ document.addEventListener('click', (event) => {
   }
 });
 
+// ---- Fetch API status on load ----
+async function fetchApiStatus() {
+  try {
+    const data = await jsonFetch('/health');
+    const statusEl = $('#app-status');
+    const badgeEl = $('#api-status-badge');
+    if (data.mode === 'torbox-integrated') {
+      if (statusEl) statusEl.textContent = '● Online';
+      if (badgeEl) {
+        badgeEl.textContent = 'API Key Connected';
+        badgeEl.classList.replace('missing', 'connected');
+        badgeEl.classList.add('connected');
+      }
+    } else {
+      if (statusEl) statusEl.textContent = '● Offline';
+      if (badgeEl) {
+        badgeEl.textContent = 'API Key Missing';
+        badgeEl.classList.add('missing');
+      }
+    }
+  } catch (error) {
+    const statusEl = $('#app-status');
+    const badgeEl = $('#api-status-badge');
+    if (statusEl) statusEl.textContent = '● Offline';
+    if (badgeEl) {
+      badgeEl.textContent = 'API Key Missing';
+      badgeEl.classList.add('missing');
+    }
+  }
+}
+
 // ---- Hamburger menu ----
 function initHamburgerMenu() {
   const hamburgerBtn = document.getElementById('hamburger-menu');
@@ -216,6 +247,7 @@ function initHamburgerMenu() {
   window.closeSidebar = closeSidebar;
 }
 
+void fetchApiStatus();
 initHamburgerMenu();
 
 // ---- Popstate ----

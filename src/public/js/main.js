@@ -1,14 +1,12 @@
 import { state, $, esc, artworkObserver, observeArtwork, showModal } from './state.js';
 import { jsonFetch } from './api.js';
 import {
-  renderPagination, renderSearchItem, renderSearchResults,
-  renderBrowseTorrentSearchResults, renderBrowseUsenetSearchResults,
-  renderCandidateRows, renderTorboxLibrary,
+  renderSearchItem, renderTorboxLibrary,
 } from './render.js';
 import {
   getSelectedIndexers, getUsenetSource, goToPage, doSearch, searchLocal,
   searchUnified, loadView, loadCalendar, shiftCalendarDay,
-  routeFromLocation, setRoute, searchRoute,
+  routeFromLocation, setRoute, searchRoute, loadLibraryPage, loadTitle, loadMusicDetail,
 } from './views.js';
 
 // ---- Search button handlers ----
@@ -19,14 +17,17 @@ document.getElementById('browse-search-btn')?.addEventListener('click', () => {
 document.getElementById('browse-discover-btn')?.addEventListener('click', () => {
   void searchLocal('browse', 1);
 });
+
 document.getElementById('movies-search-btn')?.addEventListener('click', () => {
   state.moviesSearched = true;
   void doSearch('movies', 1);
 });
+
 document.getElementById('shows-search-btn')?.addEventListener('click', () => {
   state.showsSearched = true;
   void doSearch('shows', 1);
 });
+
 document.getElementById('music-search-btn')?.addEventListener('click', () => {
   state.musicSearched = true;
   void doSearch('music', 1);
@@ -37,15 +38,16 @@ document.getElementById('movies-discover-btn')?.addEventListener('click', () => 
   state.moviesSearched = false;
   void searchLocal('movies', 1);
 });
+
 document.getElementById('shows-discover-btn')?.addEventListener('click', () => {
   state.showsSearched = false;
   void searchLocal('shows', 1);
 });
+
 document.getElementById('music-discover-btn')?.addEventListener('click', () => {
   state.musicSearched = false;
   void searchLocal('music', 1);
 });
-
 
 // ---- Link interception ----
 document.addEventListener('click', (event) => {
@@ -80,7 +82,7 @@ document.addEventListener('click', (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ magnet, name, addOnlyIfCached: false }),
         });
-        showModal('Added to Torbox', 'The item has been added to your Torbox library.');
+        showModal('Added to TorBox', 'The item has been added to your TorBox library.');
       } catch (error) {
         showModal('Error', error.message);
       }
@@ -135,7 +137,7 @@ document.addEventListener('click', (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source, id, name, addOnlyIfCached: false }),
         });
-        showModal('Added to Torbox', 'The item has been added to your Torbox library.');
+        showModal('Added to TorBox', 'The item has been added to your TorBox library.');
       } catch (error) {
         showModal('Error', error.message);
       }

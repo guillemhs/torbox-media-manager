@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,405 +9,694 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css?v=__CACHE_VERSION__">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-      :root{font-family:"Inter",system-ui,-apple-system,sans-serif;body{margin:0;min-height:100vh;background:#f8f9fa;color:#212529}}
-      .view{display:none} .view.active{display:block} .hidden{display:none}
-      #app-sidebar{position:fixed;top:0;left:0;width:280px;height:100vh;background:#fff;border-right:1px solid #dee2e6;transform:translateX(-100%);transition:transform .2s;z-index:1050;padding:1.5rem}
-      #app-sidebar.open{transform:translateX(0)}
-      #sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:1040}
-      #sidebar-overlay.visible{opacity:1;pointer-events:auto}
-      body.sidebar-open{overflow:hidden}
-      .nav-link{display:block;padding:.75rem 1rem;color:#212529;text-decoration:none;border-radius:.5rem;margin-bottom:.25rem}
-      .nav-link.active{background:#f8f9fa;color:#0d6efd;font-weight:500}
-      .nav-link:hover{background:#f1f3f5}
-      .navbar .nav-link{color:rgba(255,255,255,0.85)}
-      .navbar .nav-link:hover{color:#fff;background:rgba(255,255,255,0.1)}
-      .navbar .nav-link.active{color:#fff;background:rgba(255,255,255,0.2)}
-      #hamburger-menu{display:none;position:fixed;top:.75rem;left:.75rem;z-index:1060;background:#fff;border:1px solid #dee2e6;border-radius:.5rem;padding:.5rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-      @media (max-width:760px){#hamburger-menu{display:block}}
-      #root{padding-top:70px;padding-bottom:2rem}
-      .page-title{font-size:1.5rem;font-weight:700;margin-bottom:1rem}
-      .section{margin-bottom:2rem}
-      .section-title{font-size:1.25rem;font-weight:600;margin-bottom:.75rem}
-      .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:1rem}
-      .results{display:flex;flex-direction:column;gap:0.5rem}
-      .empty-state{padding:3rem;text-align:center;color:#6c757d;background:#fff;border:1px solid #dee2e6;border-radius:.5rem}
-      .empty-state .btn{margin-top:1rem}
-      .spinner{display:inline-block;width:1.5rem;height:1.5rem;border:2px solid #dee2e6;border-top-color:#0d6efd;border-radius:50%;animation:spin .8s linear infinite}
-      @keyframes spin{to{transform:rotate(360deg)}}
-      .skeleton{background:#e9ecef;border-radius:.375rem;animation:pulse 1.5s infinite}
-      @keyframes pulse{0%,100%{opacity:.6}50%{opacity:.3}}
-      .muted{color:#6c757d;font-size:.875rem}
-      label{font-size:.875rem;color:#6c757d;margin-right:.5rem}
-      .detail-layout{display:flex;gap:2rem;margin-bottom:1.5rem}
-      .detail-poster{flex:0 0 auto}
-      .detail-poster img{max-width:200px;border-radius:.5rem;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-      .detail-copy{flex:1}
-      .detail-kicker{font-size:.875rem;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;margin-bottom:.25rem}
-      .detail-subtitle{color:#6c757d;font-size:.95rem;margin-bottom:.75rem}
-      .detail-tag{display:inline-block;padding:.25rem .5rem;background:#e9ecef;border-radius:.375rem;font-size:.8rem;margin-right:.375rem;margin-bottom:.375rem}
-      .detail-actions{margin-top:1rem}
-      .detail-description{line-height:1.6;color:#495057}
-      .detail-error{padding:2rem;text-align:center;color:#dc3545}
-      .tab-row{display:flex;gap:.25rem;margin-bottom:.75rem}
-      .status-line{font-size:.875rem;color:#6c757d;margin-bottom:.75rem}
-      .torrent-list-row{border:1px solid #dee2e6;border-radius:.5rem;padding:.5rem .75rem;margin-bottom:.4rem;background:#fff;display:flex;align-items:center;gap:.5rem;font-size:.875rem}
-      .torrent-perm{color:#6c757d;font-size:.8rem;width:2rem;flex:none}
-      .torrent-name{font-weight:600;color:#212529;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-      .torrent-meta{font-size:.8rem;color:#6c757d;flex:none}
-      .torrent-actions{flex:none;display:flex;gap:.25rem}
-      .source-tag{font-size:.8rem;background:#e9ecef;padding:.125rem .5rem;border-radius:.375rem;color:#495057}
-      .category-tag{font-size:.75rem;background:#0d6efd;color:#fff;padding:.125rem .5rem;border-radius:.375rem;text-transform:uppercase}
-      .result-row{border:1px solid #dee2e6;border-radius:.5rem;padding:1rem;margin-bottom:.75rem;background:#fff;display:flex;justify-content:space-between;align-items:center}
-      .result-row-link{text-decoration:none;color:inherit;flex:1}
-      .result-row-link:hover{color:#0d6efd}
-      .result-row-title{font-weight:600;color:#212529}
-      .result-row-meta{font-size:.875rem;color:#6c757d}
-      .result-row-meta-line{font-size:.8rem;color:#6c757d;margin-bottom:.25rem}
-      .result-row-source{font-size:.75rem}
-      .result-row-arrow{color:#adb5bd;font-size:1.25rem}
-      .library-item{border:1px solid #dee2e6;border-radius:.5rem;padding:1rem;margin-bottom:.75rem;background:#fff}
-      .library-item-main{flex:1}
-      .library-item-title{font-weight:600;color:#212529}
-      .library-item-meta{font-size:.875rem;color:#6c757d}
-      .library-state{font-weight:500}
-      .library-files{border-top:1px solid #dee2e6;margin-top:.75rem;padding-top:.75rem}
-      .track-list{font-size:.875rem}
-      .track-row{display:flex;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid #f8f9fa}
-      .album-cover{width:100%;max-width:200px;border-radius:.5rem;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-      .album-cover img{width:100%;height:auto;display:block}
-      .album-info{flex:1}
-      .album-details{margin-top:.5rem}
-      .episode-card{border:1px solid #dee2e6;border-radius:.5rem;overflow:hidden;background:#fff;margin-bottom:1rem}
-      .episode-card img{width:100%;height:120px;object-fit:cover}
-      .episode-copy{padding:1rem}
-      .episode-name{font-weight:600;color:#212529}
-      .episode-time{font-size:.875rem;color:#0d6efd;font-weight:600}
-      .episode-meta{font-size:.8rem;color:#6c757d;margin-top:.25rem}
-      .episode-summary{font-size:.875rem;color:#495057;margin-top:.5rem}
-      .pagination-btn{padding:.375rem .75rem;font-size:.875rem}
-      .pagination-info{font-size:.875rem;color:#6c757d}
-      .pagination-ellipsis{padding:.375rem .5rem;color:#6c757d}
-      .result-list-item{border:1px solid #dee2e6;border-radius:.5rem;margin-bottom:.75rem;background:#fff;overflow:hidden}
-      .result-list-item a{text-decoration:none;color:inherit;display:block;width:100%;height:100%}
-      .result-list-item a:hover{background:#f8f9fa}
-      .result-list-title{font-weight:600;color:#212529;font-size:1.1rem;margin-bottom:.25rem;word-break:break-word}
-      .result-list-meta{font-size:.85rem;color:#495057;margin-bottom:.15rem}
-      .result-list-meta-line{font-size:.8rem;color:#6c757d;margin-bottom:.2rem}
-      .result-list-source{font-size:.75rem;color:#6c757d;margin-bottom:.2rem}
-      .result-list-actions{margin-top:.5rem;display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end}
-      .result-list-header{margin-bottom:.2rem}
-      .result-list-year-type{font-size:.85rem;color:#6c757d;margin-bottom:.15rem}
-      .search-result-item{display:flex;align-items:flex-start;border:1px solid #dee2e6;border-radius:.5rem;margin-bottom:0.25rem;background:#fff;padding:0.5rem 0.75rem;overflow:hidden}
-      .search-result-info{flex:1;min-width:0}
-      .search-result-item a{text-decoration:none;color:inherit}
-      .search-result-item a:hover{background:#f8f9fa}
-      .search-result-item .search-result-actions{margin-left:auto;flex-shrink:0;display:flex;gap:0.25rem}
-      .search-result-title{font-weight:600;color:#212529;font-size:0.95rem;margin-bottom:0.15rem;word-break:break-word}
-      .search-result-meta{font-size:0.8rem;color:#6c757d;margin-bottom:0}
-      .category-tag{font-size:0.7rem;background:#0d6efd;color:#fff;padding:0.125rem 0.5rem;border-radius:0.375rem;text-transform:uppercase;margin-right:0.5rem;display:inline-block}
-      .search-result-header{margin-bottom:.2rem}
-      .search-result-title{font-weight:600;color:#212529;font-size:1.1rem;margin-bottom:.25rem;word-break:break-word}
-      .search-result-year-type{font-size:.85rem;color:#6c757d;margin-bottom:.15rem}
-      .search-result-meta{font-size:.85rem;color:#495057;margin-bottom:.15rem}
-      .search-result-source{font-size:.75rem;color:#6c757d;margin-bottom:.2rem}
-      .search-result-actions{margin-top:.5rem;display:flex;gap:.35rem;flex-wrap:wrap;justify-content:flex-end}
-      .search-result-actions .btn{font-size:.85rem;padding:.35rem .6rem}
-      .result-list-link{display:block;padding:.75rem 1rem;text-decoration:none;color:inherit}
-      .result-list-link:hover{background:#f8f9fa;color:#0d6efd}
-      .result-list-actions .btn{font-size:.85rem;padding:.35rem .6rem}
-      .pagination{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center;justify-content:flex-end;margin-top:.5rem}
-      .pagination .btn{font-size:.875rem}
-      .pagination .pagination-btn.active{background:#0d6efd;border-color:#0d6efd;color:#fff}
-      .card{transition:transform .2s,box-shadow .2s}
-      .card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
-      .card-img-top{height:200px;object-fit:cover}
-      .search-card{border:none;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-      .search-card .card-body{padding:1.5rem}
-      .sidebar-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid #dee2e6;margin-bottom:1rem}
-      .sidebar-title{margin:0;font-size:1.25rem;font-weight:600}
-      .sidebar-body{padding:1rem 1.5rem}
-      .btn-close{background:none;border:none;font-size:1.5rem;line-height:1;color:#6c757d;padding:0.5rem;cursor:pointer}
-      .btn-close:hover{color:#000}
+      :root {
+        --tb-bg: #0f172a;
+        --tb-surface: #1e293b;
+        --tb-surface-hover: #334155;
+        --tb-text: #f8fafc;
+        --tb-text-muted: #94a3b8;
+        --tb-accent: #38bdf8;
+        --tb-accent-hover: #7dd3fc;
+        --tb-danger: #f87171;
+        --tb-success: #4ade80;
+        --tb-border: #334155;
+      }
+
+      body {
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        background: var(--tb-bg);
+        color: var(--tb-text);
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      /* ── Global layout ── */
+      .view { display: none; }
+      .view.active { display: block; }
+      .hidden { display: none !important; }
+
+      /* ── Navbar ── */
+      .tb-navbar {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+        background: rgba(15, 23, 42, 0.9) !important;
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--tb-border);
+      }
+      .tb-navbar .navbar-brand {
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: var(--tb-text) !important;
+      }
+      .tb-navbar .nav-link {
+        color: var(--tb-text-muted) !important;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin: 0 0.125rem;
+        transition: all 0.2s ease;
+      }
+      .tb-navbar .nav-link:hover,
+      .tb-navbar .nav-link.active {
+        color: var(--tb-text) !important;
+        background: var(--tb-surface-hover);
+      }
+      .tb-api-badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.6rem;
+        border-radius: 999px;
+        margin-left: 0.5rem;
+      }
+      .tb-api-badge.connected { background: var(--tb-success); color: #064e3b; }
+      .tb-api-badge.missing { background: var(--tb-danger); color: #7f1d1d; }
+
+      /* ── Hamburger (mobile) ── */
+      #hamburger-menu {
+        display: none;
+        position: fixed;
+        top: 0.75rem;
+        left: 0.75rem;
+        z-index: 1060;
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        cursor: pointer;
+        color: var(--tb-text);
+      }
+      @media (max-width: 760px) { #hamburger-menu { display: block; } }
+
+      /* ── Sidebar ── */
+      #app-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100vh;
+        background: var(--tb-surface);
+        border-right: 1px solid var(--tb-border);
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+        z-index: 1050;
+        padding: 1.5rem;
+      }
+      #app-sidebar.open { transform: translateX(0); }
+      #sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 1040;
+      }
+      #sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+      body.sidebar-open { overflow: hidden; }
+
+      /* ── Root / views ── */
+      #root { padding-top: 70px; padding-bottom: 2rem; }
+      .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; color: var(--tb-text); }
+      .section { margin-bottom: 2rem; }
+      .section-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--tb-text); }
+      .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+      .results { display: flex; flex-direction: column; gap: 0.5rem; }
+      .status-line { font-size: 0.875rem; color: var(--tb-text-muted); margin-bottom: 0.75rem; }
+
+      /* ── Hero search (initial load) ── */
+      .tb-hero {
+        min-height: 50vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+      }
+      .tb-hero-card {
+        width: 100%;
+        max-width: 600px;
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 1rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+      .tb-hero-card .card-body { padding: 2.5rem 2rem; }
+      .tb-hero-input-group { border-radius: 0.75rem; overflow: hidden; border: 1px solid var(--tb-border); }
+      .tb-hero-input-group .form-control {
+        background: var(--tb-bg);
+        border: none;
+        color: var(--tb-text);
+        padding: 0.875rem 1.5rem;
+        font-size: 1.125rem;
+      }
+      .tb-hero-input-group .form-control::placeholder { color: var(--tb-text-muted); }
+      .tb-hero-input-group .form-control:focus {
+        box-shadow: none;
+        border-color: transparent;
+      }
+      .tb-hero-input-group .btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      .tb-route-badge {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        background: var(--tb-surface-hover);
+        color: var(--tb-accent);
+        border: 1px solid var(--tb-border);
+        margin-top: 1rem;
+        display: inline-block;
+      }
+
+      /* ── Media cards ── */
+      .tb-card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      @media (min-width: 576px) { .tb-card-grid { grid-template-columns: repeat(3, 1fr); } }
+      @media (min-width: 768px) { .tb-card-grid { grid-template-columns: repeat(4, 1fr); } }
+      @media (min-width: 992px) { .tb-card-grid { grid-template-columns: repeat(5, 1fr); } }
+      @media (min-width: 1200px) { .tb-card-grid { grid-template-columns: repeat(6, 1fr); } }
+
+      .tb-card {
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .tb-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.4);
+        border-color: var(--tb-accent);
+      }
+      .tb-card-cover {
+        position: relative;
+        overflow: hidden;
+      }
+      .tb-card-cover img {
+        width: 100%;
+        display: block;
+      }
+      .tb-card-cover.movie { aspect-ratio: 2 / 3; }
+      .tb-card-cover.music { aspect-ratio: 1 / 1; }
+      .tb-card-cover.no-cover {
+        background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--tb-text-muted);
+      }
+      .tb-card-cover.no-cover i { font-size: 2rem; opacity: 0.5; }
+      .tb-source-badge {
+        position: absolute;
+        top: 0.5rem;
+        left: 0.5rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        z-index: 2;
+        backdrop-filter: blur(4px);
+      }
+      .tb-source-badge.prowlarr { background: #0d6efd; color: #fff; }
+      .tb-source-badge.torrentio { background: #6c757d; color: #fff; }
+      .tb-source-badge.usenet { background: #dc3545; color: #fff; }
+      .tb-source-badge.imdb { background: #ffc107; color: #000; }
+      .tb-source-badge.musicbrainz { background: #6f42c1; color: #fff; }
+      .tb-card-body { padding: 0.75rem; flex: 1; display: flex; flex-direction: column; }
+      .tb-card-title {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--tb-text);
+        margin: 0 0 0.25rem 0;
+        line-height: 1.2;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .tb-card-meta {
+        font-size: 0.75rem;
+        color: var(--tb-text-muted);
+        margin: 0;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .tb-card-actions {
+        margin-top: auto;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--tb-border);
+        display: flex;
+        gap: 0.25rem;
+      }
+      .tb-card-actions .btn {
+        flex: 1;
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
+      }
+
+      /* ── Skeleton loading ── */
+      .tb-skeleton-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+      }
+      @media (min-width: 576px) { .tb-skeleton-grid { grid-template-columns: repeat(3, 1fr); } }
+      @media (min-width: 768px) { .tb-skeleton-grid { grid-template-columns: repeat(4, 1fr); } }
+      @media (min-width: 992px) { .tb-skeleton-grid { grid-template-columns: repeat(5, 1fr); } }
+      @media (min-width: 1200px) { .tb-skeleton-grid { grid-template-columns: repeat(6, 1fr); } }
+      .tb-skeleton-card {
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        height: 380px;
+        display: flex;
+        flex-direction: column;
+      }
+      .tb-skeleton-cover {
+        background: var(--tb-surface-hover);
+        aspect-ratio: 2 / 3;
+      }
+      .tb-skeleton-cover.music { aspect-ratio: 1 / 1; }
+      .tb-skeleton-body { padding: 0.75rem; flex: 1; }
+      .tb-skeleton-line {
+        background: var(--tb-surface-hover);
+        border-radius: 0.25rem;
+        height: 0.875rem;
+        margin-bottom: 0.5rem;
+        animation: pulse 1.5s infinite;
+      }
+      .tb-skeleton-line.title { width: 80%; height: 1rem; }
+      .tb-skeleton-line.meta { width: 60%; height: 0.75rem; }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 0.3; }
+      }
+
+      /* ── Empty state ── */
+      .tb-empty {
+        padding: 4rem 2rem;
+        text-align: center;
+        color: var(--tb-text-muted);
+      }
+      .tb-empty i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+      .tb-empty h3 { color: var(--tb-text); margin-bottom: 0.5rem; }
+
+      /* ── Pagination ── */
+      .tb-pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.25rem;
+        margin-top: 1.5rem;
+      }
+      .tb-pagination .btn {
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        color: var(--tb-text);
+        border-radius: 0.5rem;
+      }
+      .tb-pagination .btn:hover { background: var(--tb-surface-hover); border-color: var(--tb-accent); }
+      .tb-pagination .btn.active {
+        background: var(--tb-accent);
+        border-color: var(--tb-accent);
+        color: #0f172a;
+      }
+      .tb-pagination .btn.disabled { opacity: 0.5; cursor: not-allowed; }
+
+      /* ── Detail pages ── */
+      .tb-detail-hero {
+        background: linear-gradient(135deg, var(--tb-surface) 0%, var(--tb-bg) 100%);
+        border: 1px solid var(--tb-border);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+      }
+      .tb-detail-poster {
+        position: relative;
+      }
+      .tb-detail-poster img {
+        width: 100%;
+        max-width: 250px;
+        border-radius: 0.75rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+      }
+      .tb-detail-poster.movie img { aspect-ratio: 2 / 3; object-fit: cover; height: auto; }
+      .tb-detail-poster.music img { aspect-ratio: 1 / 1; object-fit: cover; height: auto; }
+      .tb-detail-info h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--tb-text); }
+      .tb-detail-meta { color: var(--tb-text-muted); font-size: 0.95rem; margin-bottom: 1rem; }
+      .tb-detail-meta span { margin-right: 1rem; }
+      .tb-detail-overview { color: var(--tb-text-muted); line-height: 1.6; margin-bottom: 1.5rem; }
+      .tb-detail-tags { margin-bottom: 1.5rem; }
+      .tb-detail-tag {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.35rem 0.75rem;
+        border-radius: 0.5rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: var(--tb-surface-hover);
+        color: var(--tb-accent);
+        border: 1px solid var(--tb-border);
+      }
+      .tb-detail-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .tb-detail-actions .btn { font-weight: 600; padding: 0.625rem 1.25rem; border-radius: 0.5rem; }
+
+      /* ── Accordion ── */
+      .tb-accordion { margin-top: 2rem; }
+      .tb-accordion .accordion-item {
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        color: var(--tb-text);
+        margin-bottom: 0.5rem;
+      }
+      .tb-accordion .accordion-header { border-bottom: 1px solid var(--tb-border); }
+      .tb-accordion .accordion-button {
+        background: var(--tb-surface);
+        color: var(--tb-text);
+        font-weight: 600;
+        padding: 1rem 1.25rem;
+      }
+      .tb-accordion .accordion-button:not(.collapsed) {
+        background: var(--tb-surface-hover);
+        color: var(--tb-accent);
+        box-shadow: none;
+      }
+      .tb-accordion .accordion-button:focus { box-shadow: none; border-color: var(--tb-border); }
+      .tb-accordion .accordion-body { background: var(--tb-bg); padding: 1rem 1.25rem; color: var(--tb-text-muted); }
+
+      /* ── Library / list items ── */
+      .tb-list-item {
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+      }
+      .tb-list-item:hover { background: var(--tb-surface-hover); border-color: var(--tb-accent); }
+      .tb-list-info { flex: 1; min-width: 0; }
+      .tb-list-title { font-weight: 600; color: var(--tb-text); margin: 0 0 0.25rem 0; }
+      .tb-list-meta { font-size: 0.85rem; color: var(--tb-text-muted); margin: 0; }
+      .tb-list-actions { display: flex; gap: 0.25rem; }
+
+      /* ── Buttons ── */
+      .btn-tb-primary {
+        background: var(--tb-accent);
+        border-color: var(--tb-accent);
+        color: #0f172a;
+        font-weight: 600;
+      }
+      .btn-tb-primary:hover { background: var(--tb-accent-hover); border-color: var(--tb-accent-hover); }
+      .btn-tb-secondary {
+        background: var(--tb-surface-hover);
+        border-color: var(--tb-border);
+        color: var(--tb-text);
+      }
+      .btn-tb-secondary:hover { background: #475569; border-color: var(--tb-accent); color: var(--tb-text); }
+
+      /* ── Form elements ── */
+      .form-control-dark {
+        background: var(--tb-bg);
+        border: 1px solid var(--tb-border);
+        color: var(--tb-text);
+      }
+      .form-control-dark:focus {
+        background: var(--tb-bg);
+        border-color: var(--tb-accent);
+        color: var(--tb-text);
+        box-shadow: 0 0 0 0.2rem rgba(56, 189, 248, 0.25);
+      }
+      .form-select-dark {
+        background: var(--tb-bg);
+        border: 1px solid var(--tb-border);
+        color: var(--tb-text);
+      }
+      .form-label { color: var(--tb-text-muted); font-size: 0.875rem; font-weight: 500; }
+
+      /* ── Misc ── */
+      .tb-count { font-size: 0.875rem; color: var(--tb-text-muted); margin-bottom: 0.5rem; }
+      .tb-status { font-size: 0.875rem; color: var(--tb-text-muted); min-height: 1.25rem; }
+      .card { background: var(--tb-surface); border: 1px solid var(--tb-border); color: var(--tb-text); }
+      .card-body { color: var(--tb-text); }
+      .text-muted { color: var(--tb-text-muted) !important; }
     </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <!-- Navbar -->
+    <nav class="navbar tb-navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
       <div class="container-fluid">
         <button class="btn btn-outline-light" id="hamburger-menu" aria-label="Toggle navigation">&#9776;</button>
         <a class="navbar-brand d-flex align-items-center" href="/">
-          <span class="fas fa-film me-2" style="font-size:1.25rem"></span>TorBox Media Manager
+          <i class="fas fa-film me-2" style="font-size:1.25rem"></i>TorBox Media Manager
         </a>
         <div class="d-none d-md-flex">
           <a href="/browse" class="nav-link px-3" data-view="browse">Browse</a>
           <a href="/movies" class="nav-link px-3" data-view="movies">Movies</a>
-          <a href="/shows" class="nav-link px-3" data-view="shows">Shows</a>
+          <a href="/shows" class="nav-link px-3" data-view="shows">TV Shows</a>
           <a href="/music" class="nav-link px-3" data-view="music">Music</a>
           <a href="/library" class="nav-link px-3" data-view="library">Library</a>
           <a href="/calendar" class="nav-link px-3" data-view="calendar">Calendar</a>
         </div>
-        <div class="d-flex ms-auto">
-          <span class="text-light small me-3" id="app-status"></span>
+        <div class="d-flex ms-auto align-items-center">
+          <span class="text-light small me-3" id="app-status">● Offline</span>
+          <span class="tb-api-badge missing" id="api-status-badge">API Key Missing</span>
+          <button class="btn btn-outline-light btn-sm ms-2" id="settings-toggle" aria-label="Settings">
+            <i class="fas fa-gear"></i>
+          </button>
         </div>
       </div>
     </nav>
 
+    <!-- Sidebar (mobile) -->
     <div id="app-sidebar" tabindex="-1">
       <div class="sidebar-header">
         <h5 class="sidebar-title">TorBox</h5>
-        <button type="button" class="btn-close text-reset" aria-label="Close"></button>
+        <button type="button" class="btn-close text-reset" aria-label="Close sidebar"></button>
       </div>
       <div class="sidebar-body">
         <nav class="nav flex-column">
-          <a href="/browse" class="nav-link" data-view="browse">Browse</a>
-          <a href="/movies" class="nav-link" data-view="movies">Movies</a>
-          <a href="/shows" class="nav-link" data-view="shows">Shows</a>
-          <a href="/library" class="nav-link" data-view="library">Library</a>
-          <a href="/music" class="nav-link" data-view="music">Music</a>
-          <a href="/calendar" class="nav-link" data-view="calendar">Calendar</a>
+          <a href="/browse" class="nav-link" data-view="browse"><i class="fas fa-compass me-2"></i>Browse</a>
+          <a href="/movies" class="nav-link" data-view="movies"><i class="fas fa-film me-2"></i>Movies</a>
+          <a href="/shows" class="nav-link" data-view="shows"><i class="fas fa-tv me-2"></i>TV Shows</a>
+          <a href="/music" class="nav-link" data-view="music"><i class="fas fa-music me-2"></i>Music</a>
+          <a href="/library" class="nav-link" data-view="library"><i class="fas fa-archive me-2"></i>Library</a>
+          <a href="/calendar" class="nav-link" data-view="calendar"><i class="fas fa-calendar me-2"></i>Calendar</a>
         </nav>
       </div>
     </div>
-
     <div id="sidebar-overlay" tabindex="-1"></div>
 
+    <!-- Root content -->
     <div id="root" class="container-fluid">
 
-      <!-- Browse view -->
+      <!-- ── Browse view ── -->
       <section id="view-browse" class="view">
-        <div class="card search-card mb-4">
-          <div class="card-body">
-            <div class="toolbar">
-              <label for="browse-query" class="visually-hidden">Search</label>
-              <input id="browse-query" type="search" class="form-control form-control-lg" placeholder="Search movies, shows, music…" />
-              <label class="form-check form-check-inline me-2"><input id="source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-              <label class="form-check form-check-inline me-2"><input id="source-usenet" type="checkbox" class="form-check-input" /> Usenet</label>
-              <button id="browse-search-btn" class="btn btn-primary">Search</button>
-              <button id="browse-discover-btn" class="btn btn-outline-secondary">Discover</button>
+        <div class="tb-hero">
+          <div class="tb-hero-card">
+            <div class="card-body text-center">
+              <h2 class="h4 mb-3">Discover Media</h2>
+              <p class="text-muted mb-4">Search across indexers, Usenet, and your local catalog</p>
+              <div class="tb-hero-input-group mb-3">
+                <input id="browse-query" type="search" class="form-control form-control-dark form-control-lg" placeholder="Search movies, shows, music…" autocomplete="off">
+                <button id="browse-search-btn" class="btn btn-tb-primary">Search</button>
+                <button id="browse-discover-btn" class="btn btn-tb-secondary">Discover</button>
+              </div>
+              <span class="tb-route-badge" id="browse-route-badge">Filtering: All Categories</span>
             </div>
-            <div id="browse-status" class="mt-2"></div>
           </div>
         </div>
+        <div id="browse-skeletons" class="tb-skeleton-grid hidden"></div>
+        <div id="browse-results" class="tb-card-grid"></div>
+        <div id="browse-empty" class="tb-empty hidden">
+          <i class="fas fa-search"></i>
+          <h3>No results found</h3>
+          <p class="text-muted">Try a different query or switch sources</p>
+        </div>
+        <div id="browse-pagination" class="tb-pagination"></div>
+        <div id="browse-status" class="tb-status"></div>
+      </section>
 
-        <div id="browse-results" class="results"></div>
-        <div id="browse-pagination" class="pagination my-3"></div>
-              </section>
-
-      <!-- Movies view -->
+      <!-- ── Movies view ── -->
       <section id="view-movies" class="view">
-        <div class="card search-card mb-4">
-          <div class="card-body">
-            <div class="toolbar">
-              <label for="movies-query" class="visually-hidden">Search</label>
-              <input id="movies-query" type="search" class="form-control form-control-lg" placeholder="Search movies…" />
-              <label class="form-check form-check-inline me-2"><input id="movies-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-              <label class="form-check form-check-inline me-2"><input id="movies-source-usenet" type="checkbox" class="form-check-input" /> Usenet</label>
-              <button id="movies-search-btn" class="btn btn-primary">Search</button>
-              <button id="movies-discover-btn" class="btn btn-outline-secondary">Discover</button>
+        <div class="tb-hero">
+          <div class="tb-hero-card">
+            <div class="card-body text-center">
+              <h2 class="h4 mb-3">Movies</h2>
+              <p class="text-muted mb-4">Search movies across Prowlarr (Cat 2000), Torrentio & Usenet</p>
+              <div class="tb-hero-input-group mb-3">
+                <input id="movies-query" type="search" class="form-control form-control-dark form-control-lg" placeholder="Search movies…" autocomplete="off">
+                <button id="movies-search-btn" class="btn btn-tb-primary">Search</button>
+                <button id="movies-discover-btn" class="btn btn-tb-secondary">Discover</button>
+              </div>
+              <span class="tb-route-badge" id="movies-route-badge">Filtering: Movies Category 2000</span>
             </div>
-            <div id="movies-status" class="mt-2"></div>
-            <div id="movies-count" class="text-muted small mt-2"></div>
           </div>
         </div>
-        <div id="movies-results" class="results"></div>
-        <div id="movies-pagination" class="pagination my-3"></div>
-              </section>
+        <div id="movies-skeletons" class="tb-skeleton-grid hidden"></div>
+        <div id="movies-results" class="tb-card-grid"></div>
+        <div id="movies-empty" class="tb-empty hidden">
+          <i class="fas fa-film"></i>
+          <h3>No movies found</h3>
+          <p class="text-muted">Try a different query or switch sources</p>
+        </div>
+        <div id="movies-pagination" class="tb-pagination"></div>
+        <div id="movies-status" class="tb-status"></div>
+      </section>
 
-      <!-- Shows view -->
+      <!-- ── Shows view ── -->
       <section id="view-shows" class="view">
-        <div class="card search-card mb-4">
-          <div class="card-body">
-            <div class="toolbar">
-              <label for="shows-query" class="visually-hidden">Search</label>
-              <input id="shows-query" type="search" class="form-control form-control-lg" placeholder="Search shows…" />
-              <label class="form-check form-check-inline me-2"><input id="shows-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-              <label class="form-check form-check-inline me-2"><input id="shows-source-usenet" type="checkbox" class="form-check-input" /> Usenet</label>
-              <button id="shows-search-btn" class="btn btn-primary">Search</button>
-              <button id="shows-discover-btn" class="btn btn-outline-secondary">Discover</button>
+        <div class="tb-hero">
+          <div class="tb-hero-card">
+            <div class="card-body text-center">
+              <h2 class="h4 mb-3">TV Shows</h2>
+              <p class="text-muted mb-4">Search series across Prowlarr (Cat 5000), Torrentio & Usenet</p>
+              <div class="tb-hero-input-group mb-3">
+                <input id="shows-query" type="search" class="form-control form-control-dark form-control-lg" placeholder="Search TV shows…" autocomplete="off">
+                <button id="shows-search-btn" class="btn btn-tb-primary">Search</button>
+                <button id="shows-discover-btn" class="btn btn-tb-secondary">Discover</button>
+              </div>
+              <span class="tb-route-badge" id="shows-route-badge">Filtering: TV Category 5000</span>
             </div>
-            <div id="shows-status" class="mt-2"></div>
-            <div id="shows-count" class="text-muted small mt-2"></div>
           </div>
         </div>
-        <div id="shows-results" class="results"></div>
-        <div id="shows-pagination" class="pagination my-3"></div>
-              </section>
+        <div id="shows-skeletons" class="tb-skeleton-grid hidden"></div>
+        <div id="shows-results" class="tb-card-grid"></div>
+        <div id="shows-empty" class="tb-empty hidden">
+          <i class="fas fa-tv"></i>
+          <h3>No shows found</h3>
+          <p class="text-muted">Try a different query or switch sources</p>
+        </div>
+        <div id="shows-pagination" class="tb-pagination"></div>
+        <div id="shows-status" class="tb-status"></div>
+      </section>
 
-      <!-- Torrents view -->
+      <!-- ── Music view ── -->
+      <section id="view-music" class="view">
+        <div class="tb-hero">
+          <div class="tb-hero-card">
+            <div class="card-body text-center">
+              <h2 class="h4 mb-3">Music</h2>
+              <p class="text-muted mb-4">Search releases across Prowlarr (Cat 3000) & Usenet, or discover via MusicBrainz</p>
+              <div class="tb-hero-input-group mb-3">
+                <input id="music-query" type="search" class="form-control form-control-dark form-control-lg" placeholder="Search music…" autocomplete="off">
+                <button id="music-search-btn" class="btn btn-tb-primary">Search</button>
+                <button id="music-discover-btn" class="btn btn-tb-secondary">Discover</button>
+              </div>
+              <span class="tb-route-badge" id="music-route-badge">Filtering: Audio Category 3000</span>
+            </div>
+          </div>
+        </div>
+        <div id="music-skeletons" class="tb-skeleton-grid hidden"></div>
+        <div id="music-results" class="tb-card-grid"></div>
+        <div id="music-empty" class="tb-empty hidden">
+          <i class="fas fa-music"></i>
+          <h3>No releases found</h3>
+          <p class="text-muted">Try a different query or switch sources</p>
+        </div>
+        <div id="music-pagination" class="tb-pagination"></div>
+        <div id="music-status" class="tb-status"></div>
+      </section>
+
+      <!-- ── Library view ── -->
       <section id="view-library" class="view">
-        <div class="card search-card mb-4">
+        <div class="card mb-4">
           <div class="card-body">
             <div class="toolbar">
               <label for="library-query" class="visually-hidden">Search library</label>
-              <input id="library-query" type="search" class="form-control form-control-lg" placeholder="Search library…" />
-              <label for="library-sort" class="form-label-sm">Sort by</label>
-              <select id="library-sort" class="form-select form-select-sm"><option value="created">Added</option><option value="name">Name</option><option value="size">Size</option><option value="status">Status</option></select>
-              <label for="library-filter" class="form-label-sm">Filter by</label>
-              <select id="library-filter" class="form-select form-select-sm"><option value="all">All</option><option value="video">Video</option><option value="music">Music</option><option value="other">Other</option></select>
+              <input id="library-query" type="search" class="form-control form-control-dark" placeholder="Search library…" />
+              <label for="library-sort" class="form-label me-2">Sort by</label>
+              <select id="library-sort" class="form-select form-select-dark form-select-sm" style="width: auto;">
+                <option value="created">Added</option>
+                <option value="name">Name</option>
+                <option value="size">Size</option>
+                <option value="status">Status</option>
+              </select>
+              <label for="library-filter" class="form-label me-2">Filter by</label>
+              <select id="library-filter" class="form-select form-select-dark form-select-sm" style="width: auto;">
+                <option value="all">All</option>
+                <option value="video">Video</option>
+                <option value="music">Music</option>
+                <option value="other">Other</option>
+              </select>
             </div>
-            <div id="library-summary" class="text-muted small mt-2"></div>
+            <div id="library-count" class="tb-count"></div>
           </div>
         </div>
-        <div id="library-count" class="text-muted small mt-2"></div>
-        <div id="library-results" class="results"></div>
-        <div id="library-pagination" class="pagination my-3"></div>
+        <div id="library-skeletons" class="tb-skeleton-grid hidden"></div>
+        <div id="library-results" class="tb-list-results"></div>
+        <div id="library-empty" class="tb-empty hidden">
+          <i class="fas fa-archive"></i>
+          <h3>No library items</h3>
+          <p class="text-muted">Your library is empty. Add content via search or sync with TorBox.</p>
+        </div>
+        <div id="library-pagination" class="tb-pagination"></div>
+        <div id="library-status" class="tb-status"></div>
       </section>
 
-      <!-- Music view -->
-      <section id="view-music" class="view">
-        <div class="card search-card mb-4">
-          <div class="card-body">
-            <div class="toolbar">
-              <label for="music-query" class="visually-hidden">Search</label>
-              <input id="music-query" type="search" class="form-control form-control-lg" placeholder="Search music…" />
-              <label class="form-check form-check-inline me-2"><input id="music-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-              <label class="form-check form-check-inline me-2"><input id="music-source-usenet" type="checkbox" class="form-check-input" /> Usenet</label>
-              <button id="music-search-btn" class="btn btn-primary">Search</button>
-              <button id="music-discover-btn" class="btn btn-outline-secondary">Discover</button>
-            </div>
-            <div id="music-status" class="mt-2"></div>
-            <div id="music-count" class="text-muted small mt-2"></div>
-          </div>
-        </div>
-        <div id="music-results" class="results"></div>
-        <div id="music-pagination" class="pagination my-3"></div>
-              </section>
-
-      <!-- Calendar view -->
+      <!-- ── Calendar view ── -->
       <section id="view-calendar" class="view">
-        <div class="card search-card mb-4">
+        <div class="card mb-4">
           <div class="card-body">
             <div class="toolbar">
-              <label for="calendar-date" class="form-label-sm">Date</label>
-              <input id="calendar-date" type="date" class="form-control form-control-sm" />
-              <label for="calendar-country" class="form-label-sm">Country</label>
-              <select id="calendar-country" class="form-select form-select-sm"><option value="US">US</option></select>
-              <label for="calendar-source" class="form-label-sm">Source</label>
-              <select id="calendar-source" class="form-select form-select-sm"><option value="all">All</option></select>
-              <label for="calendar-query" class="visually-hidden">Search</label>
-              <input id="calendar-query" type="search" class="form-control form-control-sm" placeholder="Search…" />
-              <label for="calendar-platform" class="form-label-sm">Platform</label>
-              <select id="calendar-platform" class="form-select form-select-sm"><option value="all">All</option></select>
+              <label for="calendar-date" class="form-label me-2">Date</label>
+              <input id="calendar-date" type="date" class="form-control form-control-dark form-control-sm" />
+              <label for="calendar-platform" class="form-label me-2">Platform</label>
+              <select id="calendar-platform" class="form-select form-select-dark form-select-sm" style="width: auto;">
+                <option value="all">All</option>
+              </select>
             </div>
             <div id="calendar-summary" class="text-muted small mt-2"></div>
           </div>
         </div>
-        <div id="calendar-results" class="results"></div>
+        <div id="calendar-skeletons" class="tb-skeleton-grid hidden"></div>
+        <div id="calendar-results" class="tb-card-grid"></div>
+        <div id="calendar-empty" class="tb-empty hidden">
+          <i class="fas fa-calendar"></i>
+          <h3>No scheduled episodes</h3>
+          <p class="text-muted">Select a date to view upcoming broadcasts</p>
+        </div>
+        <div id="calendar-status" class="tb-status"></div>
       </section>
 
-      <!-- Title view -->
+      <!-- ── Title detail view ── -->
       <section id="view-title" class="view">
-        <div id="detail-content"></div>
-        <div id="title-search-status"></div>
-        <div id="title-search-results"></div>
-        <div id="title-torrent-search-title"></div>
-        <div id="title-torrent-count"></div>
-        <div id="title-torrent-results" class="results"></div>
-                <div id="title-usenet-search-title"></div>
-        <div id="title-usenet-search-count"></div>
-        <div id="title-usenet-search-results" class="results"></div>
-              </section>
+        <div id="title-detail-content"></div>
+        <div id="title-status" class="tb-status"></div>
+      </section>
 
-      <!-- Music detail view -->
+      <!-- ── Music detail view ── -->
       <section id="view-music-detail" class="view">
         <div id="music-detail-content"></div>
-        <div id="music-status"></div>
-              </section>
-
-      <!-- Usenet search -->
-      <section id="usenet-search" class="section hidden">
-        <div class="card search-card mb-4">
-          <div class="card-body">
-            <div class="toolbar">
-              <label for="usenet-query" class="visually-hidden">Search</label>
-              <input id="usenet-query" type="search" class="form-control form-control-lg" placeholder="Search Usenet…" />
-              <label for="usenet-search-source" class="form-label-sm">Source</label>
-              <select id="usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
-            </div>
-            <div id="usenet-status" class="mt-2"></div>
-          </div>
-        </div>
-        <div id="usenet-results" class="results"></div>
-        <label class="form-check form-check-inline me-2"><input id="usenet-cached-only" type="checkbox" class="form-check-input" /> Cached only</label>
-        <div class="mt-2">
-          <label for="usenet-offset" class="form-label-sm">Offset</label>
-          <input id="usenet-offset" type="number" class="form-control form-control-sm" value="0" style="width:4rem" />
-          <label for="usenet-limit" class="form-label-sm">Limit</label>
-          <input id="usenet-limit" type="number" class="form-control form-control-sm" value="20" style="width:4rem" />
-        </div>
+        <div id="music-detail-status" class="tb-status"></div>
       </section>
 
-      <!-- Torrents/Usenet search -->
-      <section id="torrents-usenet-search" class="section hidden">
-        <div id="torrents-usenet-search-title"></div>
-        <div id="torrents-usenet-search-count"></div>
-        <div id="torrents-usenet-search-results" class="results"></div>
-        <label for="torrents-usenet-search-source" class="form-label-sm">Source</label>
-        <select id="torrents-usenet-search-source" class="form-select form-select-sm"><option value="all">All</option></select>
-              </section>
-
-      <!-- Music release -->
-      <section id="music-release" class="section hidden">
-        <div id="music-release-status"></div>
-        <div id="music-release-results" class="results"></div>
-      </section>
-
-      <!-- Candidate modal -->
-      <div class="modal fade" id="candidate-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="candidate-title"></h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <div id="candidate-results"></div>
-              <div id="candidate-status" class="text-muted small"></div>
-              <div class="mt-3">
-                <label for="candidate-offset" class="form-label-sm">Offset</label>
-                <input id="candidate-offset" type="number" class="form-control form-control-sm" value="0" style="width:4rem" />
-                <label for="candidate-limit" class="form-label-sm">Limit</label>
-                <input id="candidate-limit" type="number" class="form-control form-control-sm" value="20" style="width:4rem" />
-                <label for="candidate-count" class="form-label-sm">Count</label>
-                <input id="candidate-count" type="number" class="form-control form-control-sm" value="0" style="width:4rem" readonly />
-              </div>
-              <div class="mt-2">
-                <label for="candidate-min-seeders" class="form-label-sm">Min seeders</label>
-                <input id="candidate-min-seeders" type="number" class="form-control form-control-sm" style="width:5rem" />
-                <label for="candidate-min-leechers" class="form-label-sm">Min leechers</label>
-                <input id="candidate-min-leechers" type="number" class="form-control form-control-sm" style="width:5rem" />
-                <label for="candidate-season" class="form-label-sm">Season</label>
-                <input id="candidate-season" type="number" class="form-control form-control-sm" style="width:5rem" />
-                <label for="candidate-season-field" class="form-label-sm">Season field</label>
-                <select id="candidate-season-field" class="form-select form-select-sm"><option value="all">All</option></select>
-                <label for="candidate-sort" class="form-label-sm">Sort</label>
-                <select id="candidate-sort" class="form-select form-select-sm"><option value="seeders">Seeders</option></select>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-      <!-- Notification modal -->
-      <div class="modal fade" id="notification-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="notification-title">Notification</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="notification-message">
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js?v=__CACHE_VERSION__"></script>
-    <script type="module" src="/js/main.js?v=__CACHE_VERSION__"></script>
+    <script src="/public/js/state.js"></script>
+    <script src="/public/js/api.js"></script>
+    <script src="/public/js/render.js" type="module"></script>
+    <script src="/public/js/views.js" type="module"></script>
+    <script src="/public/js/main.js"></script>
   </body>
 </html>

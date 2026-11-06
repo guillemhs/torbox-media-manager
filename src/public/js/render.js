@@ -1,79 +1,20 @@
-import { state, $, esc, setStatus, fmtBytes, empty, observeArtwork } from './state.js';
+import { state, $, esc, fmtBytes, empty, observeArtwork } from './state.js';
 
-// Source tag helper
-export function sourceTag(source, contentType) {
-  const sourceLabel = source || 'Unknown';
-  const tooltipText = contentType || 'All';
-  return `<span class="source-tag" title="${esc(tooltipText)}">${esc(sourceLabel)}</span>`;
+// ── Source badge helper ──
+export function sourceBadge(source, contentType) {
+  const sourceMap = {
+    'torrents': { label: 'Prowlarr', class: 'prowlarr' },
+    'usenet': { label: 'Usenet', class: 'usenet' },
+    'local': { label: 'IMDb', class: 'imdb' },
+    'local-music': { label: 'MusicBrainz', class: 'musicbrainz' },
+    'torrentio': { label: 'Torrentio', class: 'torrentio' },
+  };
+  const info = sourceMap[source] || { label: source || 'Unknown', class: '' };
+  const typeLabel = contentType || 'All';
+  return `<span class="tb-source-badge ${info.class}" title="${esc(typeLabel)}">${esc(info.label)}</span>`;
 }
 
-// Pagination rendering
-export function renderPagination(viewKey, paginationId) {
-  const container = document.getElementById(paginationId);
-  if (!container) return;
-
-  const total = state.total[viewKey] || 0;
-  const limit = 20;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  let currentPage = state.currentPage[viewKey] || 1;
-  if (currentPage < 1) currentPage = 1;
-  if (currentPage > totalPages) currentPage = totalPages;
-
-  state.totalPages[viewKey] = totalPages;
-  state.currentPage[viewKey] = currentPage;
-
-  if (totalPages <= 1) {
-    container.classList.add('hidden');
-    container.innerHTML = '';
-    return;
-  }
-
-  container.classList.remove('hidden');
-
-  let pages = [];
-  const showMax = 5;
-
-  if (totalPages <= showMax) {
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
-  } else {
-    pages.push(1);
-    if (currentPage > 3) pages.push('...');
-    const start = Math.max(2, currentPage - 1);
-    const end = Math.min(totalPages - 1, currentPage + 1);
-    for (let i = start; i <= end; i++) pages.push(i);
-    if (currentPage < totalPages - 2) pages.push('...');
-    pages.push(totalPages);
-  }
-
-  let html = `<span class="pagination-info">Page <strong>${currentPage}</strong> of ${totalPages} (${total} results)</span> `;
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="1" aria-label="First page">First</button> `;
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
-
-  for (const page of pages) {
-    if (page === '...') {
-      html += '<span class="pagination-ellipsis">…</span> ';
-    } else {
-      html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${page === currentPage ? ' active' : ''}" data-page="${page}">${page}</button> `;
-    }
-  }
-
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === totalPages ? ' disabled' : ''}" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn" data-page="${totalPages}" aria-label="Last page">Last</button>`;
-
-  container.innerHTML = html;
-
-  container.querySelectorAll('.pagination-btn[data-page]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const page = parseInt(btn.dataset.page);
-      if (page >= 1 && page <= totalPages && page !== currentPage) {
-        // goToPage is imported dynamically to avoid circular dependency
-        import('./views.js').then(({ goToPage }) => goToPage(viewKey, page));
-      }
-    });
-  });
-}
-
-// Pagination HTML generator (returns string, for use in library etc.)
+// ── Pagination HTML (string) ──
 export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));
   if (totalPages <= 1) return '';
@@ -93,25 +34,44 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
     pages.push(totalPages);
   }
 
-  let html = `<span class="pagination-info">Page <strong>${currentPage}</strong> of ${totalPages} (${totalItems} results)</span> `;
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="1" aria-label="First page">First</button> `;
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
+  let html = `<span class="tb-pagination-info">Page <strong>${currentPage}</strong> of ${totalPages} (${totalItems} results)</span> `;
+  html += `<button class="btn btn-outline-light tb-pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="1" aria-label="First page">First</button> `;
+  html += `<button class="btn btn-outline-light tb-pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
 
   for (const page of pages) {
     if (page === '...') {
-      html += '<span class="pagination-ellipsis">…</span> ';
+      html += '<span class="tb-pagination-ellipsis">…</span> ';
     } else {
-      html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${page === currentPage ? ' active' : ''}" data-page="${page}">${page}</button> `;
+      html += `<button class="btn btn-outline-light tb-pagination-btn${page === currentPage ? ' active' : ''}" data-page="${page}">${page}</button> `;
     }
   }
 
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === totalPages ? ' disabled' : ''}" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
-  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn" data-page="${totalPages}" aria-label="Last page">Last</button>`;
+  html += `<button class="btn btn-outline-light tb-pagination-btn${currentPage === totalPages ? ' disabled' : ''}" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
+  html += `<button class="btn btn-outline-light tb-pagination-btn" data-page="${totalPages}" aria-label="Last page">Last</button>`;
 
   return html;
 }
 
-// Render a single search result item
+// ── Skeleton grid HTML ──
+export function renderSkeletonGrid(count = 8, kind = 'movie') {
+  const isMusic = kind === 'music';
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    html += `
+      <div class="tb-skeleton-card">
+        <div class="tb-skeleton-cover ${isMusic ? 'music' : ''}"></div>
+        <div class="tb-skeleton-body">
+          <div class="tb-skeleton-line title"></div>
+          <div class="tb-skeleton-line meta"></div>
+          <div class="tb-skeleton-line meta" style="width:40%"></div>
+        </div>
+      </div>
+    `;
+  }
+  return html;
+}
+
+// ── Media card (search results) ──
 export function renderSearchItem(item, idx) {
   const source = item._source || item.source || 'Unknown';
   const isTorrent = item._source === 'torrents';
@@ -124,162 +84,183 @@ export function renderSearchItem(item, idx) {
   const title = item.primaryTitle || item.name || item.title || 'Unknown';
   const year = item.startYear || item.year || '';
   const titleType = item.titleType || item.type || '';
-  const hasYearType = Boolean(item.startYear || item.year || item.titleType || item.type);
-
   const size = item.size ? fmtBytes(item.size) : '';
-  const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()} seeders` : '';
-  const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()} leechers` : '';
+  const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()}` : '';
+  const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()}` : '';
   const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
-  const complete = item.complete === false ? 'incomplete' : '';
 
-  const metaParts = [size, seeders, leechers, posted, complete].filter(Boolean);
+  const metaParts = [size, seeders, leechers, posted].filter(Boolean);
   const meta = metaParts.join(' · ');
 
-  const categoryTag = isTorrent ? `<span class="category-tag">${contentType}</span>` : (isUsenet ? '<span class="category-tag">Usenet</span>' : '');
-  const sourceTagHtml = isLocal ? '' : sourceTag(source, contentType);
+  const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`
+    : (item.id ? `/music/release/${encodeURIComponent(item.id)}` : '#');
 
-  const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}` : (item.id ? `/music/release/${encodeURIComponent(item.id)}` : '#');
+  const coverClass = isMusicKind(kind) ? 'music' : 'movie';
+
+  let coverHtml = '';
+  if (item.artwork && item.artwork.url) {
+    coverHtml = `<img src="${esc(item.artwork.url)}" alt="${esc(title)} cover" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22450%22><rect width=%22300%22 height=%22450%22 fill=%22%23334155%22/><text x=%2250%22 y=%2250%22 font-size=%2214%22 fill=%22%2394a3b8%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>No Cover</text></svg>'">`;
+  } else if (item.cover) {
+    coverHtml = `<img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-cover');this.parentElement.innerHTML='<i class=fas fa-image></i>'">`;
+  } else {
+    coverHtml = `<div class="tb-card-cover no-cover"><i class="fas fa-image"></i></div>`;
+  }
+
+  const coverWrapper = `<div class="tb-card-cover ${coverClass}">${coverHtml}${sourceBadge(source, contentType)}</div>`;
 
   let actionButtons = '';
   if (isTorrent && item.magnet) {
     actionButtons = `
-      <button class="btn btn-secondary btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link">Copy Magnet</button>
-      <button class="btn btn-secondary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" title="Add to Torbox">Add to Torbox</button>
-      ${item.downloadToken ? `<a class="btn btn-secondary btn-sm" href="/torrents/download/${encodeURIComponent(item.downloadToken)}" download="${esc(title)}.torrent" title="Download .torrent file">.torrent</a>` : ''}
+      <button class="btn btn-outline-light btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link"><i class="fas fa-copy"></i></button>
+      <button class="btn btn-tb-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" title="Add to TorBox"><i class="fas fa-plus"></i></button>
     `;
   } else if (isUsenet) {
-    actionButtons = `<button class="btn btn-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-id="${encodeURIComponent(item.id || '')}" data-usenet-source="${esc(source)}" title="Add to Torbox">Add to Torbox</button>`;
+    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-id="${encodeURIComponent(item.id || '')}" data-usenet-source="${esc(source)}" title="Add to TorBox"><i class="fas fa-plus"></i></button>`;
   }
 
-  return `<article class="search-result-item">
-    <a class="search-result-link" href="${route}" aria-label="Open ${esc(title)} details">
-      <div class="search-result-header">
-        <div class="search-result-title">${esc(title)}</div>
-        ${hasYearType ? `<div class="search-result-year-type">${esc(year || 'Year unknown')} · ${esc(titleType || 'Unknown')}</div>` : ''}
-        ${isLocal && categoryTag ? categoryTag : ''}
+  return `
+    <article class="tb-card">
+      ${coverWrapper}
+      <div class="tb-card-body">
+        <h3 class="tb-card-title" title="${esc(title)}">${esc(title)}</h3>
+        ${meta ? `<p class="tb-card-meta">${esc(meta)}</p>` : ''}
       </div>
-      ${meta ? `<div class="search-result-meta">${esc(meta)}</div>` : ''}
-      ${sourceTagHtml ? `<div class="search-result-source">${sourceTagHtml}</div>` : ''}
-    </a>
-    ${actionButtons ? `<div class="search-result-actions">${actionButtons}</div>` : ''}
-  </article>`;
+      ${actionButtons ? `<div class="tb-card-actions">${actionButtons}</div>` : ''}
+    </article>
+  `;
 }
 
-export function renderSearchResults(container, items) {
+function isMusicKind(kind) {
+  return kind === 'music';
+}
+
+// ── Render search results container ──
+export function renderSearchResults(container, items, kind = 'movie') {
   if (!container) return;
-  container.innerHTML = items.length ? items.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
+  if (items.length === 0) {
+    container.innerHTML = empty('No results found.');
+    return;
+  }
+  container.innerHTML = items.map((item, idx) => renderSearchItem({ ...item, kind }, idx)).join('');
+  observeArtwork(container);
 }
 
-// Torrent search results (browse)
-export function renderBrowseTorrentSearchResults(candidates, total) {
-  const titleEl = document.getElementById('browse-torrent-search-title');
-  if (titleEl) {
-    if (candidates.length === 0 && total === 0) {
-      titleEl.style.display = 'none';
-    } else if (candidates.length === 0) {
-      titleEl.style.display = 'block';
-      titleEl.textContent = 'Torrent Search Results - No results found';
-    } else {
-      titleEl.style.display = 'block';
-      titleEl.textContent = `Torrent Search Results (${candidates.length} of ${total})`;
-    }
-  }
+// ── Title detail page ──
+export function renderTitleDetail(title) {
+  const kind = typeof title.titleType === 'string' && /^tv/i.test(title.titleType) ? 'series' : 'movie';
+  const artworkUrl = title.artwork?.url || '';
+  const artworkSource = title.artwork?.source || '';
 
-  const resultsContainer = document.getElementById('browse-torrent-results');
-  if (resultsContainer) {
-    resultsContainer.innerHTML = candidates.length ? candidates.map(renderSearchItem).join('') : empty('No torrent candidates found.');
-    // Torrent add buttons are handled by the delegated click listener in main.js
-  }
-
-  const moreBtn = document.getElementById('browse-torrent-more');
-  if (moreBtn) moreBtn.classList.toggle('hidden', candidates.length >= total);
-  renderPagination('browse-torrent-search', 'browse-torrent-pagination');
-}
-
-// Usenet search results (browse)
-export function renderBrowseUsenetSearchResults(candidates, total) {
-  const titleEl = document.getElementById('browse-usenet-search-title');
-  if (titleEl) {
-    if (candidates.length === 0 && total === 0) {
-      titleEl.style.display = 'none';
-    } else if (candidates.length === 0) {
-      titleEl.style.display = 'block';
-      titleEl.textContent = 'Usenet Search Results - No results found';
-    } else {
-      titleEl.style.display = 'block';
-      titleEl.textContent = `Usenet Search Results (${candidates.length} of ${total})`;
-    }
-  }
-
-  const resultsContainer = document.getElementById('browse-usenet-search-results');
-  if (resultsContainer) {
-    resultsContainer.innerHTML = candidates.length ? candidates.map(renderSearchItem).join('') : empty('No usenet results found.');
-    // Usenet add buttons are handled by the delegated click listener in main.js
-  }
-
-  const moreBtn = document.getElementById('browse-usenet-search-more');
-  if (moreBtn) moreBtn.classList.toggle('hidden', candidates.length >= total);
-  renderPagination('browse-usenet-search', 'browse-usenet-search-pagination');
-}
-
-// Title cards for movies/shows
-export function titleCards(items) {
-  return items.map((item, index) => {
-    const kind = /^tv/i.test(item.titleType || '') ? 'series' : 'movie';
-    const imdbId = item.imdbId || item.id || '';
-    const route = `/title/${encodeURIComponent(imdbId)}?kind=${kind}`;
-    const source = item._source || item.source || 'Unknown';
-    const isTorrent = item._source === 'torrents';
-    const isUsenet = item._source === 'usenet';
-
-    const title = item.primaryTitle || item.name || item.title || 'Unknown';
-    const year = item.startYear || item.year || '';
-    const size = item.size ? fmtBytes(item.size) : '';
-    const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()} seeders` : '';
-    const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()} leechers` : '';
-
-    const metaParts = [size, seeders, leechers, source && !isTorrent && !isUsenet ? sourceTag(source, kind) : ''].filter(Boolean);
-    const hasYearType = Boolean(item.startYear || item.year || item.titleType || item.type);
-
-    return `<article class="card search-card">
-      <div class="card-body">
-        <div class="result-list-header">
-          <a class="result-list-link" href="${route}">
-            <div class="result-list-title">${esc(title)}</div>
-            ${hasYearType ? `<div class="result-list-year-type">${esc(year || 'Year unknown')} · ${esc(item.titleType || item.type || 'Unknown')}</div>` : ''}
-          </a>
+  return `
+    <section class="tb-detail-hero">
+      <div class="row g-4">
+        <div class="col-12 col-md-4 tb-detail-poster ${kind}">
+          ${artworkUrl
+            ? `<img src="${esc(artworkUrl)}" alt="${esc(title.primaryTitle || title.name || '')} poster" loading="lazy">`
+            : `<div class="tb-card-cover no-cover" style="aspect-ratio: 2 / 3;"><i class="fas fa-image"></i></div>`
+          }
+          ${artworkSource ? `<div class="tb-source-badge imdb">${esc(artworkSource)}</div>` : ''}
         </div>
-        ${metaParts.length ? `<div class="result-list-meta">${metaParts.join(' · ')}</div>` : ''}
-        <img class="card-img-top" loading="lazy" data-artwork-id="${esc(imdbId)}" data-artwork-kind="${esc(kind)}" alt="${esc(title)} poster" />
-      </div>
-    </article>`;
-  }).join('');
-}
-
-// Music release cards
-export function musicReleaseCards(releases) {
-  return releases.map((item) => {
-    const route = `/music/release/${encodeURIComponent(item.id)}?title=${encodeURIComponent(item.title)}&artist=${encodeURIComponent(item.artist || '')}&date=${encodeURIComponent(item.date || '')}&type=${encodeURIComponent(item.type || 'Release')}`;
-    return `<article class="card search-card">
-      <div class="card-body">
-        <div class="result-list-header">
-          <a class="result-list-link" href="${route}">
-            <div class="result-list-title">${esc(item.title)}</div>
-            <div class="result-list-year-type">${esc(item.artist || 'Unknown artist')} · ${esc(item.date || '')}</div>
-          </a>
+        <div class="col-12 col-md-8 tb-detail-info">
+          <h1>${esc(title.primaryTitle || title.name || 'Unknown Title')}</h1>
+          <div class="tb-detail-meta">
+            <span>${esc(kind === 'series' ? 'TV Series' : 'Movie')}</span>
+            ${title.startYear ? `<span>· ${esc(title.startYear)}</span>` : ''}
+            ${title.runtimeMinutes ? `<span>· ${esc(title.runtimeMinutes)} min</span>` : ''}
+            ${title.averageRating ? `<span>· ⭐ ${esc(title.averageRating)}</span>` : ''}
+          </div>
+          <div class="tb-detail-tags">
+            <span class="tb-detail-tag">${esc(kind === 'series' ? 'TV Series' : 'Movie')}</span>
+            ${title.genres ? `<span class="tb-detail-tag">${esc(title.genres)}</span>` : ''}
+          </div>
+          ${title.overview ? `<p class="tb-detail-overview">${esc(title.overview)}</p>` : ''}
+          <div class="tb-detail-actions">
+            <button class="btn btn-tb-primary"><i class="fas fa-play me-2"></i>Watch Trailer</button>
+            <button class="btn btn-tb-secondary"><i class="fas fa-info-circle me-2"></i>Details</button>
+          </div>
         </div>
-        <img class="card-img-top" loading="lazy" src="${esc(item.cover || '')}" alt="${esc(item.title)} cover" />
       </div>
-    </article>`;
-  }).join('');
+    </section>
+
+    ${title.seasonCount && kind === 'series'
+      ? `
+      <section class="tb-accordion">
+        <div class="accordion" id="title-accordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-seasons">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-seasons" aria-expanded="true" aria-controls="collapse-seasons">
+                Seasons (${title.seasonCount})
+              </button>
+            </h2>
+            <div id="collapse-seasons" class="accordion-collapse collapse show" data-bs-parent="#title-accordion">
+              <div class="accordion-body">
+                <p class="text-muted">Season details and episodes will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      `
+      : ''
+    }
+  `;
 }
 
-// Local media cards
-export function localCards(items) {
-  return items.map((item) => `<article class="card"><div class="card-body"><div class="card-title">${esc(item.title)}</div><div class="card-text">${esc(item.type)} · ${esc(item.extension)} · ${fmtBytes(item.bytes)}</div></div></article>`).join('');
+export function renderTitleNotFound() {
+  return `
+    <section class="tb-detail-hero text-center py-5">
+      <h1>Title Not Found</h1>
+      <p class="text-muted">The requested title could not be found.</p>
+    </section>
+  `;
 }
 
-// TorBox library rendering
+// ── Music detail page ──
+export function renderMusicDetail(release) {
+  const cover = release.cover || '';
+  const source = release._source || 'MusicBrainz';
+
+  return `
+    <section class="tb-detail-hero">
+      <div class="row g-4">
+        <div class="col-12 col-md-4 tb-detail-poster music">
+          ${cover
+            ? `<img src="${esc(cover)}" alt="${esc(release.title || '')} cover" loading="lazy">`
+            : `<div class="tb-card-cover no-cover" style="aspect-ratio: 1 / 1;"><i class="fas fa-music"></i></div>`
+          }
+          <div class="tb-source-badge musicbrainz">${esc(source)}</div>
+        </div>
+        <div class="col-12 col-md-8 tb-detail-info">
+          <h1>${esc(release.title || 'Unknown Release')}</h1>
+          <div class="tb-detail-meta">
+            <span>${esc(release.type || 'Release')}</span>
+            ${release.artist ? `<span>· ${esc(release.artist)}</span>` : ''}
+            ${release.date ? `<span>· ${esc(release.date)}</span>` : ''}
+          </div>
+          <div class="tb-detail-tags">
+            <span class="tb-detail-tag">${esc(release.type || 'Release')}</span>
+            <span class="tb-detail-tag">MusicBrainz</span>
+          </div>
+          <div class="tb-detail-actions">
+            <button class="btn btn-tb-primary"><i class="fas fa-play me-2"></i>Play Preview</button>
+            <button class="btn btn-tb-secondary"><i class="fas fa-info-circle me-2"></i>View on MusicBrainz</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+export function renderMusicNotFound() {
+  return `
+    <section class="tb-detail-hero text-center py-5">
+      <h1>Release Not Found</h1>
+      <p class="text-muted">The requested music release could not be found.</p>
+    </section>
+  `;
+}
+
+// ── Library list rendering ──
 export function renderTorboxLibrary(items) {
   const query = $('#library-query')?.value.trim().toLocaleLowerCase() || '';
   const sort = $('#library-sort')?.value || 'created';
@@ -300,16 +281,20 @@ export function renderTorboxLibrary(items) {
   else if (sort === 'status') filtered.sort((a, b) => (b.download_state || b.status || '').localeCompare(a.download_state || a.status || ''));
   else filtered.sort((a, b) => (b.id || 0) - (a.id || 0));
 
-  return filtered.map((item) => `<article class="library-item">
-    <div class="library-item-main">
-      <div class="library-item-title">${esc(item.name || item.title || item.original_name || 'Unknown')}</div>
-      <div class="library-item-meta">${esc(item.extension || item.file_extension || '')} · ${fmtBytes(item.bytes || item.size || 0)}</div>
+  return filtered.map((item) => `
+    <div class="tb-list-item">
+      <div class="tb-list-info">
+        <div class="tb-list-title" title="${esc(item.name || item.title || item.original_name || 'Unknown')}">${esc(item.name || item.title || item.original_name || 'Unknown')}</div>
+        <p class="tb-list-meta">${esc(item.extension || item.file_extension || '')} · ${fmtBytes(item.bytes || item.size || 0)}</p>
+      </div>
+      <div class="tb-list-actions">
+        <span class="badge bg-secondary">${esc(item.download_state || item.status || 'unknown')}</span>
+      </div>
     </div>
-    <div class="library-state">${esc(item.download_state || item.status || 'unknown')}</div>
-  </article>`).join('');
+  `).join('');
 }
 
-// Schedule cards for calendar
+// ── Calendar / schedule cards ──
 export function scheduleCards(episodes) {
   return episodes.map((ep) => {
     const show = ep.show || {};
@@ -317,158 +302,40 @@ export function scheduleCards(episodes) {
     const season = Number(ep.season);
     const number = Number(ep.number);
     const code = season && number ? `S${String(season).padStart(2, '0')}E${String(number).padStart(2, '0')}` : '';
-    return `<article class="episode-card">
-      ${image ? `<img src="${esc(image)}" alt="${esc(show.name || '')} ${code}" />` : ''}
-      <div class="episode-copy">
-        <div class="episode-name">${esc(ep.name || 'Untitled')}</div>
-        <div class="episode-time">${esc(ep.airtime || '')}</div>
-        <div class="episode-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</div>
-        <div class="episode-summary">${esc(ep.summary || '').replace(/<[^>]*>/g, ' ')}</div>
-      </div>
-    </article>`;
+    return `
+      <article class="tb-card">
+        <div class="tb-card-cover movie">
+          ${image ? `<img src="${esc(image)}" alt="${esc(show.name || '')} ${code}" loading="lazy">` : `<div class="tb-card-cover no-cover"><i class="fas fa-tv"></i></div>`}
+        </div>
+        <div class="tb-card-body">
+          <h3 class="tb-card-title">${esc(ep.name || 'Untitled')}</h3>
+          <p class="tb-card-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</p>
+          ${ep.summary ? `<p class="tb-card-meta" style="font-size:0.75rem; opacity:0.8;">${esc(ep.summary).replace(/<[^>]*>/g, ' ')}</p>` : ''}
+        </div>
+      </article>
+    `;
   }).join('');
 }
 
-// Calendar rendering
+// ── Calendar rendering ──
 export function renderCalendar() {
   const data = state.calendarData || { episodes: [] };
   const query = $('#calendar-query')?.value.trim().toLocaleLowerCase() || '';
   const platformSelect = $('#calendar-platform');
   if (!platformSelect) return;
   const selectedPlatform = platformSelect.value;
-  const allEpisodes = Array.isArray(data.episodes) ? data.episodes : [];
-  const platformOf = (ep) => String(ep.show?.webChannel?.name || ep.show?.network?.name || '').trim();
-  const platforms = [...new Set(allEpisodes.map(platformOf).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  platformSelect.innerHTML = '<option value="">All channels and services</option>' + platforms.map((name) => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
-  if (platforms.includes(selectedPlatform)) platformSelect.value = selectedPlatform;
-  const platform = platformSelect.value.toLocaleLowerCase();
-  const episodes = allEpisodes.slice().sort((a, b) => String(a.airtime || a.airstamp || '99:99').localeCompare(String(b.airtime || b.airstamp || '99:99'))).filter((ep) => {
+
+  const filtered = data.episodes.filter((ep) => {
+    const name = ep.name || '';
     const show = ep.show || {};
-    const channel = platformOf(ep);
-    const season = Number(ep.season), number = Number(ep.number);
-    const code = season && number ? `S${String(season).padStart(2, '0')}E${String(number).padStart(2, '0')}` : '';
-    const searchable = `${show.name || ''} ${ep.name || ''} ${code} ${channel} ${show.network?.country?.name || ''} ${plainText(ep.summary)}`.toLocaleLowerCase();
-    return (!query || searchable.includes(query)) && (!platform || channel.toLocaleLowerCase() === platform);
+    const showName = show.name || '';
+    if (query && !name.toLocaleLowerCase().includes(query) && !showName.toLocaleLowerCase().includes(query)) return false;
+    if (selectedPlatform !== 'all') {
+      const platform = show.network?.name || show.webChannel?.name || '';
+      if (platform.toLocaleLowerCase() !== selectedPlatform.toLocaleLowerCase()) return false;
+    }
+    return true;
   });
-  const calRes = $('#calendar-results');
-  if (calRes) calRes.innerHTML = episodes.length ? scheduleCards(episodes) : empty(query || platform ? 'No episodes match these search and filter settings.' : 'No episodes scheduled for this day.');
-  const rawDate = $('#calendar-date')?.value || '';
-  const dateParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawDate);
-  const parsedDate = dateParts ? new Date(Number(dateParts[1]), Number(dateParts[2]) - 1, Number(dateParts[3]), 12) : null;
-  const day = parsedDate && !Number.isNaN(parsedDate.valueOf()) ? parsedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'Selected date';
-  const calSum = $('#calendar-summary');
-  if (calSum) calSum.textContent = `${episodes.length} of ${allEpisodes.length} ${allEpisodes.length === 1 ? 'episode' : 'episodes'} · ${day}`;
-  const calSrc = $('#calendar-source');
-  if (calSrc) calSrc.textContent = state.calendarType === 'web' ? 'Streaming services · TVMaze' : data.stale ? 'Cached schedule · offline fallback' : data.cached ? 'Cached schedule' : 'TVMaze schedule';
-  setStatus('calendar', '');
-}
 
-export function plainText(value) {
-  return String(value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+  return filtered.length ? scheduleCards(filtered) : empty('No episodes found.');
 }
-
-// Candidate rows for modal
-export function renderCandidateRows(data) {
-  const sort = $('#candidate-sort')?.value || 'seeders';
-  const minSeeders = $('#candidate-min-seeders')?.value === '' ? null : Number($('#candidate-min-seeders')?.value);
-  // ... (simplified - full implementation in views.js)
-  return data.map((item) => `<article class="candidate-row">${esc(item.name || item.title || 'Unknown')}</article>`).join('');
-}
-
-// Pin recent torrent
-export function pinRecentTorrent(torrent) {
-  if (!torrent || typeof torrent !== 'object' || !Number.isSafeInteger(Number(torrent.id))) return;
-  const id = Number(torrent.id);
-  state.recentTorrents = [torrent, ...state.recentTorrents.filter((item) => Number(item.id) !== id)];
-}
-
-// Title detail page rendering
-export function renderTitleDetail(title) {
-  const kind = typeof title.titleType === 'string' && /^tv/i.test(title.titleType) ? 'series' : 'movie';
-  const artworkUrl = title.artwork?.url || '';
-  const artworkSource = title.artwork?.source || '';
-  
-  return `<article class="title-detail">
-    <div class="title-detail-header">
-      <h1>${esc(title.primaryTitle || title.name || 'Unknown Title')}</h1>
-      <div class="title-meta">
-        ${esc(kind === 'series' ? 'TV Series' : 'Movie')}
-        ${title.startYear ? `· ${esc(title.startYear)}` : ''}
-        ${title.runtimeMinutes ? `· ${esc(title.runtimeMinutes)} min` : ''}
-        ${title.averageRating ? `· ⭐ ${esc(title.averageRating)}` : ''}
-      </div>
-    </div>
-    
-    <div class="detail-content">
-      <div class="detail-poster">
-        ${artworkUrl ? `<img src="${esc(artworkUrl)}" alt="${esc(title.primaryTitle || title.name || '')} poster" onerror="this.style.display='none'">` : '<div class="no-poster">No Poster Available</div>'}
-        ${artworkSource ? `<div class="artwork-source">${esc(artworkSource)}</div>` : ''}
-      </div>
-      
-      <div class="detail-info">
-        <h2>Details</h2>
-        ${title.overview ? `<p>${esc(title.overview)}</p>` : ''}
-        ${title.releaseDate ? `<p><strong>Release Date:</strong> ${esc(title.releaseDate)}</p>` : ''}
-        ${title.seasonCount ? `<p><strong>Seasons:</strong> ${esc(title.seasonCount)}</p>` : ''}
-        ${title.showStatus ? `<p><strong>Status:</strong> ${esc(title.showStatus)}</p>` : ''}
-        ${title.genres ? `<p><strong>Genres:</strong> ${esc(title.genres)}</p>` : ''}
-      </div>
-    </div>
-  </article>`;
-}
-
-export function renderTitleNotFound() {
-  return `<article class="title-detail">
-    <div class="title-detail-header">
-      <h1>Title Not Found</h1>
-    </div>
-    <div class="detail-content">
-      <p>The requested title could not be found.</p>
-    </div>
-  </article>`;
-}
-
-// Music release detail page rendering
-export function renderMusicDetail(release) {
-  const cover = release.cover || '';
-  const source = release._source || 'MusicBrainz';
-  
-  return `<article class="music-detail">
-    <div class="music-detail-header">
-      <h1>${esc(release.title || 'Unknown Release')}</h1>
-      <div class="music-meta">
-        ${esc(release.type || 'Release')}
-        ${release.artist ? `· ${esc(release.artist)}` : ''}
-        ${release.date ? `· ${esc(release.date)}` : ''}
-      </div>
-      <div class="music-source">${esc(source)}</div>
-    </div>
-    
-    <div class="detail-content">
-      <div class="music-poster">
-        ${cover ? `<img src="${esc(cover)}" alt="${esc(release.title || '')} cover" onerror="this.style.display='none'">` : '<div class="no-poster">No Cover Available</div>'}
-      </div>
-      
-      <div class="music-info">
-        <h2>Details</h2>
-        <p><strong>Title:</strong> ${esc(release.title || 'Unknown')}</p>
-        ${release.artist ? `<p><strong>Artist:</strong> ${esc(release.artist)}</p>` : ''}
-        ${release.date ? `<p><strong>Release Date:</strong> ${esc(release.date)}</p>` : ''}
-        ${release.type ? `<p><strong>Type:</strong> ${esc(release.type)}</p>` : ''}
-        ${release.id ? `<p><strong>MusicBrainz ID:</strong> ${esc(release.id)}</p>` : ''}
-      </div>
-    </div>
-  </article>`;
-}
-
-export function renderMusicNotFound() {
-  return `<article class="music-detail">
-    <div class="music-detail-header">
-      <h1>Release Not Found</h1>
-    </div>
-    <div class="detail-content">
-      <p>The requested music release could not be found.</p>
-    </div>
-  </article>`;
-}
-

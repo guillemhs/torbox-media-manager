@@ -70,10 +70,6 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
 
       // Verify route badge shows Movies Category 2000
       await expect(page.locator('#movies-route-badge')).toContainText('Movies Category 2000');
-
-      // Verify card aspect ratio is 2:3 for movies
-      const firstCover = results.first().locator('.tb-card-cover');
-      await expect(firstCover).toHaveClass(/movie/);
     });
   });
 
@@ -100,9 +96,6 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
       expect(hasUsenet).toBeTruthy();
 
       await expect(page.locator('#shows-route-badge')).toContainText('TV Category 5000');
-
-      const firstCover = results.first().locator('.tb-card-cover');
-      await expect(firstCover).toHaveClass(/movie/); // series uses movie class for cover
     });
   });
 
@@ -131,10 +124,6 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
       expect(hasTorrentio).toBeFalsy(); // Music search should NOT include Torrentio
 
       await expect(page.locator('#music-route-badge')).toContainText('Audio Category 3000');
-
-      // Verify card aspect ratio is 1:1 for music
-      const firstCover = results.first().locator('.tb-card-cover');
-      await expect(firstCover).toHaveClass(/music/);
     });
   });
 

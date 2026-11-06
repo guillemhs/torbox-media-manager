@@ -181,14 +181,22 @@ async function fetchApiStatus() {
     const statusEl = $('#app-status');
     const badgeEl = $('#api-status-badge');
     if (data.mode === 'torbox-integrated') {
-      if (statusEl) statusEl.textContent = '● Online';
+      if (statusEl) {
+        statusEl.textContent = '● Online';
+        statusEl.classList.replace('status-offline', 'status-online');
+        statusEl.classList.add('status-online');
+      }
       if (badgeEl) {
         badgeEl.textContent = 'API Key Connected';
         badgeEl.classList.replace('missing', 'connected');
         badgeEl.classList.add('connected');
       }
     } else {
-      if (statusEl) statusEl.textContent = '● Offline';
+      if (statusEl) {
+        statusEl.textContent = '● Offline';
+        statusEl.classList.replace('status-online', 'status-offline');
+        statusEl.classList.add('status-offline');
+      }
       if (badgeEl) {
         badgeEl.textContent = 'API Key Missing';
         badgeEl.classList.add('missing');

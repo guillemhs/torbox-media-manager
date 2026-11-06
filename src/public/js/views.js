@@ -1,7 +1,7 @@
 import { state, $, esc, setStatus, empty, observeArtwork } from './state.js';
 import { jsonFetch } from './api.js';
 import {
-  renderPagination, renderSearchResults, renderSearchItem,
+  renderPagination, renderPaginationHtml, renderSearchResults, renderSearchItem,
   renderBrowseTorrentSearchResults, renderBrowseUsenetSearchResults,
   titleCards, musicReleaseCards, localCards, renderTorboxLibrary,
   renderCalendar, pinRecentTorrent, renderTitleDetail, renderTitleNotFound,
@@ -367,24 +367,9 @@ export async function loadView(view, reset = false) {
       return;
     }
     const q = $(`#${view}-query`)?.value || '';
-    if (!q || q.length < 2) {
-      // On first load with no query, just show the search box - no content
-      state.items[view] = [];
-      state.total[view] = 0;
-      state.offset[view] = 0;
-      state.currentPage[view] = 1;
-      const container = $(`#${view}-results`);
-      if (container) container.innerHTML = '';
-      const count = $(`#${view}-count`);
-      if (count) { count.textContent = ''; count.style.display = 'none'; }
-      const pagId = `${view}-pagination`;
-      const pagContainer = document.getElementById(pagId);
-      if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-      setStatus(view, '');
-      return;
-    }
     setStatus(view, 'Loading…');
     try {
+      // Library always loads its items regardless of search query
       if (view === 'library') {
         const data = await jsonFetch(`/library?limit=1000&offset=0`);
         let rows = data.torbox || [];
@@ -393,9 +378,31 @@ export async function loadView(view, reset = false) {
         state.items[view] = reset ? rows : [...state.items[view], ...rows];
         state.offset[view] = state.items[view].length;
         const results = $('#library-results');
+        const summary = $('#library-summary');
         if (results) {
           results.innerHTML = state.items[view].length ? renderTorboxLibrary(state.items[view]) : empty('No Library items found.');
           observeArtwork(results);
+        }
+        if (summary) {
+          summary.textContent = state.items[view].length ? `${state.items[view].length} item${state.items[view].length !== 1 ? 's' : ''}` : '';
+          summary.style.display = state.items[view].length ? 'block' : 'none';
+        }
+        const count = $('#library-count');
+        if (count) {
+          count.textContent = state.items[view].length ? `Showing ${state.items[view].length} item${state.items[view].length !== 1 ? 's' : ''}` : '';
+          count.style.display = state.items[view].length ? 'block' : 'none';
+        }
+        // Library pagination
+        const pagId = 'library-pagination';
+        const pagContainer = document.getElementById(pagId);
+        if (pagContainer) {
+          if (state.items[view].length > 1) {
+            pagContainer.classList.remove('hidden');
+            pagContainer.innerHTML = renderPaginationHtml('library', state.items[view].length, 1, 20);
+          } else {
+            pagContainer.classList.add('hidden');
+            pagContainer.innerHTML = '';
+          }
         }
         setStatus(view, data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
         return;
@@ -406,6 +413,46 @@ export async function loadView(view, reset = false) {
     } catch (error) {
       setStatus(view, error.message);
     }
+  }
+}
+
+// Load a specific library page
+export async function loadLibraryPage(page) {
+  const limit = 20;
+  const offset = (page - 1) * limit;
+  try {
+    setStatus('library', 'Loading…');
+    const data = await jsonFetch(`/library?limit=${limit}&offset=${offset}`);
+    let rows = data.torbox || [];
+    const recentIds = new Set(state.recentTorrents.map((item) => Number(item.id)));
+    rows = [...state.recentTorrents, ...rows.filter((item) => !recentIds.has(Number(item.id)))];
+    state.items['library'] = rows;
+    state.offset['library'] = offset + rows.length;
+    state.currentPage['library'] = page;
+    const results = $('#library-results');
+    const summary = $('#library-summary');
+    if (results) {
+      results.innerHTML = rows.length ? renderTorboxLibrary(rows) : empty('No Library items found.');
+      observeArtwork(results);
+    }
+    if (summary) {
+      summary.textContent = rows.length ? `${rows.length} item${rows.length !== 1 ? 's' : ''}` : '';
+      summary.style.display = rows.length ? 'block' : 'none';
+    }
+    const pagId = 'library-pagination';
+    const pagContainer = document.getElementById(pagId);
+    if (pagContainer) {
+      if (rows.length >= limit) {
+        pagContainer.classList.remove('hidden');
+        pagContainer.innerHTML = renderPaginationHtml('library', rows.length, page, limit);
+      } else {
+        pagContainer.classList.add('hidden');
+        pagContainer.innerHTML = '';
+      }
+    }
+    setStatus('library', data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
+  } catch (error) {
+    setStatus('library', error.message);
   }
 }
 
@@ -534,3 +581,18 @@ export function searchRoute(view) {
     void loadView(view, true);
   }
 }
+
+
+// Library pagination click handler (delegated)
+document.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  const btn = target.closest('.pagination-btn[data-page]');
+  if (btn && btn.closest('#library-pagination')) {
+    event.preventDefault();
+    const page = parseInt(btn.dataset.page);
+    if (page >= 1 && !btn.disabled) {
+      void loadLibraryPage(page);
+    }
+  }
+});

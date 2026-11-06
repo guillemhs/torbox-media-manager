@@ -73,6 +73,44 @@ export function renderPagination(viewKey, paginationId) {
   });
 }
 
+// Pagination HTML generator (returns string, for use in library etc.)
+export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+  if (totalPages <= 1) return '';
+
+  let pages = [];
+  const showMax = 5;
+
+  if (totalPages <= showMax) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push('...');
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+
+  let html = `<span class="pagination-info">Page <strong>${currentPage}</strong> of ${totalPages} (${totalItems} results)</span> `;
+  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="1" aria-label="First page">First</button> `;
+  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
+
+  for (const page of pages) {
+    if (page === '...') {
+      html += '<span class="pagination-ellipsis">…</span> ';
+    } else {
+      html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${page === currentPage ? ' active' : ''}" data-page="${page}">${page}</button> `;
+    }
+  }
+
+  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn${currentPage === totalPages ? ' disabled' : ''}" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
+  html += `<button class="btn btn-outline-secondary btn-sm pagination-btn" data-page="${totalPages}" aria-label="Last page">Last</button>`;
+
+  return html;
+}
+
 // Render a single search result item
 export function renderSearchItem(item, idx) {
   const source = item._source || item.source || 'Unknown';

@@ -75,6 +75,10 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
     const magnet = decodeURIComponent(addBtn.dataset.addTorrent);
     const name = addBtn.dataset.torrentName || '';
+    const originalText = addBtn.innerHTML;
+    addBtn.innerHTML = '<i class="fas fa-check"></i> Added';
+    addBtn.classList.replace('btn-tb-primary', 'btn-tb-secondary');
+    addBtn.disabled = true;
     void (async () => {
       try {
         await jsonFetch('/torbox/torrents', {
@@ -82,9 +86,19 @@ document.addEventListener('click', (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ magnet, name, addOnlyIfCached: false }),
         });
-        showModal('Added to TorBox', 'The item has been added to your TorBox library.');
+        showToast('Added to TorBox');
+        setTimeout(() => {
+          if (addBtn.isConnected) {
+            addBtn.innerHTML = originalText;
+            addBtn.classList.replace('btn-tb-secondary', 'btn-tb-primary');
+            addBtn.disabled = false;
+          }
+        }, 1500);
       } catch (error) {
-        showModal('Error', error.message);
+        showToast(error.message, 'error');
+        addBtn.innerHTML = originalText;
+        addBtn.classList.replace('btn-tb-secondary', 'btn-tb-primary');
+        addBtn.disabled = false;
       }
     })();
     return;
@@ -130,6 +144,10 @@ document.addEventListener('click', (event) => {
     const name = usenetBtn.dataset.usenetAdd;
     const id = usenetBtn.dataset.usenetId || '';
     const source = usenetBtn.dataset.usenetSource;
+    const originalText = usenetBtn.innerHTML;
+    usenetBtn.innerHTML = '<i class="fas fa-check"></i> Added';
+    usenetBtn.classList.replace('btn-tb-primary', 'btn-tb-secondary');
+    usenetBtn.disabled = true;
     void (async () => {
       try {
         await jsonFetch('/torbox/usenet', {
@@ -137,9 +155,19 @@ document.addEventListener('click', (event) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source, id, name, addOnlyIfCached: false }),
         });
-        showModal('Added to TorBox', 'The item has been added to your TorBox library.');
+        showToast('Added to TorBox');
+        setTimeout(() => {
+          if (usenetBtn.isConnected) {
+            usenetBtn.innerHTML = originalText;
+            usenetBtn.classList.replace('btn-tb-secondary', 'btn-tb-primary');
+            usenetBtn.disabled = false;
+          }
+        }, 1500);
       } catch (error) {
-        showModal('Error', error.message);
+        showToast(error.message, 'error');
+        usenetBtn.innerHTML = originalText;
+        usenetBtn.classList.replace('btn-tb-secondary', 'btn-tb-primary');
+        usenetBtn.disabled = false;
       }
     })();
     return;

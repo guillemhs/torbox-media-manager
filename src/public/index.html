@@ -293,29 +293,17 @@
 
       /* ── Skeleton loading ── */
       .tb-skeleton-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
       }
-      @media (min-width: 576px) { .tb-skeleton-grid { grid-template-columns: repeat(3, 1fr); } }
-      @media (min-width: 768px) { .tb-skeleton-grid { grid-template-columns: repeat(4, 1fr); } }
-      @media (min-width: 992px) { .tb-skeleton-grid { grid-template-columns: repeat(5, 1fr); } }
-      @media (min-width: 1200px) { .tb-skeleton-grid { grid-template-columns: repeat(6, 1fr); } }
       .tb-skeleton-card {
         background: var(--tb-surface);
         border: 1px solid var(--tb-border);
         border-radius: 0.75rem;
-        overflow: hidden;
-        height: 380px;
-        display: flex;
-        flex-direction: column;
+        padding: 0.75rem 1rem;
       }
-      .tb-skeleton-cover {
-        background: var(--tb-surface-hover);
-        aspect-ratio: 2 / 3;
-      }
-      .tb-skeleton-cover.music { aspect-ratio: 1 / 1; }
-      .tb-skeleton-body { padding: 0.75rem; flex: 1; }
+      .tb-skeleton-body { display: flex; flex-direction: column; gap: 0.5rem; }
       .tb-skeleton-line {
         background: var(--tb-surface-hover);
         border-radius: 0.25rem;

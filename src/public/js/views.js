@@ -498,16 +498,41 @@ export async function shiftCalendarDay(offset) {
   }
 }
 
-// ── Library pagination click handler ──
+// ── Pagination click handler (all views) ──
 document.addEventListener('click', (event) => {
   const target = event.target instanceof Element ? event.target : null;
   if (!target) return;
   const btn = target.closest('.tb-pagination-btn[data-page]');
-  if (btn && btn.closest('#library-pagination')) {
-    event.preventDefault();
-    const page = parseInt(btn.dataset.page);
-    if (page >= 1 && !btn.disabled) {
+  if (!btn || btn.disabled) return;
+
+  // Determine which pagination container was clicked
+  const container = btn.closest('[id$="-pagination"]');
+  if (!container) return;
+
+  const pagId = container.id;
+  let viewKey = '';
+
+  if (pagId === 'library-pagination') {
+    viewKey = 'library';
+  } else if (pagId === 'browse-pagination') {
+    viewKey = 'browse';
+  } else if (pagId === 'movies-pagination') {
+    viewKey = 'movies';
+  } else if (pagId === 'shows-pagination') {
+    viewKey = 'shows';
+  } else if (pagId === 'music-pagination') {
+    viewKey = 'music';
+  } else {
+    return;
+  }
+
+  event.preventDefault();
+  const page = parseInt(btn.dataset.page);
+  if (page >= 1) {
+    if (viewKey === 'library') {
       void loadLibraryPage(page);
+    } else {
+      void goToPage(viewKey, page);
     }
   }
 });

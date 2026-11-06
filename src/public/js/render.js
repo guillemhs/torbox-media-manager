@@ -21,7 +21,6 @@ export function renderSkeletonGrid(count = 8, kind = 'movie') {
   for (let i = 0; i < count; i++) {
     html += `
       <div class="tb-skeleton-card">
-        <div class="tb-skeleton-cover ${isMusic ? 'music' : ''}"></div>
         <div class="tb-skeleton-body">
           <div class="tb-skeleton-line title"></div>
           <div class="tb-skeleton-line meta"></div>
@@ -71,7 +70,7 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   return html;
 }
 
-// ── Media card (search results) ──
+// ── Media card (search results) - full width row, no image holder ──
 export function renderSearchItem(item, idx) {
   const source = item._source || item.source || 'Unknown';
   const isTorrent = item._source === 'torrents';
@@ -95,19 +94,6 @@ export function renderSearchItem(item, idx) {
   const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`
     : (item.id ? `/music/release/${encodeURIComponent(item.id)}` : '#');
 
-  const coverClass = kind === 'music' ? 'music' : 'movie';
-
-  let coverHtml = '';
-  if (item.artwork && item.artwork.url) {
-    coverHtml = `<img src="${esc(item.artwork.url)}" alt="${esc(title)} cover" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22450%22><rect width=%22300%22 height=%22450%22 fill=%22%23334155%22/><text x=%2250%22 y=%2250%22 font-size=%2214%22 fill=%22%2394a3b8%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>No Cover</text></svg>'">`;
-  } else if (item.cover) {
-    coverHtml = `<img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-cover');this.parentElement.innerHTML='<i class=fas fa-image></i>'">`;
-  } else {
-    coverHtml = `<div class="tb-card-cover no-cover"><i class="fas fa-image"></i></div>`;
-  }
-
-  const coverWrapper = `<div class="tb-card-cover ${coverClass}">${coverHtml}${sourceBadge(source, contentType)}</div>`;
-
   let actionButtons = '';
   if (isTorrent && item.magnet) {
     actionButtons = `
@@ -120,10 +106,15 @@ export function renderSearchItem(item, idx) {
 
   return `
     <article class="tb-card">
-      ${coverWrapper}
-      <div class="tb-card-body">
-        <h3 class="tb-card-title" title="${esc(title)}">${esc(title)}</h3>
-        ${meta ? `<p class="tb-card-meta">${esc(meta)}</p>` : ''}
+      <div class="tb-card-header">
+        <a class="tb-card-link" href="${route}" aria-label="Open ${esc(title)} details">
+          <h3 class="tb-card-title" title="${esc(title)}">${esc(title)}</h3>
+          ${year || titleType ? `<span class="tb-card-year-type">${esc(year || 'Year unknown')} · ${esc(titleType || 'Unknown')}</span>` : ''}
+        </a>
+        ${sourceBadge(source, contentType)}
+      </div>
+      <div class="tb-card-meta-row">
+        ${meta ? `<span class="tb-card-meta">${esc(meta)}</span>` : ''}
       </div>
       ${actionButtons ? `<div class="tb-card-actions">${actionButtons}</div>` : ''}
     </article>
@@ -300,14 +291,14 @@ export function scheduleCards(episodes) {
     const code = season && number ? `S${String(season).padStart(2, '0')}E${String(number).padStart(2, '0')}` : '';
     return `
       <article class="tb-card">
-        <div class="tb-card-cover movie">
-          ${image ? `<img src="${esc(image)}" alt="${esc(show.name || '')} ${code}" loading="lazy">` : `<div class="tb-card-cover no-cover"><i class="fas fa-tv"></i></div>`}
-        </div>
-        <div class="tb-card-body">
+        <div class="tb-card-header">
           <h3 class="tb-card-title">${esc(ep.name || 'Untitled')}</h3>
-          <p class="tb-card-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</p>
-          ${ep.summary ? `<p class="tb-card-meta" style="font-size:0.75rem; opacity:0.8;">${esc(ep.summary).replace(/<[^>]*>/g, ' ')}</p>` : ''}
+          <span class="tb-source-badge imdb">${esc(show.name || '')}</span>
         </div>
+        <div class="tb-card-meta-row">
+          <span class="tb-card-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</span>
+        </div>
+        ${ep.summary ? `<div class="tb-card-summary">${esc(ep.summary).replace(/<[^>]*>/g, ' ')}</div>` : ''}
       </article>
     `;
   }).join('');

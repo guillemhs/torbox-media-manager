@@ -86,7 +86,7 @@ export async function doSearch(view, page = 1) {
     let data;
     if (view === 'browse') {
       // /api/browse supports empty q for discover mode; /api/search requires q >= 2
-      data = await jsonFetch(`/api/browse?q=${encodeURIComponent(query)}&kind=all&limit=${limit}&offset=${offset}`);
+      data = await jsonFetch(`/api/browse?q=${encodeURIComponent(query)}&kind=all&sources=${encodeURIComponent(sources.join(','))}&limit=${limit}&offset=${offset}`);
     } else {
       const kind = view === 'movies' ? 'movie' : view === 'shows' ? 'series' : 'music';
       data = await jsonFetch(`/api/${view}?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(kind)}&sources=${encodeURIComponent(sources.join(','))}&usenetSource=${encodeURIComponent(usenetSource)}&indexers=${encodeURIComponent(indexers.join(','))}&limit=${limit}&offset=${offset}`);

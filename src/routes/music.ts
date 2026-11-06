@@ -9,6 +9,7 @@ function parseSources(value: unknown): string[] {
   if (typeof value !== 'string') return [];
   return value.split(',').filter(s => ['local', 'indexers', 'usenet'].includes(s));
 }
+
 export const musicMetadataSearchRoute: RequestHandler = async (req, res) => {
   const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const query = scalar(req.query.q)?.trim() || '';
@@ -33,16 +34,25 @@ export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
 };
 
 export const musicRoute: RequestHandler = async (req, res) => {
+  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
+  const sources = parseSources(scalar(req.query.sources));
+  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+  const searchIndexers = sources.includes('indexers') && hasIndexerConfig;
+  const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
+  const searchLocal = sources.includes('local') || sources.length === 0;
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',
       kind: 'music',
       page: pagination(req.query as Record<string, unknown>),
-      useMusicBrainz: true,
+      useMusicBrainz: searchLocal,
       localSourceLabel: 'local-music',
-      indexerCategories: ['3000'],
+      indexerCategories: searchIndexers ? ['3000'] : undefined,
       categoryMode: 'fixed',
       fixedCategory: 'Music',
+      includeLocal: searchLocal,
+      includeIndexers: searchIndexers,
+      includeUsenet: searchUsenet,
       browseLink: `/browse?q=${encodeURIComponent(typeof req.query.q === 'string' ? req.query.q : '')}&kind=music`,
     });
     console.warn('[Music route] response:', {

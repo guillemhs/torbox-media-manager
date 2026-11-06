@@ -71,6 +71,8 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   return html;
 }
 
+// ── Media card (search results) ──
+export function renderSearchItem(item, idx) {
   const source = item._source || item.source || 'Unknown';
   const isTorrent = item._source === 'torrents';
   const isUsenet = item._source === 'usenet';
@@ -93,7 +95,7 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`
     : (item.id ? `/music/release/${encodeURIComponent(item.id)}` : '#');
 
-  const coverClass = isMusicKind(kind) ? 'music' : 'movie';
+  const coverClass = kind === 'music' ? 'music' : 'movie';
 
   let coverHtml = '';
   if (item.artwork && item.artwork.url) {
@@ -126,10 +128,6 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
       ${actionButtons ? `<div class="tb-card-actions">${actionButtons}</div>` : ''}
     </article>
   `;
-}
-
-function isMusicKind(kind) {
-  return kind === 'music';
 }
 
 // ── Render search results container ──

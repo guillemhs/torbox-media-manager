@@ -130,4 +130,32 @@ export function showModal(title, message) {
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
   }
+}
+
+// Show a toast notification (temporary toast at top-right)
+export function showToast(message, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">
+        ${esc(message)}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  `;
+
+  container.appendChild(toast);
+  const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
+  bsToast.show();
+
+  toast.addEventListener('hidden.bs.toast', () => {
+    toast.remove();
+  });
 };

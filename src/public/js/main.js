@@ -1,4 +1,4 @@
-import { state, $, esc, artworkObserver, observeArtwork, showModal } from './state.js';
+import { state, $, esc, artworkObserver, observeArtwork, showModal, showToast } from './state.js';
 import { jsonFetch } from './api.js';
 import {
   renderSearchItem, renderTorboxLibrary,

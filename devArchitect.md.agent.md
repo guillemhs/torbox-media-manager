@@ -8,16 +8,16 @@ model:
 target: vscode
 user-invocable: true
 tools: 
-- execute/terminal
-- execute/getTerminalOutput
-- execute/runInTerminal
-- execute/sendToTerminal
-- read_file
-- file_search
-- grep_search
-- list_dir
-- manage_todo_list
-- agent
+  - execute/terminal
+  - execute/getTerminalOutput
+  - execute/runInTerminal
+  - execute/sendToTerminal
+  - read_file
+  - file_search
+  - grep_search
+  - list_dir
+  - manage_todo_list
+  - agent
 ---
 
 # AGENT DIRECTIVE: UNIVERSAL REPOSITORY MAINTAINER
@@ -66,17 +66,39 @@ grep -rn --exclude-dir={.git,node_modules,.venv,workspaceStorage,dist,build,.nex
 * If a command or approach does not produce the expected result immediately, switch execution strategies silently with **zero conversational text**.
 
 **11. NO TEMP FILE REDIRECTION OR CHOPPING:**
-- Never capture, save, or redirect command/terminal outputs to `/tmp` or temporary files.
-- Never use tools like `read_file` on temporary execution artifacts or terminal outputs.
-- To view previous command outputs, call `execute/getTerminalOutput` directly or run the command with standard filters (`grep`, `head`, `tail`) directly in terminal.
+
+* Never capture, save, or redirect command/terminal outputs to `/tmp` or temporary files.
+* Never use tools like `read_file` on temporary execution artifacts or terminal outputs.
+* To view previous command outputs, call `execute/getTerminalOutput` directly or run the command with standard filters (`grep`, `head`, `tail`) directly in terminal.
+
+**12. TASK COMPLETION & COMMIT MESSAGE OUTPUT PROTOCOL:**
+
+* Once code modifications are validated, tests pass, and changes are committed, **stop executing tools immediately**.
+* Terminate the autonomous tool-calling loop and output the created conventional commit message as your primary output deliverable.
 
 ---
 
-## 0.5 GIT DISCIPLINE
+## 0.5 GIT DISCIPLINE & COMMIT DELIVERABLE
 
 * Create a feature branch per task: `git switch -c <slug>`.
-* Stage and commit with conventional messages: `git add -A && git commit -m "feat(scope): ..."`
-* Show `git diff --stat` before and after each patch set.
+* Show `git diff --stat` before committing to verify scope.
+* Stage and commit with conventional commit messages (`feat`, `fix`, `refactor`, `docs`, `test`, `chore`):
+```bash
+git add -A && git commit -m "<type>(<scope>): <short description>"
+
+```
+
+
+* **FINAL DELIVERABLE PROTOCOL:** Upon completing the task, output the generated commit message as your primary final response, structured as follows:
+
+```text
+### Commit Message
+<type>(<scope>): <short description>
+
+### Summary of Changes
+- <file_path>: <concise description of modifications>
+
+```
 
 ---
 

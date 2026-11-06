@@ -32,7 +32,12 @@ export async function goToPage(viewKey, page) {
     case 'shows':
     case 'music':
     case 'browse':
-      void doSearch(viewKey, page);
+      // Use the same mode as the last operation (search or discover)
+      if (state.searchMode?.[viewKey] === 'discover') {
+        void searchLocal(viewKey, page);
+      } else {
+        void doSearch(viewKey, page);
+      }
       break;
     case 'library':
       void loadLibraryPage(page);
@@ -81,6 +86,7 @@ export async function doSearch(view, page = 1) {
 
   state.offset[view] = offset;
   state.currentPage[view] = page;
+  state.searchMode[view] = 'search';
 
   // Show skeletons while loading
   const container = $(`#${view}-results`);
@@ -178,6 +184,7 @@ export async function searchLocal(view, page = 1) {
 
   state.offset[view] = offset;
   state.currentPage[view] = page;
+  state.searchMode[view] = 'discover';
 
   const container = $(`#${view}-results`);
   if (container) {

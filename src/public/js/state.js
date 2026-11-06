@@ -41,6 +41,12 @@ export const state = {
   moviesSearched: false,
   musicSearched: false,
   showsSearched: false,
+  searchMode: {
+    browse: 'search',
+    movies: 'search',
+    shows: 'search',
+    music: 'search',
+  },
 };
 
 let loadViewMode = null;

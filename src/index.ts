@@ -21,6 +21,7 @@ import {
   musicMetadataSearchRoute,
   musicTorrentSearchRoute,
   musicRoute,
+  musicDetailRoute,
   musicTorrentDownloadRoute,
   musicArtworkRoute,
 } from './routes/music';
@@ -68,6 +69,7 @@ app.get('/api/calendar', calendarRoute);
 app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);
 app.get('/api/music', musicRoute);
+app.get('/api/music/:id', musicDetailRoute);
 app.get('/music/search', musicMetadataSearchRoute);
 app.get('/music/torrents/search', musicTorrentSearchRoute);
 app.get('/music/torrents/download/:token', musicTorrentDownloadRoute);

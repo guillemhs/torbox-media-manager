@@ -100,7 +100,7 @@ export function renderSearchItem(item, idx) {
   const categoryTag = isTorrent ? `<span class="category-tag">${contentType}</span>` : (isUsenet ? '<span class="category-tag">Usenet</span>' : '');
   const sourceTagHtml = isLocal ? '' : sourceTag(source, contentType);
 
-  const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}` : '#';
+  const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}` : (item.id ? `/music/release/${encodeURIComponent(item.id)}` : '#');
 
   let actionButtons = '';
   if (isTorrent && item.magnet) {
@@ -386,6 +386,50 @@ export function renderTitleNotFound() {
     </div>
     <div class="detail-content">
       <p>The requested title could not be found.</p>
+    </div>
+  </article>`;
+}
+
+// Music release detail page rendering
+export function renderMusicDetail(release) {
+  const cover = release.cover || '';
+  const source = release._source || 'MusicBrainz';
+  
+  return `<article class="music-detail">
+    <div class="music-detail-header">
+      <h1>${esc(release.title || 'Unknown Release')}</h1>
+      <div class="music-meta">
+        ${esc(release.type || 'Release')}
+        ${release.artist ? `· ${esc(release.artist)}` : ''}
+        ${release.date ? `· ${esc(release.date)}` : ''}
+      </div>
+      <div class="music-source">${esc(source)}</div>
+    </div>
+    
+    <div class="detail-content">
+      <div class="music-poster">
+        ${cover ? `<img src="${esc(cover)}" alt="${esc(release.title || '')} cover" onerror="this.style.display='none'">` : '<div class="no-poster">No Cover Available</div>'}
+      </div>
+      
+      <div class="music-info">
+        <h2>Details</h2>
+        <p><strong>Title:</strong> ${esc(release.title || 'Unknown')}</p>
+        ${release.artist ? `<p><strong>Artist:</strong> ${esc(release.artist)}</p>` : ''}
+        ${release.date ? `<p><strong>Release Date:</strong> ${esc(release.date)}</p>` : ''}
+        ${release.type ? `<p><strong>Type:</strong> ${esc(release.type)}</p>` : ''}
+        ${release.id ? `<p><strong>MusicBrainz ID:</strong> ${esc(release.id)}</p>` : ''}
+      </div>
+    </div>
+  </article>`;
+}
+
+export function renderMusicNotFound() {
+  return `<article class="music-detail">
+    <div class="music-detail-header">
+      <h1>Release Not Found</h1>
+    </div>
+    <div class="detail-content">
+      <p>The requested music release could not be found.</p>
     </div>
   </article>`;
 }

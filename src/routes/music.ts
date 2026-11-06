@@ -110,3 +110,57 @@ export const musicArtworkRoute: RequestHandler = async (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=86400');
   return res.json({ artwork });
 };
+
+export const musicDetailRoute: RequestHandler = async (req, res) => {
+  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
+  const mbId = scalar(req.params.id) || '';
+  if (!/^[a-f0-9-]{36}$/i.test(mbId)) {
+    return res.status(400).json({ error: 'Invalid MusicBrainz ID.' });
+  }
+  try {
+    const url = new URL(`https://musicbrainz.org/ws/2/release-group/${mbId}`);
+    url.searchParams.set('fmt', 'json');
+    url.searchParams.set('inc', 'artists');
+    const release = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },
+      signal: AbortSignal.timeout(10_000)
+    });
+    if (!release.ok) {
+      return res.status(502).json({ error: 'Failed to fetch music release details.' });
+    }
+    const data = await release.json() as Record<string, unknown>;
+    
+    const id = typeof data.id === 'string' ? data.id : '';
+    const title = typeof data.title === 'string' ? data.title : 'Unknown release';
+    const type = typeof data['primary-type'] === 'string' ? data['primary-type'] : 'Release';
+    const date = typeof data['first-release-date'] === 'string' ? data['first-release-date'] : '';
+    
+    // Extract artist
+    let artist = '';
+    const artistCredit = data['artist-credit'];
+    if (Array.isArray(artistCredit)) {
+      const names = artistCredit.map((credit: any) => {
+        if (credit.name) return credit.name;
+        if (credit.artist && typeof credit.artist === 'object') return credit.artist.name;
+        return '';
+      }).filter(Boolean);
+      artist = names.join(' ');
+    }
+    
+    const cover = `https://coverartarchive.org/release-group/${id}/front-250`;
+    
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.json({
+      id,
+      title,
+      artist,
+      date,
+      type,
+      cover,
+      _source: 'MusicBrainz',
+      _category: 'Music'
+    });
+  } catch (error) {
+    return res.status(502).json({ error: error instanceof Error ? error.message : 'Failed to fetch music release details.' });
+  }
+};

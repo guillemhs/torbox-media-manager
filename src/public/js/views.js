@@ -5,6 +5,7 @@ import {
   renderBrowseTorrentSearchResults, renderBrowseUsenetSearchResults,
   titleCards, musicReleaseCards, localCards, renderTorboxLibrary,
   renderCalendar, pinRecentTorrent, renderTitleDetail, renderTitleNotFound,
+  renderMusicDetail, renderMusicNotFound,
 } from './render.js';
 
 let calendarRequest = 0;
@@ -451,18 +452,45 @@ export async function loadTitle(imdbId, kind = 'movie') {
   }
 }
 
+// Load music release detail page
+export async function loadMusicDetail(mbId) {
+  try {
+    setStatus('music', 'Loading…');
+    const release = await jsonFetch(`/api/music/${encodeURIComponent(mbId)}`);
+    
+    const detailContent = $('#music-detail-content');
+    if (detailContent) {
+      detailContent.innerHTML = renderMusicDetail(release);
+    }
+    setStatus('music', '');
+  } catch (error) {
+    const detailContent = $('#music-detail-content');
+    if (detailContent) {
+      detailContent.innerHTML = renderMusicNotFound();
+    }
+    setStatus('music', error.message);
+  }
+}
+
 // Route from browser location
 export function routeFromLocation() {
   const path = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '');
   const params = new URLSearchParams(location.search);
   const titleMatch = /^title\/(tt\d+)$/i.exec(path);
   const tvmazeMatch = /^tvmaze\/(\d+)$/i.exec(path);
+  const musicMatch = /^music\/release\/([a-f0-9-]{36})$/i.exec(path);
 
   if (titleMatch) {
     const imdbId = titleMatch[1];
     const kind = params.get('kind') || 'movie';
     showView('title');
     void loadTitle(imdbId, kind);
+    return;
+  }
+  if (musicMatch) {
+    const mbId = musicMatch[1];
+    showView('music-detail');
+    void loadMusicDetail(mbId);
     return;
   }
   if (tvmazeMatch) {
@@ -473,7 +501,8 @@ export function routeFromLocation() {
 
   const viewMap = {
     '': 'browse', browse: 'browse', movies: 'movies', shows: 'shows',
-    music: 'music', library: 'library', calendar: 'calendar',
+    music: 'music', 'music-detail': 'music-detail',
+    library: 'library', calendar: 'calendar',
   };
   const view = viewMap[path] || 'browse';
   showView(view);

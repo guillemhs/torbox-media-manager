@@ -202,7 +202,7 @@ export async function searchLocal(view, page = 1) {
     }
 
     const lItems = data.results?.local?.items || [];
-    const local = lItems.map((l) => ({ ...l, _source: 'local' }));
+    const local = lItems.map((l) => ({ ...l, _source: view === 'music' ? 'local-music' : 'local' }));
 
     state.total[view] = data.results?.local?.total || 0;
     state.items[view] = local;

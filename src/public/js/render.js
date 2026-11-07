@@ -125,10 +125,12 @@ export function renderSearchItem(item, idx) {
     actionButtons = `<button class="btn btn-tb-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-id="${encodeURIComponent(item.id || '')}" data-usenet-source="${esc(source)}" title="Add to TorBox"><i class="fas fa-plus"></i></button>`;
   } else if (isLocal) {
     // Local IMDb results - add a View Details button
-    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-view-detail="${encodeURIComponent(item.imdbId)}" data-view-kind="${kind}" title="View details"><i class="fas fa-info-circle"></i> View Details</button>`;
-  }
+    const detailId = isMusic ? item.id : item.imdbId;
+    const detailKind = isMusic ? 'music' : kind;
+    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-view-detail=
+"${encodeURIComponent(detailId)}" data-view-kind="${detailKind}" title="View details"><i class="fas fa-info-circle"></i> View Details</button>`;
+    }
 
-  return `
     <article class="tb-card${isMusic ? ' music-card' : ' movie-card'}">
       <div class="tb-card-header">
         <a class="tb-card-link" href="${route}" aria-label="Open ${esc(title)} details">

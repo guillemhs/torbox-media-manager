@@ -188,8 +188,8 @@ export function renderTitleDetail(title) {
           </div>
           ${title.overview ? `<p class="tb-detail-overview">${esc(title.overview)}</p>` : ''}
           <div class="tb-detail-actions">
-            <button class="btn btn-tb-primary"><i class="fas fa-play me-2"></i>Watch Trailer</button>
-            <button class="btn btn-tb-secondary"><i class="fas fa-info-circle me-2"></i>Details</button>
+            <a class="btn btn-tb-primary" href="https://www.youtube.com/results?search_query=${esc(title.primaryTitle || title.name || '')}+trailer" target="_blank" rel="noopener"><i class="fas fa-play me-2"></i>Watch Trailer</a>
+            <a class="btn btn-tb-secondary" href="https://www.imdb.com/title/${encodeURIComponent(title.imdbId || '')}/" target="_blank" rel="noopener"><i class="fas fa-info-circle me-2"></i>Details</a>
           </div>
         </div>
       </div>
@@ -255,8 +255,8 @@ export function renderMusicDetail(release) {
             <span class="tb-detail-tag">MusicBrainz</span>
           </div>
           <div class="tb-detail-actions">
-            <button class="btn btn-tb-primary"><i class="fas fa-play me-2"></i>Play Preview</button>
-            <button class="btn btn-tb-secondary"><i class="fas fa-info-circle me-2"></i>View on MusicBrainz</button>
+            <a class="btn btn-tb-primary" href="https://musicbrainz.org/release-group/${encodeURIComponent(release.id || '')}" target="_blank" rel="noopener"><i class="fas fa-play me-2"></i>Play Preview</a>
+            <a class="btn btn-tb-secondary" href="https://musicbrainz.org/release-group/${encodeURIComponent(release.id || '')}" target="_blank" rel="noopener"><i class="fas fa-info-circle me-2"></i>View on MusicBrainz</a>
           </div>
         </div>
       </div>

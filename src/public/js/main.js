@@ -172,6 +172,15 @@ document.addEventListener('click', (event) => {
     })();
     return;
   }
+
+  const viewDetailBtn = target.closest('[data-view-detail]');
+  if (viewDetailBtn) {
+    event.preventDefault();
+    const imdbId = viewDetailBtn.dataset.viewDetail;
+    const kind = viewDetailBtn.dataset.viewKind || 'movie';
+    setRoute(`/title/${encodeURIComponent(imdbId)}?kind=${kind}`);
+    return;
+  }
 });
 
 // ---- Fetch API status on load ----

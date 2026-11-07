@@ -101,6 +101,11 @@ export function renderSearchItem(item, idx) {
     if (artist) metaParts.push(`Artist: ${esc(artist)}`);
     if (year) metaParts.push(`Year: ${esc(year)}`);
     if (titleType) metaParts.push(`Type: ${esc(titleType)}`);
+  } else if (isLocal) {
+    // Local IMDb results - show genres and rating prominently
+    if (genres) metaParts.push(`Genres: ${esc(genres)}`);
+    if (rating) metaParts.push(`Rating: ${esc(rating)}`);
+    if (year) metaParts.push(`Year: ${esc(year)}`);
   } else {
     if (size) metaParts.push(`Size: ${esc(size)}`);
     if (seeders) metaParts.push(`Seeders: ${esc(seeders)}`);
@@ -118,6 +123,9 @@ export function renderSearchItem(item, idx) {
     `;
   } else if (isUsenet) {
     actionButtons = `<button class="btn btn-tb-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-id="${encodeURIComponent(item.id || '')}" data-usenet-source="${esc(source)}" title="Add to TorBox"><i class="fas fa-plus"></i></button>`;
+  } else if (isLocal) {
+    // Local IMDb results - add a View Details button
+    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-view-detail="${encodeURIComponent(item.imdbId)}" data-view-kind="${kind}" title="View details"><i class="fas fa-info-circle"></i> View Details</button>`;
   }
 
   return `

@@ -76,23 +76,39 @@ export function renderSearchItem(item, idx) {
   const isTorrent = item._source === 'torrents';
   const isUsenet = item._source === 'usenet';
   const isLocal = item._source !== 'torrents' && item._source !== 'usenet';
+  const isMusic = item._source === 'local-music' || item.kind === 'music' || item.type === 'Album' || item.type === 'Single' || item.type === 'EP';
 
   const kind = item.kind || (item.titleType && /^tv/i.test(item.titleType) ? 'series' : 'movie');
-  const contentType = isTorrent ? (kind === 'series' ? 'Show' : 'Movie') : (isUsenet ? 'Usenet' : 'All');
+  const contentType = isTorrent ? (kind === 'series' ? 'Show' : 'Movie') : (isUsenet ? 'Usenet' : (isMusic ? 'Music' : 'All'));
 
   const title = item.primaryTitle || item.name || item.title || 'Unknown';
-  const year = item.startYear || item.year || '';
-  const titleType = item.titleType || item.type || '';
+  const artist = item.artist || '';
+  const year = item.startYear || item.year || item.date || '';
+  const titleType = item.titleType || item.type || item.kind || '';
+  const rating = item.averageRating || item.rating || '';
+  const genres = item.genres || item.genre || '';
   const size = item.size ? fmtBytes(item.size) : '';
   const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()}` : '';
   const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()}` : '';
   const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
 
-  const metaParts = [size, seeders, leechers, posted].filter(Boolean);
-  const meta = metaParts.join(' · ');
-
   const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`
     : (item.id ? `/music/release/${encodeURIComponent(item.id)}` : '#');
+
+  // Build metadata line
+  const metaParts = [];
+  if (isMusic) {
+    if (artist) metaParts.push(`Artist: ${esc(artist)}`);
+    if (year) metaParts.push(`Year: ${esc(year)}`);
+    if (titleType) metaParts.push(`Type: ${esc(titleType)}`);
+  } else {
+    if (size) metaParts.push(`Size: ${esc(size)}`);
+    if (seeders) metaParts.push(`Seeders: ${esc(seeders)}`);
+    if (leechers) metaParts.push(`Leechers: ${esc(leechers)}`);
+    if (posted) metaParts.push(`Posted: ${esc(posted)}`);
+    if (rating) metaParts.push(`Rating: ${esc(rating)}`);
+    if (genres) metaParts.push(`Genres: ${esc(genres)}`);
+  }
 
   let actionButtons = '';
   if (isTorrent && item.magnet) {
@@ -105,10 +121,11 @@ export function renderSearchItem(item, idx) {
   }
 
   return `
-    <article class="tb-card">
+    <article class="tb-card${isMusic ? ' music-card' : ' movie-card'}">
       <div class="tb-card-header">
         <a class="tb-card-link" href="${route}" aria-label="Open ${esc(title)} details">
           <h3 class="tb-card-title" title="${esc(title)}">${esc(title)}</h3>
+          ${isMusic && artist ? `<span class="tb-card-artist">${esc(artist)}</span>` : ''}
           ${year || titleType ? `<span class="tb-card-year-type">${esc(year || 'Year unknown')} · ${esc(titleType || 'Unknown')}</span>` : ''}
         </a>
         ${sourceBadge(source, contentType)}
@@ -116,6 +133,7 @@ export function renderSearchItem(item, idx) {
       <div class="tb-card-meta-row">
         ${meta ? `<span class="tb-card-meta">${esc(meta)}</span>` : ''}
       </div>
+      ${isMusic && item.cover ? `<div class="tb-card-cover"><img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-cover');this.parentElement.innerHTML='<i class=\'fas fa-music\'></i>'"></div>` : ''}
       ${actionButtons ? `<div class="tb-card-actions">${actionButtons}</div>` : ''}
     </article>
   `;

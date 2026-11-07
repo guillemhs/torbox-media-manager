@@ -88,8 +88,8 @@ export function renderSearchItem(item, idx) {
   const rating = item.averageRating || item.rating || '';
   const genres = item.genres || item.genre || '';
   const size = item.size ? fmtBytes(item.size) : '';
-  const seeders = item.seeders !== null && item.seeders !== undefined ? ${Number(item.seeders).toLocaleString()} : '';
-  const leechers = item.leechers !== null && item.leechers !== undefined ? ${Number(item.leechers).toLocaleString()} : '';
+  const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()}` : '';
+  const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()}` : '';
   const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
 
   const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`

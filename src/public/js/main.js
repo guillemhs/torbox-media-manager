@@ -178,7 +178,11 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
     const imdbId = viewDetailBtn.dataset.viewDetail;
     const kind = viewDetailBtn.dataset.viewKind || 'movie';
-    setRoute(`/title/${encodeURIComponent(imdbId)}?kind=${kind}`);
+    if (kind === 'music') {
+      setRoute(`/music/release/${encodeURIComponent(imdbId)}`);
+    } else {
+      setRoute(`/title/${encodeURIComponent(imdbId)}?kind=${kind}`);
+    }
     return;
   }
 });

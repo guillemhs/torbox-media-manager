@@ -88,8 +88,8 @@ export function renderSearchItem(item, idx) {
   const rating = item.averageRating || item.rating || '';
   const genres = item.genres || item.genre || '';
   const size = item.size ? fmtBytes(item.size) : '';
-  const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()}` : '';
-  const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()}` : '';
+  const seeders = item.seeders !== null && item.seeders !== undefined ? ${Number(item.seeders).toLocaleString()} : '';
+  const leechers = item.leechers !== null && item.leechers !== undefined ? ${Number(item.leechers).toLocaleString()} : '';
   const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
 
   const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`
@@ -127,10 +127,10 @@ export function renderSearchItem(item, idx) {
     // Local IMDb results - add a View Details button
     const detailId = isMusic ? item.id : item.imdbId;
     const detailKind = isMusic ? 'music' : kind;
-    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-view-detail=
-"${encodeURIComponent(detailId)}" data-view-kind="${detailKind}" title="View details"><i class="fas fa-info-circle"></i> View Details</button>`;
-    }
+    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-view-detail="${encodeURIComponent(detailId)}" data-view-kind="${detailKind}" title="View details"><i class="fas fa-info-circle"></i> View Details</button>`;
+  }
 
+  return `
     <article class="tb-card${isMusic ? ' music-card' : ' movie-card'}">
       <div class="tb-card-header">
         <a class="tb-card-link" href="${route}" aria-label="Open ${esc(title)} details">
@@ -143,7 +143,7 @@ export function renderSearchItem(item, idx) {
       <div class="tb-card-meta-row">
         ${metaParts.length ? `<span class="tb-card-meta">${esc(metaParts.join(' · '))}</span>` : ''}
       </div>
-      ${isMusic && item.cover ? `<div class="tb-card-cover"><img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"300\" height=\"300\"><rect width=\"300\" height=\"300\" fill=\"%23334155\"/><text x=\"50%\" y=\"50%\" font-size=\"14\" fill=\"%2394a3b8\" text-anchor=\"middle\" dominant-baseline=\"middle\">No Cover</text></svg>';" onload="this.style.display='block'" style="display:none"></div>` : ''}
+      ${isMusic && item.cover ? `<div class="tb-card-cover"><img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.onerror=null;this.closest('.tb-card-cover').innerHTML='<div class=\\"no-cover\" style=\\"aspect-ratio:1/1;background:#334155;display:flex;align-items:center;justify-content:center;color:#94a3b8;\"><i class=\\"fas fa-music\"></i></div>'"></div>` : ''}
       ${actionButtons ? `<div class="tb-card-actions">${actionButtons}</div>` : ''}
     </article>
   `;

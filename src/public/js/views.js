@@ -301,14 +301,14 @@ export async function loadTitle(imdbId, kind = 'movie') {
     const endpoint = kind === 'series' ? 'shows' : 'movies';
     const title = await jsonFetch(`/api/${endpoint}/${encodeURIComponent(imdbId)}`);
 
-    const detailContent = $('#detail-content');
+    const detailContent = $('#title-detail-content');
     if (detailContent) {
       detailContent.innerHTML = renderTitleDetail(title);
       observeArtwork(detailContent);
     }
     setStatus('title', '');
   } catch (error) {
-    const detailContent = $('#detail-content');
+    const detailContent = $('#title-detail-content');
     if (detailContent) {
       detailContent.innerHTML = renderTitleNotFound();
     }

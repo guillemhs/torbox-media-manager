@@ -139,7 +139,7 @@ export function renderSearchItem(item, idx) {
         ${sourceBadge(source, contentType)}
       </div>
       <div class="tb-card-meta-row">
-        ${meta ? `<span class="tb-card-meta">${esc(meta)}</span>` : ''}
+        ${metaParts.length ? `<span class="tb-card-meta">${esc(metaParts.join(' · '))}</span>` : ''}
       </div>
       ${isMusic && item.cover ? `<div class="tb-card-cover"><img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-cover');this.parentElement.innerHTML='<i class=\'fas fa-music\'></i>'"></div>` : ''}
       ${actionButtons ? `<div class="tb-card-actions">${actionButtons}</div>` : ''}

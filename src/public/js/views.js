@@ -36,9 +36,7 @@ export function resetViewState(view) {
   const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
   const pagContainer = document.getElementById(pagId);
   if (pagContainer) { pagContainer.classList.add('hidden'); pagContainer.innerHTML = ''; }
-  // Clear the query input so no auto-search happens with stale data
-  const queryInput = $(`#${view}-query`);
-  if (queryInput) queryInput.value = '';
+  // Keep the query input so pagination can re-read it
   setStatus(view, '');
 }
 

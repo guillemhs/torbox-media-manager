@@ -98,12 +98,33 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
             }
             torrentCandidates.push(...[...unique.values()]);
           } else if (hasIndexerConfig) {
+            // Determine media kind for Torrentio queries
+            const mediaKind = kind === 'series' ? 'series' : 'movie';
             try {
               const prowlarrResults = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
               for (const candidate of prowlarrResults) {
                 torrentCandidates.push(candidate);
               }
               if (indexers.includes('prowlarr')) sourceNames.push('Prowlarr');
+
+              // Also query Torrentio using IMDb IDs extracted from Prowlarr results
+              if (indexers.includes('torrentio')) {
+                const imdbIds = new Set<string>();
+                for (const candidate of prowlarrResults) {
+                  if (candidate.imdbId) imdbIds.add(candidate.imdbId);
+                }
+                for (const imdbId of imdbIds) {
+                  try {
+                    const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset);
+                    for (const candidate of torrentioResults) {
+                      torrentCandidates.push(candidate);
+                    }
+                    if (!sourceNames.includes('Torrentio')) sourceNames.push('Torrentio');
+                  } catch (error) {
+                    warnings.push(`Torrentio: ${error instanceof Error ? error.message : 'search failed'}`);
+                  }
+                }
+              }
             } catch (error) {
               warnings.push(error instanceof Error ? error.message : 'Prowlarr fallback search failed');
             }

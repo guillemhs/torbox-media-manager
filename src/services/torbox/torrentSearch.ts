@@ -7,6 +7,7 @@ export interface TorrentCandidate {
   size: number | null;
   source: string;
   downloadToken?: string;
+  imdbId?: string;
 }
 
 function positiveNumber(value: unknown): number | null {
@@ -173,6 +174,12 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
     const magnetUrl = item.magnetUrl || item.downloadUrl;
 
     if (!title || !/^[a-f0-9]{40}$/.test(infoHash)) continue;
+
+    // Extract IMDb ID from Prowlarr guid field (e.g. "tt1234567" or "https://imdb.com/title/tt1234567")
+    const guid = item.guid || '';
+    const imdbIdMatch = guid.match(/(tt\d{7,})/i);
+    const imdbId = imdbIdMatch ? imdbIdMatch[1].toLowerCase() : undefined;
+
     candidates.set(infoHash, {
       hash: infoHash,
       magnet: magnetUrl && /^magnet:\?xt=urn:btih:[a-f0-9]{40}/i.test(magnetUrl)
@@ -182,7 +189,8 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
       seeders,
       leechers,
       size: size ? Number((size / (1024 * 1024 * 1024)).toFixed(1)) : null,
-      source: item.indexer || 'Prowlarr'
+      source: item.indexer || 'Prowlarr',
+      imdbId
     });
   }
   const clampedLimit = Math.min(100, Math.max(1, limit));

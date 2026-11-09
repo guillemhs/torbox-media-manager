@@ -325,6 +325,7 @@ export function renderTorboxLibrary(items) {
     </article>
   `;
 }).join('');
+}
 // ── Calendar / schedule cards ──
 export function scheduleCards(episodes) {
   return episodes.map((ep) => {

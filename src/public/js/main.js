@@ -173,6 +173,65 @@ document.addEventListener('click', (event) => {
     return;
   }
 
+  const pipelineBtn = target.closest('[data-usenet-pipeline]');
+  if (pipelineBtn) {
+    event.preventDefault();
+    const name = decodeURIComponent(pipelineBtn.dataset.usenetPipeline);
+    const id = pipelineBtn.dataset.usenetId || '';
+    const source = pipelineBtn.dataset.usenetSource;
+    const originalText = pipelineBtn.innerHTML;
+    pipelineBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Pipeline…';
+    pipelineBtn.classList.replace('btn-tb-secondary', 'btn-tb-outline');
+    pipelineBtn.disabled = true;
+    void (async () => {
+      try {
+        // Step 1: Run the full pipeline
+        const response = await jsonFetch('/usenet/pipeline/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            q: name,
+            nzbId: id,
+            category: undefined,
+            fileName: name,
+          }),
+        });
+        const job = response.job || response;
+        showToast('Pipeline started: ' + job.id);
+
+        // Step 2: Poll for completion
+        let status = job.status;
+        let logs = job.logs || [];
+        while (status === 'queued' || status === 'searching' || status === 'downloading-nzb' || status === 'assembling' || status === 'uploading' || status === 'cleaning-up') {
+          await new Promise((r) => setTimeout(r, 3000));
+          const statusResp = await jsonFetch(`/usenet/pipeline/status/${encodeURIComponent(job.id)}`);
+          const currentJob = statusResp.job;
+          status = currentJob.status;
+          logs = currentJob.logs || logs;
+          if (currentJob.error) {
+            showToast('Pipeline failed: ' + currentJob.error, 'error');
+            break;
+          }
+        }
+
+        if (status === 'completed') {
+          showToast('Pipeline completed successfully');
+        } else if (status === 'failed') {
+          showToast('Pipeline failed', 'error');
+        }
+      } catch (error) {
+        showToast(error.message, 'error');
+      } finally {
+        if (pipelineBtn.isConnected) {
+          pipelineBtn.innerHTML = originalText;
+          pipelineBtn.classList.replace('btn-tb-outline', 'btn-tb-secondary');
+          pipelineBtn.disabled = false;
+        }
+      }
+    })();
+    return;
+  }
+
   const viewDetailBtn = target.closest('[data-view-detail]');
   if (viewDetailBtn) {
     event.preventDefault();

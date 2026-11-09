@@ -5,7 +5,7 @@ export interface UsenetCandidate {
   posted?: number;
   complete?: boolean;
   groups?: string[];
-  source: 'NZBIndex' | 'Binsearch';
+  source: 'NZBIndex' | 'Binsearch' | 'NZBGeek';
 }
 
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
@@ -56,9 +56,49 @@ async function searchBinsearch(query: string, limit = 50, offset = 0): Promise<U
   return candidates.slice(offset, offset + limit);
 }
 
-export async function searchUsenet(query: string, source: 'all' | 'NZBIndex' | 'Binsearch', limit = 50, offset = 0) {
-  const sources = source === 'all' ? ['NZBIndex', 'Binsearch'] as const : [source] as const;
-  const results = await Promise.allSettled(sources.map(name => name === 'NZBIndex' ? searchNzbIndex(query, limit, offset) : searchBinsearch(query, limit, offset)));
+/**
+ * Search NZBGeek via its Newznab API and map results to UsenetCandidate.
+ * Requires NZBGEEK_API_HOST and NZBGEEK_API_KEY environment variables.
+ * Dynamic IP resilience: logs the whitelist IP reference on every client build.
+ */
+async function searchNzbgeek(query: string, limit = 50, offset = 0): Promise<UsenetCandidate[]> {
+  const { NzbgeekClient } = await import('./nzbgeek');
+  const client = new NzbgeekClient({
+    host: process.env.NZBGEEK_API_HOST?.trim() || 'https://api.nzbgeek.info/',
+    apiKey: process.env.NZBGEEK_API_KEY?.trim() || '',
+    whitelistIp: process.env.NZBGEEK_WHITELIST_IP?.trim() || undefined,
+  });
+  client.logWhitelistReference();
+
+  if (!client['apiKey']) {
+    throw new Error('NZBGEEK_API_KEY is not configured. Set NZBGEEK_API_KEY in .env.');
+  }
+
+  const response = await client.search(query, {
+    category: undefined,
+    limit,
+    offset,
+    extended: true,
+  });
+
+  return response.results.map(item => ({
+    id: item.id,
+    name: item.title,
+    size: item.size,
+    posted: item.posted,
+    complete: item.complete,
+    groups: item.groups,
+    source: 'NZBGeek' as const,
+  }));
+}
+
+export async function searchUsenet(query: string, source: 'all' | 'NZBIndex' | 'Binsearch' | 'NZBGeek', limit = 50, offset = 0) {
+  const sources = source === 'all' ? ['NZBIndex', 'Binsearch', 'NZBGeek'] as const : [source] as const;
+  const results = await Promise.allSettled(sources.map(name => {
+    if (name === 'NZBIndex') return searchNzbIndex(query, limit, offset);
+    if (name === 'Binsearch') return searchBinsearch(query, limit, offset);
+    return searchNzbgeek(query, limit, offset);
+  }));
   const candidates = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
   const warnings = results.flatMap((result, index) => result.status === 'rejected'
     ? [`${sources[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`] : []);
@@ -67,12 +107,24 @@ export async function searchUsenet(query: string, source: 'all' | 'NZBIndex' | '
     query,
     nzbIndexCount: results[0]?.status === 'fulfilled' ? results[0].value.length : 0,
     binsearchCount: results[1]?.status === 'fulfilled' ? results[1].value.length : 0,
+    nzbgeekCount: results[2]?.status === 'fulfilled' ? results[2].value.length : 0,
     warnings
   });
-  return { candidates: candidates.slice(offset, offset + limit), warnings, configured: { NZBIndex: true, Binsearch: true } };
+  return { candidates: candidates.slice(offset, offset + limit), warnings, configured: { NZBIndex: true, Binsearch: true, NZBGeek: Boolean(process.env.NZBGEEK_API_KEY?.trim()) } };
 }
 
-export async function fetchUsenetNzb(source: 'NZBIndex' | 'Binsearch', id: string): Promise<Buffer> {
+export async function fetchUsenetNzb(source: 'NZBIndex' | 'Binsearch' | 'NZBGeek', id: string): Promise<Buffer> {
+  if (source === 'NZBGeek') {
+    const { NzbgeekClient } = await import('./nzbgeek');
+    const client = new NzbgeekClient({
+      host: process.env.NZBGEEK_API_HOST?.trim() || 'https://api.nzbgeek.info/',
+      apiKey: process.env.NZBGEEK_API_KEY?.trim() || '',
+      whitelistIp: process.env.NZBGEEK_WHITELIST_IP?.trim() || undefined,
+    });
+    client.logWhitelistReference();
+    return client.downloadNzb(id);
+  }
+
   let url: URL;
   if (source === 'NZBIndex') {
     if (!/^[a-f\d-]{36}$/i.test(id)) throw new Error('Invalid NZBIndex result ID');

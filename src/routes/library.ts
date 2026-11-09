@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
-import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError } from '../services/torbox/client';
+import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError, uploadFileToTorbox } from '../services/torbox/client';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
 import { pagination, sendError } from './routeUtils';
@@ -55,12 +55,34 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
   const mediaName = /"([^"]+\.(?:mp3|mp4|m4v|mkv|avi|mov|wmv|flac|m4a|ogg|wav|ts|m2ts|webm))"/i.exec(requestedName)?.[1];
   const name = (mediaName || requestedName).replace(/^\[\d+\/\d+\]\s*[-–]?\s*/, '').replace(/\s+yEnc\s+\d+.*$/i, '').trim().slice(0, 200);
   if ((source !== 'NZBIndex' && source !== 'Binsearch' && source !== 'NZBGeek') || !id) return res.status(400).json({ error: 'A valid NZB source and result ID are required.' });
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  let tempPath: string | undefined;
   try {
+    // Fetch the NZB from the indexer
     const nzb = await fetchUsenetNzb(source, id);
-    const result = await addUsenetNzb(nzb, { name, addOnlyIfCached: req.body?.addOnlyIfCached === true });
+
+    // Save NZB to a temp file so we can upload it as a regular file POST.
+    // This bypasses TorBox's blocked createusenetdownload endpoint.
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'torbox-usenet-'));
+    tempPath = path.join(tmpDir, `${name || 'usenet-download'}.nzb`);
+    fs.writeFileSync(tempPath, nzb);
+
+    // Upload the NZB file directly to TorBox via file POST (not server-side usenet download)
+    const result = await uploadFileToTorbox(tempPath, { name });
+
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({ detail: result.detail, usenet: result.data });
-  } catch (error) { return sendError(res, error); }
+  } catch (error) {
+    return sendError(res, error);
+  } finally {
+    // Mandatory cleanup: remove the temp NZB file after upload
+    if (tempPath) {
+      try { fs.unlinkSync(tempPath); } catch { /* ignore */ }
+      try { fs.rmdirSync(path.dirname(tempPath)); } catch { /* ignore */ }
+    }
+  }
 };
 
 export const downloadUsenetFileRoute: RequestHandler = async (req, res) => {

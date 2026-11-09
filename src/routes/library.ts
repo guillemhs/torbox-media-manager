@@ -107,7 +107,9 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
     return res.status(200).json({ detail: result.detail, usenet: result.data });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    const errDetail = error instanceof Error && 'responseBody' in error ? String((error as any).responseBody) : '';
+    const errDetail = error instanceof Error && (error as any).responseBody
+      ? JSON.stringify((error as any).responseBody).slice(0, 1000)
+      : '';
     console.log('[USENET-PIPELINE] TorBox Web Download failed', {
       source, id, name, url: downloadUrl,
       error: errMsg,
@@ -115,7 +117,7 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
       timestamp: new Date().toISOString(),
     });
     if (service && token) {
-      try { await service.markFailed(token, errMsg); } catch { /* ignore */ }
+      try { await service.markFailed(token, errMsg + (errDetail ? ' | ' + errDetail : '')); } catch { /* ignore */ }
     }
     return sendError(res, error);
   } finally {

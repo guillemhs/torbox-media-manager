@@ -212,6 +212,12 @@ export async function addUsenetNzb(
       headers: Object.fromEntries(response.headers.entries()),
       body: typeof body === 'string' ? body.slice(0, 1000) : JSON.stringify(body).slice(0, 1000),
     });
+    console.log('[TORBOX-CLIENT] Full error details', {
+      status: response.status,
+      detail: typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail) : null,
+      error: typeof body === 'object' && body !== null && 'error' in body ? String(body.error) : null,
+      success: typeof body === 'object' && body !== null ? (body as any).success : null,
+    });
     throw new TorboxApiError(response.status, detail, body);
   }
   if (!body || typeof body !== 'object' || !('success' in body)) throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);

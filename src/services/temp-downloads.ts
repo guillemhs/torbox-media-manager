@@ -142,7 +142,7 @@ export class TempDownloadService {
        WHERE token = ?`,
       [error, token],
     );
-    log('Marked temp download as failed', { token, error });
+    log('Marked temp download as failed', { token, error: typeof error === 'object' ? JSON.stringify(error).slice(0, 1000) : error });
   }
 
   /** Delete the local file and mark the record as cleaned up. */

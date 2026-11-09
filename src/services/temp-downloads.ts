@@ -231,7 +231,8 @@ export class TempDownloadService {
 
 /** Build a configured TempDownloadService from environment variables. */
 export function buildTempDownloadService(): TempDownloadService {
-  const baseUrl = process.env.APP_BASE_URL?.trim() || 'https://tmm.tatsukai.com';
+  // Dedicated open DNS for temp download links (TorBox cloud must reach this without SSO)
+  const baseUrl = process.env.TEMP_DOWNLOAD_BASE_URL?.trim() || process.env.APP_BASE_URL?.trim() || 'https://tmm.tatsukai.com';
   return new TempDownloadService({
     baseUrl,
     downloadDir: process.env.TEMP_DOWNLOAD_DIR?.trim() || undefined,

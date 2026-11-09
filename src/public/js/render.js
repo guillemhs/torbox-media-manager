@@ -53,24 +53,24 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   }
 
   let html = `<span class="tb-pagination-info">Page <strong>${currentPage}</strong> of ${totalPages} (${totalItems} results)</span> `;
-  html += `<button class="btn btn-outline-light tb-pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="1" aria-label="First page">First</button> `;
-  html += `<button class="btn btn-outline-light tb-pagination-btn${currentPage === 1 ? ' disabled' : ''}" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
+  html += `<button class="btn btn-outline-light btn-sm" data-page="1" aria-label="First page">First</button> `;
+  html += `<button class="btn btn-outline-light btn-sm" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
 
   for (const page of pages) {
     if (page === '...') {
-      html += '<span class="tb-pagination-ellipsis">…</span> ';
+      html += '<span class="pagination-ellipsis">…</span> ';
     } else {
-      html += `<button class="btn btn-outline-light tb-pagination-btn${page === currentPage ? ' active' : ''}" data-page="${page}">${page}</button> `;
+      html += `<button class="btn btn-outline-light btn-sm" data-page="${page}" aria-label="Page ${page}">${page}</button> `;
     }
   }
 
-  html += `<button class="btn btn-outline-light tb-pagination-btn${currentPage === totalPages ? ' disabled' : ''}" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
-  html += `<button class="btn btn-outline-light tb-pagination-btn" data-page="${totalPages}" aria-label="Last page">Last</button>`;
+  html += `<button class="btn btn-outline-light btn-sm" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
+  html += `<button class="btn btn-outline-light btn-sm" data-page="${totalPages}" aria-label="Last page">Last</button>`;
 
   return html;
 }
 
-// ── Media card (search results) - full width row, no image holder ──
+// ── Media card (search results) ──
 export function renderSearchItem(item, idx) {
   const source = item._source || item.source || 'Unknown';
   const isTorrent = item._source === 'torrents';
@@ -88,8 +88,8 @@ export function renderSearchItem(item, idx) {
   const rating = item.averageRating || item.rating || '';
   const genres = item.genres || item.genre || '';
   const size = item.size ? fmtBytes(item.size) : '';
-  const seeders = item.seeders !== null && item.seeders !== undefined ? `${Number(item.seeders).toLocaleString()}` : '';
-  const leechers = item.leechers !== null && item.leechers !== undefined ? `${Number(item.leechers).toLocaleString()}` : '';
+  const seeders = item.seeders !== null && item.seeders !== undefined ? Number(item.seeders).toLocaleString() : '';
+  const leechers = item.leechers !== null && item.leechers !== undefined ? Number(item.leechers).toLocaleString() : '';
   const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
 
   const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`
@@ -143,7 +143,7 @@ export function renderSearchItem(item, idx) {
       <div class="tb-card-meta-row">
         ${metaParts.length ? `<span class="tb-card-meta">${esc(metaParts.join(' · '))}</span>` : ''}
       </div>
-      ${isMusic && item.cover ? `<div class="tb-card-cover"><img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.onerror=null;this.closest('.tb-card-cover').innerHTML='<div class=\\"no-cover\" style=\\"aspect-ratio:1/1;background:#334155;display:flex;align-items:center;justify-content:center;color:#94a3b8;\"><i class=\\"fas fa-music\"></i></div>'"></div>` : ''}
+      ${isMusic && item.cover ? `<div class="tb-card-cover"><img src="${esc(item.cover)}" alt="${esc(title)} cover" loading="lazy" onerror="this.onerror=null;this.closest('.tb-card-cover').innerHTML='<div class=\"no-cover\" style=\"aspect-ratio:1/1;background:#334155;display:flex;align-items:center;justify-content:center;color:#94a3b8;\"><i class=\"fas fa-music\"></i></div>'"></div>` : ''}
       ${actionButtons ? `<div class="tb-card-actions">${actionButtons}</div>` : ''}
     </article>
   `;
@@ -167,67 +167,46 @@ export function renderTitleDetail(title) {
   const artworkSource = title.artwork?.source || '';
 
   return `
-    <section class="tb-detail-hero">
-      <div class="row g-4">
-        <div class="col-12 col-md-4 tb-detail-poster ${kind}">
-          ${artworkUrl
-            ? `<img src="${esc(artworkUrl)}" alt="${esc(title.primaryTitle || title.name || '')} poster" loading="lazy">`
-            : `<div class="tb-card-cover no-cover" style="aspect-ratio: 2 / 3;"><i class="fas fa-image"></i></div>`
-          }
-          ${artworkSource ? `<div class="tb-source-badge imdb">${esc(artworkSource)}</div>` : ''}
-        </div>
-        <div class="col-12 col-md-8 tb-detail-info">
-          <h1>${esc(title.primaryTitle || title.name || 'Unknown Title')}</h1>
-          <div class="tb-detail-meta">
-            <span>${esc(kind === 'series' ? 'TV Series' : 'Movie')}</span>
-            ${title.startYear ? `<span>· ${esc(title.startYear)}</span>` : ''}
-            ${title.runtimeMinutes ? `<span>· ${esc(title.runtimeMinutes)} min</span>` : ''}
-            ${title.averageRating ? `<span>· ⭐ ${esc(title.averageRating)}</span>` : ''}
-          </div>
-          <div class="tb-detail-tags">
-            <span class="tb-detail-tag">${esc(kind === 'series' ? 'TV Series' : 'Movie')}</span>
-            ${title.genres ? `<span class="tb-detail-tag">${esc(title.genres)}</span>` : ''}
-          </div>
-          ${title.overview ? `<p class="tb-detail-overview">${esc(title.overview)}</p>` : ''}
-          <div class="tb-detail-actions">
-            <a class="btn btn-tb-primary" href="https://www.youtube.com/results?search_query=${esc(title.primaryTitle || title.name || '')}+trailer" target="_blank" rel="noopener"><i class="fas fa-play me-2"></i>Watch Trailer</a>
-            <a class="btn btn-tb-secondary" href="https://www.imdb.com/title/${encodeURIComponent(title.imdbId || '')}/" target="_blank" rel="noopener"><i class="fas fa-info-circle me-2"></i>Details</a>
-          </div>
+    <section class="title-detail">
+      <div class="title-detail-header">
+        <h1>${esc(title.primaryTitle || title.name || 'Unknown Title')}</h1>
+        <div class="title-meta">
+          ${esc(kind === 'series' ? 'TV Series' : 'Movie')}
+          ${title.startYear ? `· ${esc(title.startYear)}` : ''}
+          ${title.runtimeMinutes ? `· ${esc(title.runtimeMinutes)} min` : ''}
+          ${title.averageRating ? `· ⭐ ${esc(title.averageRating)}` : ''}
         </div>
       </div>
-    </section>
 
-    ${title.seasonCount && kind === 'series'
-      ? `
-      <section class="tb-accordion">
-        <div class="accordion" id="title-accordion">
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="heading-seasons">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-seasons" aria-expanded="true" aria-controls="collapse-seasons">
-                Seasons (${title.seasonCount})
-              </button>
-            </h2>
-            <div id="collapse-seasons" class="accordion-collapse collapse show" data-bs-parent="#title-accordion">
-              <div class="accordion-body">
-                <p class="text-muted">Season details and episodes will appear here.</p>
-              </div>
-            </div>
-          </div>
+      <div class="detail-content">
+        <div class="detail-poster">
+          ${artworkUrl ? `<img src="${esc(artworkUrl)}" alt="${esc(title.primaryTitle || title.name || '')} poster" loading="lazy">` : '<div class="no-poster">No Poster Available</div>'}
+          ${artworkSource ? `<div class="artwork-source">${esc(artworkSource)}</div>` : ''}
         </div>
-      </section>
-      `
-      : ''
-    }
-  `;
+
+        <div class="detail-info">
+          <h2>Details</h2>
+          ${title.overview ? `<p>${esc(title.overview)}</p>` : ''}
+          ${title.releaseDate ? `<p><strong>Release Date:</strong> ${esc(title.releaseDate)}</p>` : ''}
+          ${title.seasonCount ? `<p><strong>Seasons:</strong> ${esc(title.seasonCount)}</p>` : ''}
+          ${title.showStatus ? `<p><strong>Status:</strong> ${esc(title.showStatus)}</p>` : ''}
+          ${title.genres ? `<p><strong>Genres:</strong> ${esc(title.genres)}</p>` : ''}
+        </div>
+      </div>
+    </div>
+  </section>`;
 }
 
 export function renderTitleNotFound() {
   return `
-    <section class="tb-detail-hero text-center py-5">
-      <h1>Title Not Found</h1>
-      <p class="text-muted">The requested title could not be found.</p>
-    </section>
-  `;
+    <article class="title-detail">
+      <div class="title-detail-header">
+        <h1>Title Not Found</h1>
+      </div>
+      <div class="detail-content">
+        <p>The requested title could not be found.</p>
+      </div>
+    </article>`;
 }
 
 // ── Music detail page ──
@@ -236,30 +215,29 @@ export function renderMusicDetail(release) {
   const source = release._source || 'MusicBrainz';
 
   return `
-    <section class="tb-detail-hero">
-      <div class="row g-4">
-        <div class="col-12 col-md-4 tb-detail-poster music">
-          ${cover
-            ? `<img src="${esc(cover)}" alt="${esc(release.title || '')} cover" loading="lazy">`
-            : `<div class="tb-card-cover no-cover" style="aspect-ratio: 1 / 1;"><i class="fas fa-music"></i></div>`
-          }
-          <div class="tb-source-badge musicbrainz">${esc(source)}</div>
+    <section class="music-detail">
+      <div class="music-detail-header">
+        <h1>${esc(release.title || 'Unknown Release')}</h1>
+        <div class="music-meta">
+          ${esc(release.type || 'Release')}
+          ${release.artist ? `· ${esc(release.artist)}` : ''}
+          ${release.date ? `· ${esc(release.date)}` : ''}
         </div>
-        <div class="col-12 col-md-8 tb-detail-info">
-          <h1>${esc(release.title || 'Unknown Release')}</h1>
-          <div class="tb-detail-meta">
-            <span>${esc(release.type || 'Release')}</span>
-            ${release.artist ? `<span>· ${esc(release.artist)}</span>` : ''}
-            ${release.date ? `<span>· ${esc(release.date)}</span>` : ''}
-          </div>
-          <div class="tb-detail-tags">
-            <span class="tb-detail-tag">${esc(release.type || 'Release')}</span>
-            <span class="tb-detail-tag">MusicBrainz</span>
-          </div>
-          <div class="tb-detail-actions">
-            <a class="btn btn-tb-primary" href="https://musicbrainz.org/release-group/${encodeURIComponent(release.id || '')}" target="_blank" rel="noopener"><i class="fas fa-play me-2"></i>Play Preview</a>
-            <a class="btn btn-tb-secondary" href="https://musicbrainz.org/release-group/${encodeURIComponent(release.id || '')}" target="_blank" rel="noopener"><i class="fas fa-info-circle me-2"></i>View on MusicBrainz</a>
-          </div>
+        <div class="music-source">${esc(source)}</div>
+      </div>
+
+      <div class="detail-content">
+        <div class="music-poster">
+          ${cover ? `<img src="${esc(cover)}" alt="${esc(release.title || '')} cover" loading="lazy">` : '<div class="no-poster">No Cover Available</div>'}
+        </div>
+
+        <div class="music-info">
+          <h2>Details</h2>
+          <p><strong>Title:</strong> ${esc(release.title || 'Unknown')}</p>
+          ${release.artist ? `<p><strong>Artist:</strong> ${esc(release.artist)}</p>` : ''}
+          ${release.date ? `<p><strong>Release Date:</strong> ${esc(release.date)}</p>` : ''}
+          ${release.type ? `<p><strong>Type:</strong> ${esc(release.type)}</p>` : ''}
+          ${release.id ? `<p><strong>MusicBrainz ID:</strong> ${esc(release.id)}</p>` : ''}
         </div>
       </div>
     </section>
@@ -268,11 +246,14 @@ export function renderMusicDetail(release) {
 
 export function renderMusicNotFound() {
   return `
-    <section class="tb-detail-hero text-center py-5">
-      <h1>Release Not Found</h1>
-      <p class="text-muted">The requested music release could not be found.</p>
-    </section>
-  `;
+    <article class="music-detail">
+      <div class="music-detail-header">
+        <h1>Release Not Found</h1>
+      </div>
+      <div class="detail-content">
+        <p>The requested music release could not be found.</p>
+      </div>
+    </article>`;
 }
 
 // ── Library list rendering ──
@@ -297,14 +278,12 @@ export function renderTorboxLibrary(items) {
   else filtered.sort((a, b) => (b.id || 0) - (a.id || 0));
 
   return filtered.map((item) => `
-    <div class="tb-list-item">
-      <div class="tb-list-info">
-        <div class="tb-list-title" title="${esc(item.name || item.title || item.original_name || 'Unknown')}">${esc(item.name || item.title || item.original_name || 'Unknown')}</div>
-        <p class="tb-list-meta">${esc(item.extension || item.file_extension || '')} · ${fmtBytes(item.bytes || item.size || 0)}</p>
+    <div class="library-item">
+      <div class="library-item-main">
+        <div class="library-item-title" title="${esc(item.name || item.title || item.original_name || 'Unknown')}">${esc(item.name || item.title || item.original_name || 'Unknown')}</div>
+        <div class="library-item-meta">${esc(item.extension || item.file_extension || '')} · ${fmtBytes(item.bytes || item.size || 0)}</div>
       </div>
-      <div class="tb-list-actions">
-        <span class="badge bg-secondary">${esc(item.download_state || item.status || 'unknown')}</span>
-      </div>
+      <div class="library-state">${esc(item.download_state || item.status || 'unknown')}</div>
     </div>
   `).join('');
 }
@@ -318,17 +297,16 @@ export function scheduleCards(episodes) {
     const number = Number(ep.number);
     const code = season && number ? `S${String(season).padStart(2, '0')}E${String(number).padStart(2, '0')}` : '';
     return `
-      <article class="tb-card">
-        <div class="tb-card-header">
-          <h3 class="tb-card-title">${esc(ep.name || 'Untitled')}</h3>
-          <span class="tb-source-badge imdb">${esc(show.name || '')}</span>
+      <article class="episode-card">
+        ${image ? `<img src="${esc(image)}" alt="${esc(show.name || '')} ${code}" />` : ''}
+        <div class="episode-copy">
+          <div class="episode-name">${esc(ep.name || 'Untitled')}</div>
+          <div class="episode-time">${esc(ep.airtime || '')}</div>
+          <div class="episode-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</div>
+          <div class="episode-summary">${esc(ep.summary || '').replace(/<[^>]*>/g, ' ')}</div>
         </div>
-        <div class="tb-card-meta-row">
-          <span class="tb-card-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</span>
-        </div>
-        ${ep.summary ? `<div class="tb-card-summary">${esc(ep.summary).replace(/<[^>]*>/g, ' ')}</div>` : ''}
-      </article>
-    `;
+      </div>
+    </article>`;
   }).join('');
 }
 

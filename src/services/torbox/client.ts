@@ -206,6 +206,12 @@ export async function addUsenetNzb(
       : typeof body === 'object' && body !== null && 'error' in body ? String(body.error)
       : typeof body === 'string' && body.trim() ? `TorBox returned HTTP ${response.status}: ${body.trim().slice(0, 500)}`
       : `TorBox returned HTTP ${response.status}`;
+    console.log('[TORBOX-CLIENT] Web download error response', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      body: typeof body === 'string' ? body.slice(0, 1000) : JSON.stringify(body).slice(0, 1000),
+    });
     throw new TorboxApiError(response.status, detail, body);
   }
   if (!body || typeof body !== 'object' || !('success' in body)) throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);

@@ -71,6 +71,7 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
   let tempPath: string | undefined;
   let service: import('../services/temp-downloads').TempDownloadService | undefined;
   let token: string | undefined;
+  let downloadUrl: string | undefined;
   try {
     // Fetch the NZB from the indexer
     const nzb = await fetchUsenetNzb(source, id);
@@ -83,17 +84,18 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
 
     console.log('[USENET-PIPELINE] Registering temp download URL for NZB', { source, id, name, tempPath, timestamp: new Date().toISOString() });
     service = getTempDownloadService();
-    const { token: regToken, url } = await service.register({
+    const { token: regToken, url: regUrl } = await service.register({
       filePath: tempPath,
       fileName: `${name || 'usenet-download'}.nzb`,
       ttlMs: 30 * 60 * 1000,
     });
     token = regToken;
+    downloadUrl = regUrl;
 
-    console.log('[USENET-PIPELINE] Temp download URL registered', { source, id, name, url, token, timestamp: new Date().toISOString() });
+    console.log('[USENET-PIPELINE] Temp download URL registered', { source, id, name, url: downloadUrl, token, timestamp: new Date().toISOString() });
 
-    console.log('[USENET-PIPELINE] Triggering TorBox Web Download', { source, id, name, url, timestamp: new Date().toISOString() });
-    const result = await createWebDownload(url, {
+    console.log('[USENET-PIPELINE] Triggering TorBox Web Download', { source, id, name, url: downloadUrl, timestamp: new Date().toISOString() });
+    const result = await createWebDownload(downloadUrl!, {
       name: `${name || 'usenet-download'}.nzb`,
     });
 
@@ -104,8 +106,16 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({ detail: result.detail, usenet: result.data });
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errDetail = error instanceof Error && 'responseBody' in error ? String((error as any).responseBody) : '';
+    console.log('[USENET-PIPELINE] TorBox Web Download failed', {
+      source, id, name, url: downloadUrl,
+      error: errMsg,
+      detail: errDetail,
+      timestamp: new Date().toISOString(),
+    });
     if (service && token) {
-      try { await service.markFailed(token, error instanceof Error ? error.message : String(error)); } catch { /* ignore */ }
+      try { await service.markFailed(token, errMsg); } catch { /* ignore */ }
     }
     return sendError(res, error);
   } finally {

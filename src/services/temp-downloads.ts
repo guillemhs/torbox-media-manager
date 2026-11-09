@@ -53,7 +53,7 @@ export class TempDownloadService {
     defaultTtlMs?: number;
   }) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
-    this.downloadDir = options.downloadDir || path.resolve(process.env.HOST_MEDIA_PATH || './media', '.usenet-tmp');
+    this.downloadDir = options.downloadDir || process.env.TEMP_DOWNLOAD_DIR || '/tmp/torbox-usenet-tmp';
     this.defaultTtlMs = options.defaultTtlMs ?? 30 * 60 * 1000; // 30 minutes
 
     fs.mkdirSync(this.downloadDir, { recursive: true });

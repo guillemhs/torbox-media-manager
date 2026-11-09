@@ -61,7 +61,7 @@ export class UsenetPipeline {
   constructor(config: PipelineConfig) {
     this.nzbgeek = buildNzbgeekClient();
     this.tempDownloads = buildTempDownloadService();
-    const resolvedDownloadDir = config.downloadDir || path.resolve(process.env.HOST_MEDIA_PATH || './media', '.usenet-tmp');
+    const resolvedDownloadDir = config.downloadDir || process.env.USENET_DOWNLOAD_DIR || '/tmp/torbox-usenet-tmp';
     this.config = {
       ...config,
       downloadDir: resolvedDownloadDir,

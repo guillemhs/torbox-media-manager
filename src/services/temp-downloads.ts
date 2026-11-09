@@ -106,6 +106,7 @@ export class TempDownloadService {
     );
 
     const url = `${this.baseUrl}/api/temp-downloads/${token}`;
+    console.log('[TEMP-DOWNLOADS] Token registered', { token, fileName: options.fileName, fileSize: stat.size, url, expiresAt: expiresAt.toISOString(), timestamp: new Date().toISOString() });
     log('Registered temp download', { token, fileName: options.fileName, fileSize: stat.size, url, expiresAt: expiresAt.toISOString() });
 
     return { token, url, record };
@@ -129,6 +130,7 @@ export class TempDownloadService {
        WHERE token = ?`,
       [nowIso(), torboxWebdlId ?? null, torboxResponse ?? null, token],
     );
+    console.log('[TEMP-DOWNLOADS] Download marked complete', { token, torboxWebdlId, timestamp: new Date().toISOString() });
     log('Marked temp download as downloaded', { token, torboxWebdlId });
   }
 
@@ -152,7 +154,8 @@ export class TempDownloadService {
     if (record.file_path && fs.existsSync(record.file_path)) {
       try {
         fs.unlinkSync(record.file_path);
-        log('Deleted local temp file', { token, filePath: record.file_path });
+        console.log('[TEMP-DOWNLOADS] Local file deleted', { token, filePath: record.file_path, timestamp: new Date().toISOString() });
+    log('Deleted local temp file', { token, filePath: record.file_path });
       } catch (error) {
         log('Failed to delete local temp file', { token, filePath: record.file_path, error: error instanceof Error ? error.message : String(error) });
       }

@@ -69,9 +69,11 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
     tempPath = path.join(tmpDir, `${name || 'usenet-download'}.nzb`);
     fs.writeFileSync(tempPath, nzb);
 
+    console.log('[USENET-PIPELINE] Uploading NZB to TorBox via direct file upload', { source, id, name, tempPath, timestamp: new Date().toISOString() });
     // Upload the NZB file directly to TorBox via file POST (not server-side usenet download)
     const result = await uploadFileToTorbox(tempPath, { name });
 
+    console.log('[USENET-PIPELINE] TorBox upload confirmed', { source, id, name, result, timestamp: new Date().toISOString() });
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({ detail: result.detail, usenet: result.data });
   } catch (error) {

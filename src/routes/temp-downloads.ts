@@ -41,6 +41,7 @@ export const tempDownloadRoute: RequestHandler = async (req, res) => {
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Download-Token', token);
 
+    console.log('[TEMP-DOWNLOADS] Serving file via token', { token, fileName, fileSize: stat.size, timestamp: new Date().toISOString() });
     // Stream the file
     const stream = fs.createReadStream(filePath);
     stream.on('error', (error) => {

@@ -116,7 +116,9 @@ export class UsenetPipeline {
   /** Step 1: Search NZBGeek for candidates. */
   async searchNzbgeek(query: string, options: { category?: string; limit?: number; offset?: number } = {}): Promise<{ results: NzbgeekResult[]; total: number }> {
     log('Searching NZBGeek', { query, options });
+    console.log('[USENET-PIPELINE] NZBGeek search started', { query, options, timestamp: new Date().toISOString() });
     const results = await this.nzbgeek.search(query, options);
+    console.log('[USENET-PIPELINE] NZBGeek search completed', { query, resultsCount: results.results.length, total: results.total, timestamp: new Date().toISOString() });
     return { results: results.results, total: results.total };
   }
 
@@ -276,6 +278,7 @@ export class UsenetPipeline {
       });
 
       this.addLog(jobId, 'Local temp download registered', { token, url, fileName });
+      console.log('[USENET-PIPELINE] Local download URL exposed', { jobId, token, url, fileName, timestamp: new Date().toISOString() });
       return { token, url };
     } catch (error) {
       this.addLog(jobId, 'Failed to register local temp download', { error: error instanceof Error ? error.message : String(error) });
@@ -297,6 +300,7 @@ export class UsenetPipeline {
       });
 
       this.addLog(jobId, 'TorBox Web Download confirmed', { result });
+      console.log('[USENET-PIPELINE] TorBox Web Download confirmed', { jobId, result, timestamp: new Date().toISOString() });
       this.updateJob(jobId, {
         status: 'cleaning-up',
         torboxResult: result.data,
@@ -351,6 +355,7 @@ export class UsenetPipeline {
     });
 
     this.addLog(jobId, `Cleanup complete: ${deleted} deleted, ${errors} errors`, { status: job.status });
+    console.log('[USENET-PIPELINE] Job cleanup complete', { jobId, deleted, errors, status: job.status, timestamp: new Date().toISOString() });
   }
 
   /** Run the complete pipeline: search → download NZB → assemble → upload → cleanup. */
@@ -368,6 +373,7 @@ export class UsenetPipeline {
     try {
       this.updateJob(jobId, { status: 'searching' });
       this.addLog(jobId, 'Pipeline started', { query });
+      console.log('[USENET-PIPELINE] Job started', { jobId, query, timestamp: new Date().toISOString() });
 
       let nzbId = options.nzbId;
       let nzbName = '';

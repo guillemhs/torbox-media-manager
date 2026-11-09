@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
-import { addTorrentToTorbox, checkCachedTorrent, createWebDownload, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError } from '../services/torbox/client';
+import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, createWebDownload, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError } from '../services/torbox/client';
 import { buildTempDownloadService } from '../services/temp-downloads';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
@@ -69,40 +69,21 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
   const os = await import('node:os');
   const path = await import('node:path');
   let tempPath: string | undefined;
-  let service: import('../services/temp-downloads').TempDownloadService | undefined;
-  let token: string | undefined;
-  let downloadUrl: string | undefined;
   try {
     // Fetch the NZB from the indexer
     const nzb = await fetchUsenetNzb(source, id);
 
-    // Save NZB to a temp file so we can upload it as a regular file POST.
-    // This bypasses TorBox's blocked createusenetdownload endpoint.
+    // Save NZB to a temp file
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'torbox-usenet-'));
     tempPath = path.join(tmpDir, `${name || 'usenet-download'}.nzb`);
     fs.writeFileSync(tempPath, nzb);
 
-    console.log('[USENET-PIPELINE] Registering temp download URL for NZB', { source, id, name, tempPath, timestamp: new Date().toISOString() });
-    service = getTempDownloadService();
-    const { token: regToken, url: regUrl } = await service.register({
-      filePath: tempPath,
-      fileName: `${name || 'usenet-download'}.nzb`,
-      ttlMs: 30 * 60 * 1000,
-    });
-    token = regToken;
-    downloadUrl = regUrl;
+    console.log('[USENET-PIPELINE] Uploading NZB to TorBox via createusenetdownload', { source, id, name, tempPath, timestamp: new Date().toISOString() });
 
-    console.log('[USENET-PIPELINE] Temp download URL registered', { source, id, name, url: downloadUrl, token, timestamp: new Date().toISOString() });
+    // Upload the NZB file directly to TorBox via createusenetdownload endpoint
+    const result = await addUsenetNzb(nzb, { name, addOnlyIfCached: req.body?.addOnlyIfCached === true });
 
-    console.log('[USENET-PIPELINE] Triggering TorBox Web Download', { source, id, name, url: downloadUrl, timestamp: new Date().toISOString() });
-    const result = await createWebDownload(downloadUrl!, {
-      name: `${name || 'usenet-download'}.nzb`,
-    });
-
-    // Mark the temp download as downloaded (TorBox has pulled it)
-    await service.markDownloaded(token);
-
-    console.log('[USENET-PIPELINE] TorBox Web Download confirmed', { source, id, name, result, timestamp: new Date().toISOString() });
+    console.log('[USENET-PIPELINE] TorBox createusenetdownload confirmed', { source, id, name, result, timestamp: new Date().toISOString() });
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({ detail: result.detail, usenet: result.data });
   } catch (error) {
@@ -110,24 +91,15 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
     const errDetail = error instanceof Error && (error as any).responseBody
       ? JSON.stringify((error as any).responseBody).slice(0, 1000)
       : '';
-    console.log('[USENET-PIPELINE] TorBox Web Download failed', {
-      source, id, name, url: downloadUrl,
-      error: errMsg,
-      detail: errDetail,
-      timestamp: new Date().toISOString(),
+    console.log('[USENET-PIPELINE] TorBox createusenetdownload failed', {
+      source, id, name, error: errMsg, detail: errDetail, timestamp: new Date().toISOString(),
     });
-    if (service && token) {
-      try { await service.markFailed(token, errMsg + (errDetail ? ' | ' + errDetail : '')); } catch { /* ignore */ }
-    }
     return sendError(res, error);
   } finally {
-    // Mandatory cleanup: remove the temp NZB file after upload
+    // Mandatory cleanup: remove the temp NZB file after upload attempt
     if (tempPath) {
       try { fs.unlinkSync(tempPath); } catch { /* ignore */ }
       try { fs.rmdirSync(path.dirname(tempPath)); } catch { /* ignore */ }
-    }
-    if (service && token) {
-      try { await service.cleanup(token); } catch { /* ignore */ }
     }
   }
 };

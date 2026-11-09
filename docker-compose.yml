@@ -19,6 +19,20 @@ services:
       TORZNAB_URL: ${TORZNAB_URL:-http://prowlarr:9696/1/api}
       TORZNAB_API_KEY: ${TORZNAB_API_KEY:-}
       TORZNAB_MUSIC_CATEGORY: ${TORZNAB_MUSIC_CATEGORY:-3000}
+      # NZBGeek Newznab API (USENET search)
+      NZBGEEK_API_HOST: ${NZBGEEK_API_HOST:-https://api.nzbgeek.info/}
+      NZBGEEK_API_KEY: ${NZBGEEK_API_KEY:-}
+      NZBGEEK_WHITELIST_IP: ${NZBGEEK_WHITELIST_IP:-}
+      NZBGEEK_REQUEST_TIMEOUT_MS: ${NZBGEEK_REQUEST_TIMEOUT_MS:-30000}
+      NZBGEEK_MAX_RETRIES: ${NZBGEEK_MAX_RETRIES:-3}
+      # NNTP server for local Usenet assembly
+      NNTP_HOST: ${NNTP_HOST:-}
+      NNTP_PORT: ${NNTP_PORT:-119}
+      NNTP_SECURE: ${NNTP_SECURE:-false}
+      NNTP_USERNAME: ${NNTP_USERNAME:-}
+      NNTP_PASSWORD: ${NNTP_PASSWORD:-}
+      USENET_DOWNLOAD_DIR: ${USENET_DOWNLOAD_DIR:-}
+      USENET_MAX_SEGMENT_RETRIES: ${USENET_MAX_SEGMENT_RETRIES:-3}
     depends_on:
       db:
         condition: service_healthy

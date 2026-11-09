@@ -297,7 +297,7 @@ export async function createWebDownload(
   const token = requireApiKey(apiKey);
 
   const form = new FormData();
-  form.set('url', url);
+  form.set('link', url);
   if (options.name?.trim()) form.set('name', options.name.trim().slice(0, 200));
   if (options.saveAs?.trim()) form.set('save_as', options.saveAs.trim().slice(0, 200));
 

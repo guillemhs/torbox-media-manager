@@ -58,16 +58,28 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
   const title = (scalar(req.query.title)?.trim() || storedTitle?.primaryTitle || '').slice(0, 180);
   if (!title) return res.status(404).json({ error: 'A title is required for indexer search.' });
   const page = pagination(req.query as Record<string, unknown>);
+  const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
+  const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
   try {
     const season = Number(seasonValue);
     const torznabQuery = kind === 'series' ? `${title} S${String(season).padStart(2, '0')}` : title;
-    const searches = await Promise.allSettled([
-      searchTorrentCandidates(imdbId, kind, season, page.limit, page.offset),
-      searchIndexerTorrents(torznabQuery, kind === 'series' ? 'tvsearch' : 'movie', [kind === 'series' ? '5000' : '2000'], page.limit, page.offset),
-    ]);
-    const providerNames = ['Torrentio', 'Prowlarr'];
-    const successful: TorrentCandidate[] = searches.flatMap((result) => result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []);
-    const errors = searches.flatMap((result, index) => result.status === 'rejected' ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`] : []);
+    const searches: Promise<unknown>[] = [];
+    const providerNames: string[] = [];
+
+    if (indexers.includes('torrentio')) {
+      searches.push(searchTorrentCandidates(imdbId, kind, season, page.limit, page.offset));
+      providerNames.push('Torrentio');
+    }
+
+    if (indexers.includes('prowlarr')) {
+      searches.push(searchIndexerTorrents(torznabQuery, kind === 'series' ? 'tvsearch' : 'movie', [kind === 'series' ? '5000' : '2000'], page.limit, page.offset));
+      providerNames.push('Prowlarr');
+
+    }
+    const settled = await Promise.allSettled(searches);
+
+    const successful: TorrentCandidate[] = settled.flatMap((result) => result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []);
+    const errors = settled.flatMap((result, index) => result.status === 'rejected' ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`] : []);
     if (!successful.length && errors.length === searches.length) throw new Error(errors.join(' · '));
     const unique = new Map<string, typeof successful[number]>();
     for (const candidate of successful) {
@@ -81,8 +93,9 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
       } : candidate);
     }
     const candidates = [...unique.values()].slice(0, 80);
+    const source = indexers.join(' + ') || 'Torrentio + Prowlarr';
     res.setHeader('Cache-Control', 'private, no-store');
-    return res.json({ candidates, total: candidates.length, source: 'Torrentio + Prowlarr', warnings: errors });
+    return res.json({ candidates, total: candidates.length, source, warnings: errors });
   } catch (error) {
     return res.status(502).json({ error: error instanceof Error ? error.message : 'Torrent search failed.' });
   }

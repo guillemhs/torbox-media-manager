@@ -16,6 +16,11 @@ export function getSelectedIndexers(prefix = '') {
   return indexers;
 }
 
+// ── Get master indexers checkbox state ──
+export function getIndexersMaster(prefix = '') {
+  return $(`#${prefix}indexers`)?.checked || false;
+}
+
 // ── Get usenet source ──
 export function getUsenetSource(prefix = '') {
   return $(`#${prefix}usenet-source`)?.value || 'all';

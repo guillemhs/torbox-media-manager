@@ -54,19 +54,19 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
   }
 
   let html = `<span class="tb-pagination-info">Page <strong>${currentPage}</strong> of ${totalPages} (${totalItems} results)</span> `;
-  html += `<button class="btn btn-outline-light btn-sm" data-page="1" aria-label="First page">First</button> `;
-  html += `<button class="btn btn-outline-light btn-sm" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
+  html += `<button class="btn btn-outline-light btn-sm tb-pagination-btn" data-page="1" aria-label="First page">First</button> `;
+  html += `<button class="btn btn-outline-light btn-sm tb-pagination-btn" data-page="${currentPage - 1}" aria-label="Previous page">&lsaquo;</button> `;
 
   for (const page of pages) {
     if (page === '...') {
       html += '<span class="pagination-ellipsis">…</span> ';
     } else {
-      html += `<button class="btn btn-outline-light btn-sm" data-page="${page}" aria-label="Page ${page}">${page}</button> `;
+      html += `<button class="btn btn-outline-light btn-sm tb-pagination-btn" data-page="${page}" aria-label="Page ${page}">${page}</button> `;
     }
   }
 
-  html += `<button class="btn btn-outline-light btn-sm" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
-  html += `<button class="btn btn-outline-light btn-sm" data-page="${totalPages}" aria-label="Last page">Last</button>`;
+  html += `<button class="btn btn-outline-light btn-sm tb-pagination-btn" data-page="${currentPage + 1}" aria-label="Next page">&rsaquo;</button> `;
+  html += `<button class="btn btn-outline-light btn-sm tb-pagination-btn" data-page="${totalPages}" aria-label="Last page">Last</button>`;
 
   return html;
 }

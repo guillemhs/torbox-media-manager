@@ -63,7 +63,7 @@ export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 's
   try {
     response = await fetch(`${base}/stream/${kind}/${encodeURIComponent(resourceId)}.json`, {
       headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(15_000)
+      signal: AbortSignal.timeout(30_000)
     });
   } catch (error) {
     throw new Error(error instanceof Error && error.name === 'TimeoutError'
@@ -140,7 +140,7 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   try {
     response = await fetch(url, {
       headers: { 'X-Api-Key': key, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(20_000)
+      signal: AbortSignal.timeout(60_000)
     });
   } catch {
     throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.');

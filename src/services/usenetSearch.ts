@@ -20,7 +20,7 @@ async function searchNzbIndex(query: string, limit = 50, offset = 0): Promise<Us
   url.searchParams.set('q', query);
   url.searchParams.set('max', String(Math.min(100, Math.max(1, limit))));
   url.searchParams.set('complete', '1');
-  const payload = JSON.parse(await readResponse(await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15_000) }))) as {
+  const payload = JSON.parse(await readResponse(await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(30_000) }))) as {
     data?: { content?: Array<Record<string, unknown>> }; error?: boolean; errorMessage?: string;
   };
   if (payload.error) throw new Error(payload.errorMessage || 'NZBIndex search failed');
@@ -37,7 +37,7 @@ async function searchBinsearch(query: string, limit = 50, offset = 0): Promise<U
   const url = new URL('https://www.binsearch.info/');
   url.searchParams.set('q', query);
   url.searchParams.set('max', String(Math.min(200, Math.max(1, limit))));
-  const html = await readResponse(await fetch(url, { headers: { 'User-Agent': 'TorBoxMediaManager/1.0 (+self-hosted media indexer search)', Accept: 'text/html' }, signal: AbortSignal.timeout(15_000) }));
+  const html = await readResponse(await fetch(url, { headers: { 'User-Agent': 'TorBoxMediaManager/1.0 (+self-hosted media indexer search)', Accept: 'text/html' }, signal: AbortSignal.timeout(30_000) }));
   // Binsearch exposes selected article identifiers as checkbox values. Keep parsing
   // deliberately defensive because the public HTML is not a versioned API.
   const candidates: UsenetCandidate[] = [];
@@ -81,7 +81,7 @@ export async function fetchUsenetNzb(source: 'NZBIndex' | 'Binsearch', id: strin
     if (!/^[\w.,%+@=-]{1,500}$/.test(id)) throw new Error('Invalid Binsearch result ID');
     url = new URL(`https://www.binsearch.info/nzb?${id.split('&').map(part => part.includes('=') ? part : `${encodeURIComponent(part)}=on`).join('&')}`);
   }
-  const response = await fetch(url, { headers: { Accept: 'application/x-nzb, application/xml, */*' }, signal: AbortSignal.timeout(20_000) });
+  const response = await fetch(url, { headers: { Accept: 'application/x-nzb, application/xml, */*' }, signal: AbortSignal.timeout(60_000) });
   if (!response.ok) throw new Error(`Indexer NZB download returned HTTP ${response.status}`);
   const bytes = Buffer.from(await response.arrayBuffer());
   const prefix = bytes.toString('utf8', 0, Math.min(bytes.length, 4096)).replace(/^\uFEFF/, '').trimStart();

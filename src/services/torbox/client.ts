@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 export class TorboxApiError extends Error {
   constructor(public status: number, message: string, public responseBody?: unknown) {
     super(message);
@@ -208,5 +211,61 @@ export async function addUsenetNzb(
   if (!body || typeof body !== 'object' || !('success' in body)) throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
   const envelope = body as TorboxEnvelope<Record<string, unknown>>;
   if (!envelope.success) throw new TorboxApiError(502, envelope.detail || envelope.error || 'TorBox rejected the NZB', body);
+  return envelope;
+}
+
+/**
+ * Upload a local file directly to TorBox.
+ *
+ * This is used when TorBox's server-side Usenet download (createusenetdownload)
+ * is not available on the user's plan. The file is assembled locally via NNTP
+ * and then uploaded as a regular file POST.
+ */
+export async function uploadFileToTorbox(
+  filePath: string,
+  options: { name?: string; onProgress?: (loaded: number, total: number) => void } = {},
+  apiKey = process.env.TORBOX_API_KEY
+): Promise<TorboxEnvelope<Record<string, unknown>>> {
+  const token = requireApiKey(apiKey);
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Local file not found: ${filePath}`);
+  }
+
+  const stat = fs.statSync(filePath);
+  const fileName = (options.name || path.basename(filePath)).replace(/[^\w .()-]/g, '_').slice(0, 200) || 'upload';
+
+  const form = new FormData();
+  const fileBuffer = fs.readFileSync(filePath);
+  form.set('file', new Blob([fileBuffer.buffer], { type: 'application/octet-stream' }), fileName);
+  if (options.name?.trim()) form.set('name', options.name.trim().slice(0, 200));
+
+  const uploadEndpoint = process.env.TORBOX_UPLOAD_ENDPOINT?.trim() || 'https://api.torbox.app/v1/api/upload';
+
+  const response = await fetch(uploadEndpoint, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  let body: unknown;
+  const responseText = await response.text();
+  try { body = responseText ? JSON.parse(responseText) as unknown : undefined; } catch { body = responseText; }
+
+  if (!response.ok) {
+    const detail = typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail)
+      : typeof body === 'object' && body !== null && 'error' in body ? String(body.error)
+      : typeof body === 'string' && body.trim() ? `TorBox returned HTTP ${response.status}: ${body.trim().slice(0, 500)}`
+      : `TorBox returned HTTP ${response.status}`;
+    throw new TorboxApiError(response.status, detail, body);
+  }
+
+  if (!body || typeof body !== 'object' || !('success' in body)) {
+    throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
+  }
+
+  const envelope = body as TorboxEnvelope<Record<string, unknown>>;
+  if (!envelope.success) throw new TorboxApiError(502, envelope.detail || envelope.error || 'TorBox rejected the file upload', body);
   return envelope;
 }

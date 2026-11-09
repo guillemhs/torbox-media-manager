@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { NzbgeekClient, NzbgeekResult, buildNzbgeekClient } from './nzbgeek';
 import { NntpClient, NntpArticle } from './nntp-client';
-import { addUsenetNzb, TorboxApiError } from './torbox/client';
+import { uploadFileToTorbox, TorboxApiError } from './torbox/client';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -253,37 +253,27 @@ export class UsenetPipeline {
     }
   }
 
-  /** Step 5: Upload the assembled media file to TorBox. */
+  /** Step 5: Upload the assembled media file directly to TorBox. */
   async uploadToTorbox(jobId: string, localFilePath: string, fileName?: string): Promise<Record<string, unknown>> {
     const job = this.getJob(jobId);
     if (!job) throw new Error(`Job ${jobId} not found`);
 
     this.updateJob(jobId, { status: 'uploading' });
-    this.addLog(jobId, 'Uploading to TorBox', { localFilePath });
+    this.addLog(jobId, 'Uploading assembled file to TorBox', { localFilePath });
 
     if (!fs.existsSync(localFilePath)) {
       throw new Error(`Local file not found: ${localFilePath}`);
     }
 
-    const fileBuffer = fs.readFileSync(localFilePath);
-    const name = fileName || path.basename(localFilePath);
-
     try {
-      // Use addUsenetNzb to upload the NZB to TorBox (TorBox handles Usenet download server-side)
-      // OR upload the assembled media file directly. Since TorBox's API accepts NZB files
-      // via createusenetdownload, we upload the original NZB for TorBox to process.
-      //
-      // For direct media file upload, TorBox's torrent/usenet endpoints accept NZB/magnet.
-      // We upload the NZB file that was assembled from, so TorBox can fetch the content.
-      const selectedNzbId = job.nzbId;
-      if (!selectedNzbId) throw new Error('No NZB ID selected');
-      const nzbBytes = await this.downloadNzb(jobId, selectedNzbId);
-      const result = await addUsenetNzb(nzbBytes, {
-        name: name.replace(/\.[^/.]+$/, '') || 'usenet-download',
-        addOnlyIfCached: false,
+      // Upload the locally assembled media file directly to TorBox.
+      // This bypasses TorBox's server-side Usenet download (createusenetdownload),
+      // which requires a higher-tier plan. The file is uploaded as a regular POST.
+      const result = await uploadFileToTorbox(localFilePath, {
+        name: fileName || path.basename(localFilePath),
       });
 
-      this.addLog(jobId, 'TorBox upload confirmed', { result });
+      this.addLog(jobId, 'TorBox file upload confirmed', { result });
       this.updateJob(jobId, {
         status: 'cleaning-up',
         torboxResult: result.data,
@@ -291,7 +281,7 @@ export class UsenetPipeline {
 
       return result.data ?? {};
     } catch (error) {
-      this.addLog(jobId, 'TorBox upload failed', { error: error instanceof Error ? error.message : String(error) });
+      this.addLog(jobId, 'TorBox file upload failed', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

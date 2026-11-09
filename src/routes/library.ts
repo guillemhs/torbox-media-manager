@@ -37,10 +37,10 @@ export const usenetSearchRoute: RequestHandler = async (req, res) => {
   const query = scalar(req.query.q)?.trim() || '';
   const sourceValue = scalar(req.query.source) || 'all';
   if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Usenet search must be between 2 and 180 characters.' });
-  if (!['all', 'NZBIndex', 'Binsearch'].includes(sourceValue)) return res.status(400).json({ error: 'source must be all, NZBIndex, or Binsearch.' });
+  if (!['all', 'NZBIndex', 'Binsearch', 'NZBGeek'].includes(sourceValue)) return res.status(400).json({ error: 'source must be all, NZBIndex, Binsearch, or NZBGeek.' });
   const page = pagination(req.query as Record<string, unknown>);
   try {
-    const data = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
+    const data = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch' | 'NZBGeek', page.limit, page.offset);
     res.setHeader('Cache-Control', 'private, no-store');
     return res.json(data);
   } catch (error) { return sendError(res, error); }
@@ -54,7 +54,7 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
   const requestedName = scalar(req.body?.name)?.trim() || '';
   const mediaName = /"([^"]+\.(?:mp3|mp4|m4v|mkv|avi|mov|wmv|flac|m4a|ogg|wav|ts|m2ts|webm))"/i.exec(requestedName)?.[1];
   const name = (mediaName || requestedName).replace(/^\[\d+\/\d+\]\s*[-–]?\s*/, '').replace(/\s+yEnc\s+\d+.*$/i, '').trim().slice(0, 200);
-  if ((source !== 'NZBIndex' && source !== 'Binsearch') || !id) return res.status(400).json({ error: 'A valid NZB source and result ID are required.' });
+  if ((source !== 'NZBIndex' && source !== 'Binsearch' && source !== 'NZBGeek') || !id) return res.status(400).json({ error: 'A valid NZB source and result ID are required.' });
   try {
     const nzb = await fetchUsenetNzb(source, id);
     const result = await addUsenetNzb(nzb, { name, addOnlyIfCached: req.body?.addOnlyIfCached === true });

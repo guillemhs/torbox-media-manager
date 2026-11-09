@@ -122,7 +122,17 @@ export async function fetchUsenetNzb(source: 'NZBIndex' | 'Binsearch' | 'NZBGeek
       whitelistIp: process.env.NZBGEEK_WHITELIST_IP?.trim() || undefined,
     });
     client.logWhitelistReference();
-    return client.downloadNzb(id);
+    // NZBGeek IDs may be full URLs (e.g. https://nzbgeek.info/geekseek.php?guid=XXXX)
+    // Extract the guid parameter if present, otherwise use the id as-is.
+    let nzbId = id;
+    try {
+      const url = new URL(id);
+      const guid = url.searchParams.get('guid');
+      if (guid) nzbId = guid;
+    } catch {
+      // Not a URL, use as-is
+    }
+    return client.downloadNzb(nzbId);
   }
 
   let url: URL;

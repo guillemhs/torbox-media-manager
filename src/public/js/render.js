@@ -120,8 +120,8 @@ export function renderSearchItem(item, idx) {
       '<button class="btn btn-tb-primary btn-sm" data-add-torrent="' + encodeURIComponent(item.magnet) + '" data-torrent-name="' + esc(title) + '" title="Add to TorBox"><i class="fas fa-plus"></i></button>';
   } else if (isUsenet) {
     const isNzbgeek = source === 'NZBGeek' || item._source === 'usenet-nzbgeek';
-    actionButtons = '<button class="btn btn-tb-primary btn-sm" data-usenet-add="' + encodeURIComponent(item.name) + '" data-usenet-id="' + encodeURIComponent(item.id || '') + '" data-usenet-source="' + esc(source) + '" title="Add to TorBox"><i class="fas fa-plus"></i></button>' +
-      (isNzbgeek ? '<button class="btn btn-tb-secondary btn-sm" data-usenet-pipeline="' + encodeURIComponent(item.name) + '" data-usenet-id="' + encodeURIComponent(item.id || '') + '" data-usenet-source="' + esc(source) + '" title="Run full pipeline (download + upload + cleanup)"><i class="fas fa-download"></i></button>' : '');
+    actionButtons = '<button class="btn btn-tb-primary btn-sm" data-usenet-add="' + encodeURIComponent(item.name) + '" data-usenet-id="' + encodeURIComponent(item.id || '') + '" data-usenet-source="' + esc(item.source || source) + '" title="Add to TorBox"><i class="fas fa-plus"></i></button>' +
+      (isNzbgeek ? '<button class="btn btn-tb-secondary btn-sm" data-usenet-pipeline="' + encodeURIComponent(item.name) + '" data-usenet-id="' + encodeURIComponent(item.id || '') + '" data-usenet-source="' + esc(item.source || source) + '" title="Run full pipeline" (download + upload + cleanup)"><i class="fas fa-download"></i></button>' : '');
   } else if (isLocal) {
     const detailId = isMusic ? item.id : item.imdbId;
     const detailKind = isMusic ? 'music' : kind;

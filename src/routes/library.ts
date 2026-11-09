@@ -1,9 +1,19 @@
 import type { RequestHandler } from 'express';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
-import { addTorrentToTorbox, checkCachedTorrent, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError, uploadFileToTorbox } from '../services/torbox/client';
+import { addTorrentToTorbox, checkCachedTorrent, createWebDownload, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError } from '../services/torbox/client';
+import { buildTempDownloadService } from '../services/temp-downloads';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
 import { pagination, sendError } from './routeUtils';
+
+let tempDownloadServiceInstance: import('../services/temp-downloads').TempDownloadService | undefined;
+
+function getTempDownloadService(): import('../services/temp-downloads').TempDownloadService {
+  if (!tempDownloadServiceInstance) {
+    tempDownloadServiceInstance = buildTempDownloadService();
+  }
+  return tempDownloadServiceInstance;
+}
 
 export const getLibraryRoute: RequestHandler = async (req, res) => {
   try {
@@ -59,6 +69,8 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
   const os = await import('node:os');
   const path = await import('node:path');
   let tempPath: string | undefined;
+  let service: import('../services/temp-downloads').TempDownloadService | undefined;
+  let token: string | undefined;
   try {
     // Fetch the NZB from the indexer
     const nzb = await fetchUsenetNzb(source, id);
@@ -69,20 +81,41 @@ export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
     tempPath = path.join(tmpDir, `${name || 'usenet-download'}.nzb`);
     fs.writeFileSync(tempPath, nzb);
 
-    console.log('[USENET-PIPELINE] Uploading NZB to TorBox via direct file upload', { source, id, name, tempPath, timestamp: new Date().toISOString() });
-    // Upload the NZB file directly to TorBox via file POST (not server-side usenet download)
-    const result = await uploadFileToTorbox(tempPath, { name });
+    console.log('[USENET-PIPELINE] Registering temp download URL for NZB', { source, id, name, tempPath, timestamp: new Date().toISOString() });
+    service = getTempDownloadService();
+    const { token: regToken, url } = await service.register({
+      filePath: tempPath,
+      fileName: `${name || 'usenet-download'}.nzb`,
+      ttlMs: 30 * 60 * 1000,
+    });
+    token = regToken;
 
-    console.log('[USENET-PIPELINE] TorBox upload confirmed', { source, id, name, result, timestamp: new Date().toISOString() });
+    console.log('[USENET-PIPELINE] Temp download URL registered', { source, id, name, url, token, timestamp: new Date().toISOString() });
+
+    console.log('[USENET-PIPELINE] Triggering TorBox Web Download', { source, id, name, url, timestamp: new Date().toISOString() });
+    const result = await createWebDownload(url, {
+      name: `${name || 'usenet-download'}.nzb`,
+    });
+
+    // Mark the temp download as downloaded (TorBox has pulled it)
+    await service.markDownloaded(token);
+
+    console.log('[USENET-PIPELINE] TorBox Web Download confirmed', { source, id, name, result, timestamp: new Date().toISOString() });
     res.setHeader('Cache-Control', 'private, no-store');
     return res.status(200).json({ detail: result.detail, usenet: result.data });
   } catch (error) {
+    if (service && token) {
+      try { await service.markFailed(token, error instanceof Error ? error.message : String(error)); } catch { /* ignore */ }
+    }
     return sendError(res, error);
   } finally {
     // Mandatory cleanup: remove the temp NZB file after upload
     if (tempPath) {
       try { fs.unlinkSync(tempPath); } catch { /* ignore */ }
       try { fs.rmdirSync(path.dirname(tempPath)); } catch { /* ignore */ }
+    }
+    if (service && token) {
+      try { await service.cleanup(token); } catch { /* ignore */ }
     }
   }
 };

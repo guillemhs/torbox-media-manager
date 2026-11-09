@@ -92,53 +92,47 @@ export function renderSearchItem(item, idx) {
   const leechers = item.leechers !== null && item.leechers !== undefined ? Number(item.leechers).toLocaleString() : '';
   const posted = item.posted ? new Date(item.posted * 1000).toLocaleDateString() : '';
 
-  const route = item.imdbId ? `/title/${encodeURIComponent(item.imdbId)}?kind=${kind}`
-    : (item.id ? `/music/release/${encodeURIComponent(item.id)}` : '#');
+  const route = item.imdbId ? '/title/' + encodeURIComponent(item.imdbId) + '?kind=' + kind
+    : (item.id ? '/music/release/' + encodeURIComponent(item.id) : '#');
 
-  // Build metadata line
   const metaParts = [];
   if (isMusic) {
-    if (artist) metaParts.push(`Artist: ${esc(artist)}`);
-    if (year) metaParts.push(`Year: ${esc(year)}`);
-    if (titleType) metaParts.push(`Type: ${esc(titleType)}`);
+    if (artist) metaParts.push('Artist: ' + esc(artist));
+    if (year) metaParts.push('Year: ' + esc(year));
+    if (titleType) metaParts.push('Type: ' + esc(titleType));
   } else if (isLocal) {
-    // Local IMDb results - show genres and rating prominently
-    if (genres) metaParts.push(`Genres: ${esc(genres)}`);
-    if (rating) metaParts.push(`Rating: ${esc(rating)}`);
-    if (year) metaParts.push(`Year: ${esc(year)}`);
+    if (genres) metaParts.push('Genres: ' + esc(genres));
+    if (rating) metaParts.push('Rating: ' + esc(rating));
+    if (year) metaParts.push('Year: ' + esc(year));
   } else {
-    if (size) metaParts.push(`Size: ${esc(size)}`);
-    if (seeders) metaParts.push(`Seeders: ${esc(seeders)}`);
-    if (leechers) metaParts.push(`Leechers: ${esc(leechers)}`);
-    if (posted) metaParts.push(`Posted: ${esc(posted)}`);
-    if (rating) metaParts.push(`Rating: ${esc(rating)}`);
-    if (genres) metaParts.push(`Genres: ${esc(genres)}`);
+    if (size) metaParts.push('Size: ' + esc(size));
+    if (seeders) metaParts.push('Seeders: ' + esc(seeders));
+    if (leechers) metaParts.push('Leechers: ' + esc(leechers));
+    if (posted) metaParts.push('Posted: ' + esc(posted));
+    if (rating) metaParts.push('Rating: ' + esc(rating));
+    if (genres) metaParts.push('Genres: ' + esc(genres));
   }
 
   let actionButtons = '';
   if (isTorrent && item.magnet) {
-    actionButtons = `
-      <button class="btn btn-outline-light btn-sm" data-copy-magnet="${encodeURIComponent(item.magnet)}" title="Copy magnet link"><i class="fas fa-copy"></i></button>
-      <button class="btn btn-tb-primary btn-sm" data-add-torrent="${encodeURIComponent(item.magnet)}" data-torrent-name="${esc(title)}" title="Add to TorBox"><i class="fas fa-plus"></i></button>
-    `;
+    actionButtons = '<button class="btn btn-outline-light btn-sm" data-copy-magnet="' + encodeURIComponent(item.magnet) + '" title="Copy magnet link"><i class="fas fa-copy"></i></button>' +
+      '<button class="btn btn-tb-primary btn-sm" data-add-torrent="' + encodeURIComponent(item.magnet) + '" data-torrent-name="' + esc(title) + '" title="Add to TorBox"><i class="fas fa-plus"></i></button>';
   } else if (isUsenet) {
-    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-usenet-add="${encodeURIComponent(item.name)}" data-usenet-id="${encodeURIComponent(item.id || '')}" data-usenet-source="${esc(source)}" title="Add to TorBox"><i class="fas fa-plus"></i></button>`;
+    actionButtons = '<button class="btn btn-tb-primary btn-sm" data-usenet-add="' + encodeURIComponent(item.name) + '" data-usenet-id="' + encodeURIComponent(item.id || '') + '" data-usenet-source="' + esc(source) + '" title="Add to TorBox"><i class="fas fa-plus"></i></button>';
   } else if (isLocal) {
-    // Local IMDb results - add a View Details button
     const detailId = isMusic ? item.id : item.imdbId;
     const detailKind = isMusic ? 'music' : kind;
-    actionButtons = `<button class="btn btn-tb-primary btn-sm" data-view-detail="${encodeURIComponent(detailId)}" data-view-kind="${detailKind}" title="View details"><i class="fas fa-info-circle"></i> View Details</button>`;
+    actionButtons = '<button class="btn btn-tb-primary btn-sm" data-view-detail="' + encodeURIComponent(detailId) + '" data-view-kind="' + detailKind + '" title="View details"><i class="fas fa-info-circle"></i> View Details</button>';
   }
 
-  return \`
-    <article class="tb-card${isMusic ? ' music-card' : ' movie-card'}">
-      <div class="tb-card-header">
-        <a class="tb-card-link" href="${route}" aria-label="Open ${esc(title)} details">
-          <h3 class="tb-card-title" title="${esc(title)}">${esc(title)}</h3>
-          ${isMusic && artist ? \`<span class="tb-card-artist">${esc(artist)}</span>\` : ''}
-          ${year || titleType ? \`<span class="tb-card-year-type">${esc(year || 'Year unknown')} · ${esc(titleType || 'Unknown')}</span>\` : ''}
-        </a>
-        ${sourceBadge(source, contentType)}
+  return \`<article class="tb-card${isMusic ? ' music-card' : ' movie-card'}">
+    <div class="tb-card-header">
+      <a class="tb-card-link" href="${route}" aria-label="Open ${esc(title)} details">
+        <h3 class="tb-card-title" title="${esc(title)}">${esc(title)}</h3>
+        ${isMusic && artist ? \`<span class="tb-card-artist">${esc(artist)}</span>\` : ''}
+        ${year || titleType ? \`<span class="tb-card-year-type">${esc(year || 'Year unknown')} · ${esc(titleType || 'Unknown')}</span>\` : ''}
+      </a>
+      ${sourceBadge(source, contentType)}
       </div>
       <div class="tb-card-meta-row">
         ${metaParts.length ? \`<span class="tb-card-meta">${esc(metaParts.join(' · '))}</span>\` : ''}

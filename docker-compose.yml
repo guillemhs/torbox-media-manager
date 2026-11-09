@@ -36,7 +36,7 @@ services:
       # Temp download service (USENET pipeline - TorBox Web Download flow)
       APP_BASE_URL: ${APP_BASE_URL:-https://tmm.tatsukai.com}
       # Dedicated open DNS for USENET temp download links (TorBox cloud pulls from this URL)
-      TEMP_DOWNLOAD_BASE_URL: ${TEMP_DOWNLOAD_BASE_URL:-https://usenet-dl.tmm.tatsukai.com}
+      TEMP_DOWNLOAD_BASE_URL: ${TEMP_DOWNLOAD_BASE_URL:-https://usenet-dl.tatsukai.com}
       TEMP_DOWNLOAD_DIR: ${TEMP_DOWNLOAD_DIR:-/tmp/torbox-usenet-tmp}
       TEMP_DOWNLOAD_TTL_MS: ${TEMP_DOWNLOAD_TTL_MS:-1800000}
     depends_on:

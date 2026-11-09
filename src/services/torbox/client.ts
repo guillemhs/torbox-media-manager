@@ -269,3 +269,50 @@ export async function uploadFileToTorbox(
   if (!envelope.success) throw new TorboxApiError(502, envelope.detail || envelope.error || 'TorBox rejected the file upload', body);
   return envelope;
 }
+
+/**
+ * Create a TorBox Web Download.
+ *
+ * TorBox's cloud engine pulls the file from the provided URL (e.g. a
+ * tokenized local download link exposed by this app). This bypasses
+ * server-side Usenet download restrictions on lower-tier plans.
+ */
+export async function createWebDownload(
+  url: string,
+  options: { name?: string; saveAs?: string } = {},
+  apiKey = process.env.TORBOX_API_KEY
+): Promise<TorboxEnvelope<Record<string, unknown>>> {
+  const token = requireApiKey(apiKey);
+
+  const form = new FormData();
+  form.set('url', url);
+  if (options.name?.trim()) form.set('name', options.name.trim().slice(0, 200));
+  if (options.saveAs?.trim()) form.set('save_as', options.saveAs.trim().slice(0, 200));
+
+  const response = await fetch('https://api.torbox.app/v1/api/webdl/createwebdownload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  let body: unknown;
+  const responseText = await response.text();
+  try { body = responseText ? JSON.parse(responseText) as unknown : undefined; } catch { body = responseText; }
+
+  if (!response.ok) {
+    const detail = typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail)
+      : typeof body === 'object' && body !== null && 'error' in body ? String(body.error)
+      : typeof body === 'string' && body.trim() ? `TorBox returned HTTP ${response.status}: ${body.trim().slice(0, 500)}`
+      : `TorBox returned HTTP ${response.status}`;
+    throw new TorboxApiError(response.status, detail, body);
+  }
+
+  if (!body || typeof body !== 'object' || !('success' in body)) {
+    throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
+  }
+
+  const envelope = body as TorboxEnvelope<Record<string, unknown>>;
+  if (!envelope.success) throw new TorboxApiError(502, envelope.detail || envelope.error || 'TorBox rejected the web download', body);
+  return envelope;
+}

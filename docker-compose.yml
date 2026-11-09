@@ -33,6 +33,10 @@ services:
       NNTP_PASSWORD: ${NNTP_PASSWORD:-}
       USENET_DOWNLOAD_DIR: ${USENET_DOWNLOAD_DIR:-}
       USENET_MAX_SEGMENT_RETRIES: ${USENET_MAX_SEGMENT_RETRIES:-3}
+      # Temp download service (USENET pipeline - TorBox Web Download flow)
+      APP_BASE_URL: ${APP_BASE_URL:-https://tmm.tatsukai.com}
+      TEMP_DOWNLOAD_DIR: ${TEMP_DOWNLOAD_DIR:-}
+      TEMP_DOWNLOAD_TTL_MS: ${TEMP_DOWNLOAD_TTL_MS:-1800000}
     depends_on:
       db:
         condition: service_healthy

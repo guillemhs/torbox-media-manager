@@ -52,7 +52,22 @@ const schema = [
     dataset TEXT PRIMARY KEY,
     completed_at TEXT NOT NULL,
     imported_rows INTEGER NOT NULL
-  )`
+  )`,
+  `CREATE TABLE IF NOT EXISTS usenet_temp_downloads (
+    token TEXT PRIMARY KEY,
+    file_path TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    downloaded_at TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    torbox_webdl_id TEXT,
+    torbox_response TEXT,
+    error TEXT
+  )`,
+  'CREATE INDEX IF NOT EXISTS usenet_temp_downloads_expires_idx ON usenet_temp_downloads(expires_at)',
+  'CREATE INDEX IF NOT EXISTS usenet_temp_downloads_status_idx ON usenet_temp_downloads(status)'
 ];
 
 export async function initializeDatabase(): Promise<void> {

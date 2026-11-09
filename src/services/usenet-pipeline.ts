@@ -16,7 +16,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { NzbgeekClient, NzbgeekResult, buildNzbgeekClient } from './nzbgeek';
 import { NntpClient, NntpArticle } from './nntp-client';
-import { uploadFileToTorbox, TorboxApiError } from './torbox/client';
+import { createWebDownload, TorboxApiError } from './torbox/client';
+import { buildTempDownloadService, TempDownloadService } from './temp-downloads';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -29,7 +30,7 @@ function log(message: string, meta?: Record<string, unknown>): void {
 
 export interface PipelineJob {
   id: string;
-  status: 'queued' | 'searching' | 'downloading-nzb' | 'assembling' | 'uploading' | 'cleaning-up' | 'completed' | 'failed';
+  status: 'queued' | 'searching' | 'downloading-nzb' | 'assembling' | 'exposing-download' | 'uploading' | 'cleaning-up' | 'completed' | 'failed';
   query?: string;
   nzbId?: string;
   nzbName?: string;
@@ -54,10 +55,12 @@ export interface PipelineConfig {
 export class UsenetPipeline {
   private readonly jobs: Map<string, PipelineJob> = new Map();
   private readonly nzbgeek: NzbgeekClient;
+  private readonly tempDownloads: TempDownloadService;
   private readonly config: PipelineConfig;
 
   constructor(config: PipelineConfig) {
     this.nzbgeek = buildNzbgeekClient();
+    this.tempDownloads = buildTempDownloadService();
     const resolvedDownloadDir = config.downloadDir || path.resolve(process.env.HOST_MEDIA_PATH || './media', '.usenet-tmp');
     this.config = {
       ...config,
@@ -253,27 +256,47 @@ export class UsenetPipeline {
     }
   }
 
-  /** Step 5: Upload the assembled media file directly to TorBox. */
-  async uploadToTorbox(jobId: string, localFilePath: string, fileName?: string): Promise<Record<string, unknown>> {
+  /** Step 5: Expose the assembled file via a tokenized local download URL. */
+  async exposeLocalDownload(jobId: string, localFilePath: string, fileName?: string): Promise<{ token: string; url: string }> {
     const job = this.getJob(jobId);
     if (!job) throw new Error(`Job ${jobId} not found`);
 
-    this.updateJob(jobId, { status: 'uploading' });
-    this.addLog(jobId, 'Uploading assembled file to TorBox', { localFilePath });
+    this.updateJob(jobId, { status: 'exposing-download' });
+    this.addLog(jobId, 'Registering local temp download', { localFilePath });
 
     if (!fs.existsSync(localFilePath)) {
       throw new Error(`Local file not found: ${localFilePath}`);
     }
 
     try {
-      // Upload the locally assembled media file directly to TorBox.
-      // This bypasses TorBox's server-side Usenet download (createusenetdownload),
-      // which requires a higher-tier plan. The file is uploaded as a regular POST.
-      const result = await uploadFileToTorbox(localFilePath, {
-        name: fileName || path.basename(localFilePath),
+      const { token, url } = await this.tempDownloads.register({
+        filePath: localFilePath,
+        fileName: fileName || path.basename(localFilePath),
+        ttlMs: 30 * 60 * 1000, // 30 minutes
       });
 
-      this.addLog(jobId, 'TorBox file upload confirmed', { result });
+      this.addLog(jobId, 'Local temp download registered', { token, url, fileName });
+      return { token, url };
+    } catch (error) {
+      this.addLog(jobId, 'Failed to register local temp download', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /** Step 6: Trigger TorBox Web Download to pull the file from the local URL. */
+  async triggerTorboxWebDownload(jobId: string, downloadUrl: string, fileName?: string): Promise<Record<string, unknown>> {
+    const job = this.getJob(jobId);
+    if (!job) throw new Error(`Job ${jobId} not found`);
+
+    this.updateJob(jobId, { status: 'uploading' });
+    this.addLog(jobId, 'Triggering TorBox Web Download', { downloadUrl });
+
+    try {
+      const result = await createWebDownload(downloadUrl, {
+        name: fileName || path.basename(downloadUrl),
+      });
+
+      this.addLog(jobId, 'TorBox Web Download confirmed', { result });
       this.updateJob(jobId, {
         status: 'cleaning-up',
         torboxResult: result.data,
@@ -281,7 +304,7 @@ export class UsenetPipeline {
 
       return result.data ?? {};
     } catch (error) {
-      this.addLog(jobId, 'TorBox file upload failed', { error: error instanceof Error ? error.message : String(error) });
+      this.addLog(jobId, 'TorBox Web Download failed', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -379,10 +402,17 @@ export class UsenetPipeline {
       const fileName = options.fileName || nzbName || 'usenet-download';
       const localPath = await this.assembleFromNzb(jobId, nzbBytes, fileName);
 
-      // Upload to TorBox
-      await this.uploadToTorbox(jobId, localPath, fileName);
+      // Expose the assembled file via a tokenized local download URL
+      const { token, url } = await this.exposeLocalDownload(jobId, localPath, fileName);
+      this.addLog(jobId, 'Local download URL exposed', { token, url });
 
-      // Mandatory cleanup
+      // Trigger TorBox Web Download to pull the file from the local URL
+      await this.triggerTorboxWebDownload(jobId, url, fileName);
+
+      // Mark the temp download as downloaded (TorBox has pulled it)
+      await this.tempDownloads.markDownloaded(token);
+
+      // Mandatory cleanup: delete local files after TorBox confirms
       await this.cleanup(jobId);
 
       this.addLog(jobId, 'Pipeline completed successfully');

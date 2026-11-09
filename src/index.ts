@@ -25,6 +25,12 @@ import {
   usenetPipelineCleanupRoute,
 } from './routes/usenet-pipeline';
 import {
+  tempDownloadRoute,
+  tempDownloadCleanupRoute,
+  tempDownloadListRoute,
+  tempDownloadCleanupExpiredRoute,
+} from './routes/temp-downloads';
+import {
   musicMetadataSearchRoute,
   musicTorrentSearchRoute,
   musicRoute,
@@ -68,6 +74,10 @@ app.post('/usenet/pipeline/run', usenetPipelineRunRoute);
 app.get('/usenet/pipeline/status/:jobId', usenetPipelineStatusRoute);
 app.get('/usenet/pipeline/jobs', usenetPipelineJobsRoute);
 app.post('/usenet/pipeline/cleanup/:jobId', usenetPipelineCleanupRoute);
+app.get('/api/temp-downloads/:token', tempDownloadRoute);
+app.delete('/api/temp-downloads/:token', tempDownloadCleanupRoute);
+app.get('/api/temp-downloads', tempDownloadListRoute);
+app.post('/api/temp-downloads/cleanup-expired', tempDownloadCleanupExpiredRoute);
 app.get('/library/torrents/search', torrentSearchRoute);
 app.get('/torrents/search', (req, res) => res.redirect(301, '/library/torrents/search' + (req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '')));
 app.get('/torrents/download/:token', musicTorrentDownloadRoute);

@@ -8,17 +8,17 @@ vi.mock('../../db/database', () => ({
 vi.mock('../musicSearch', () => ({
   searchMusicMetadata: vi.fn(),
 }));
-vi.mock('../torbox/torrentSearch', () => ({
-  searchTorrentsViaProwlarr: vi.fn(),
-  searchTorrentCandidates: vi.fn(),
-}));
+vi.mock('../torbox/torrentSearch', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../torbox/torrentSearch')>();
+  return { ...actual, searchTorrentsViaProwlarr: vi.fn(), searchTorrentCandidates: vi.fn() };
+});
 vi.mock('../usenetSearch', () => ({
   searchUsenet: vi.fn(),
 }));
 
 import { searchTitles } from '../../db/database';
 import { searchMusicMetadata } from '../musicSearch';
-import { searchTorrentsViaProwlarr, searchTorrentCandidates } from '../torbox/torrentSearch';
+import { searchTorrentsViaProwlarr, searchTorrentCandidates, parseSeasonEpisode } from '../torbox/torrentSearch';
 import { searchUsenet } from '../usenetSearch';
 
 beforeEach(() => {
@@ -148,8 +148,8 @@ describe('searchMedia', () => {
       categoryMode: 'name',
     });
 
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 50, 0);
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0944947', 'series', 1, 50, 0);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 50, 0, 1);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0944947', 'series', 1, 50, 0, 1);
     expect(result.results.torrents.total).toBe(2);
     expect(result.results.torrents.items[0].source).toBe('Torrentio');
   });
@@ -196,7 +196,7 @@ describe('searchMedia', () => {
       categoryMode: 'name',
     });
 
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('space jam', 'movie', 1, 20, 0);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('space jam', 'movie', 1, 20, 0, 1);
     expect(result.results.torrents.total).toBe(1);
   });
 
@@ -222,7 +222,84 @@ describe('searchMedia', () => {
     });
 
     expect(searchTorrentsViaProwlarr).not.toHaveBeenCalled();
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0179947', 'movie', 1, 20, 0);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0179947', 'movie', 1, 20, 0, 1);
     expect(result.results.torrents.total).toBe(1);
   });
+
+  it('strips season tokens: "silo s03" looks up "silo" and calls Torrentio with imdbId:season', async () => {
+    (searchTitles as any).mockResolvedValue({
+      items: [{ imdbId: 'tt14710174', primaryTitle: 'Silo', titleType: 'tvSeries', startYear: 2023 }],
+      total: 1,
+    });
+    (searchTorrentCandidates as any).mockResolvedValue([
+      { hash: 'silo3hash', magnet: 'magnet:?xt=urn:btih:silo3hash', name: 'Silo S03 1080p', seeders: 9, leechers: 1, size: 3000, source: 'Torrentio' },
+    ]);
+
+    const result = await searchMedia({
+      query: 'silo s03',
+      kind: 'series',
+      page: { limit: 20, offset: 0 },
+      localKind: 'series',
+      includeUsenet: false,
+      indexers: ['torrentio'],
+      categoryMode: 'name',
+    });
+
+    expect(searchTitles).toHaveBeenCalledWith({ limit: 20, offset: 0, q: 'silo', kind: 'series' });
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt14710174', 'series', 3, 20, 0, 1);
+    expect(result.results.torrents.total).toBe(1);
+    expect(result.results.local.items[0].primaryTitle).toBe('Silo');
+  });
+
+  it('parses s03e05 into season 3 episode 5 for Torrentio series calls', async () => {
+    (searchTitles as any).mockResolvedValue({
+      items: [{ imdbId: 'tt0903747', primaryTitle: 'Breaking Bad', titleType: 'tvSeries' }],
+      total: 1,
+    });
+    (searchTorrentCandidates as any).mockResolvedValue([]);
+
+    await searchMedia({
+      query: 'breaking bad s03e05',
+      kind: 'series',
+      page: { limit: 20, offset: 0 },
+      includeLocal: false,
+      includeUsenet: false,
+      indexers: ['torrentio'],
+      categoryMode: 'name',
+    });
+
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0903747', 'series', 3, 20, 0, 5);
+  });
+
+  it('ignores season tokens for movie Torrentio calls', async () => {
+    (searchTitles as any).mockResolvedValue({
+      items: [{ imdbId: 'tt1375666', primaryTitle: 'Inception', titleType: 'movie' }],
+      total: 1,
+    });
+    (searchTorrentCandidates as any).mockResolvedValue([]);
+
+    await searchMedia({
+      query: 'inception',
+      kind: 'movie',
+      page: { limit: 20, offset: 0 },
+      includeLocal: false,
+      includeUsenet: false,
+      indexers: ['torrentio'],
+      categoryMode: 'name',
+    });
+
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 20, 0, 1);
+  });
 });
+
+describe('parseSeasonEpisode', () => {
+  it('parses common season/episode formats', () => {
+    expect(parseSeasonEpisode('silo s03')).toEqual({ baseQuery: 'silo', season: 3, episode: undefined });
+    expect(parseSeasonEpisode('Breaking Bad S03E05')).toEqual({ baseQuery: 'Breaking Bad', season: 3, episode: 5 });
+    expect(parseSeasonEpisode('show season 2')).toEqual({ baseQuery: 'show', season: 2, episode: undefined });
+    expect(parseSeasonEpisode('show episode 7')).toEqual({ baseQuery: 'show', season: undefined, episode: 7 });
+    expect(parseSeasonEpisode('inception')).toEqual({ baseQuery: 'inception', season: undefined, episode: undefined });
+    expect(parseSeasonEpisode('s01')).toEqual({ baseQuery: '', season: 1, episode: undefined });
+  });
+});
+

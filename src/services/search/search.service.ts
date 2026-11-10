@@ -1,6 +1,6 @@
 import { searchTitles } from '../../db/database';
 import { searchMusicMetadata } from '../musicSearch';
-import { searchTorrentsViaProwlarr, searchTorrentCandidates, type TorrentCandidate } from '../torbox/torrentSearch';
+import { searchTorrentsViaProwlarr, searchTorrentCandidates, parseSeasonEpisode, type TorrentCandidate } from '../torbox/torrentSearch';
 import { searchUsenet } from '../usenetSearch';
 import { extractCategoryFromTitle, extractCategoryFromName, formatTorrentMetadata, formatUsenetMetadata, pagination } from '../../routes/routeUtils';
 
@@ -42,6 +42,10 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
   const { query, kind, page, localKind, useMusicBrainz, localSourceLabel, indexerCategories, indexerType, categoryMode, fixedCategory, browseLink, usenetLimit = 50, includeLocal = true, includeIndexers = true, includeUsenet = true, indexers, usenetSources } = options;
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
 
+  // Strip season/episode tokens (e.g. "silo s03" -> "silo") so title lookups match.
+  const parsed = kind === 'music' ? { baseQuery: query, season: undefined, episode: undefined } : parseSeasonEpisode(query);
+  const titleQuery = parsed.baseQuery || query;
+
   // 1. Local search
   let localItems: Array<Record<string, unknown>> = [];
   let localTotal = 0;
@@ -52,7 +56,7 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
         localItems = releases.map((item) => ({ ...item, _type: 'local', _category: fixedCategory || 'Music' }));
         localTotal = releases.length;
       } else if (localKind) {
-        const result = await searchTitles({ ...page, q: query, kind: localKind });
+        const result = await searchTitles({ ...page, q: titleQuery, kind: localKind });
         localItems = result.items.map((item: Record<string, unknown>) => ({
           ...item,
           _type: 'local',
@@ -110,7 +114,7 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
         let imdbMatches: Array<Record<string, unknown>> = [];
         if (kind === 'movie' || kind === 'series' || kind === 'all') {
           try {
-            const localResults = await searchTitles({ q: query, kind: kind === 'all' ? 'all' : kind, limit: 10, offset: 0 });
+            const localResults = await searchTitles({ q: titleQuery, kind: kind === 'all' ? 'all' : kind, limit: 10, offset: 0 });
             imdbMatches = localResults.items as Array<Record<string, unknown>>;
           } catch (error) {
             console.warn('[searchMedia] Local IMDb lookup for Torrentio failed:', error instanceof Error ? error.message : String(error));
@@ -124,17 +128,21 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
             const imdbId = typeof item.imdbId === 'string' ? item.imdbId : '';
             if (!/^tt\d+$/.test(imdbId)) continue;
             const imdbKind: 'movie' | 'series' = (item.titleType === 'tvSeries' || item.titleType === 'tvMiniSeries') ? 'series' : 'movie';
+            const season = imdbKind === 'series' ? (parsed.season ?? 1) : 1;
+            const episode = imdbKind === 'series' ? (parsed.episode ?? 1) : 1;
             try {
-              addTorrentioCandidates(await searchTorrentCandidates(imdbId, imdbKind, 1, page.limit, page.offset));
+              addTorrentioCandidates(await searchTorrentCandidates(imdbId, imdbKind, season, page.limit, page.offset, episode));
             } catch (error) {
               console.warn('[searchMedia] Torrentio search failed for IMDb', { imdbId, error: error instanceof Error ? error.message : String(error) });
             }
           }
         } else if (kind !== 'music') {
-          // Fallback: pass the raw text query (works with some addon setups).
+          // Fallback: pass the text query without season/episode tokens (works with some addon setups).
           try {
             const mediaKind = kind === 'series' ? 'series' : 'movie';
-            addTorrentioCandidates(await searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset));
+            const season = mediaKind === 'series' ? (parsed.season ?? 1) : 1;
+            const episode = mediaKind === 'series' ? (parsed.episode ?? 1) : 1;
+            addTorrentioCandidates(await searchTorrentCandidates(titleQuery, mediaKind, season, page.limit, page.offset, episode));
           } catch (error) {
             console.warn('[searchMedia] Torrentio text search failed:', error instanceof Error ? error.message : String(error));
           }

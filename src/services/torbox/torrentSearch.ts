@@ -53,13 +53,49 @@ function prowlarrSearchUrl(): URL | null {
   }
   return null;
 }
-export async function searchTorrentCandidates(query: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
+export interface ParsedQuery {
+  baseQuery: string;
+  season?: number;
+  episode?: number;
+}
+
+/** Split season/episode tokens (s03, s03e05, season 3, episode 5) off a search query. */
+export function parseSeasonEpisode(rawQuery: string): ParsedQuery {
+  let season: number | undefined;
+  let episode: number | undefined;
+  let base = ` ${rawQuery.trim()} `;
+  const patterns: Array<{ re: RegExp; isSeason: boolean }> = [
+    { re: /\b[Ss](\d{1,2})[Ee](\d{1,3})\b/, isSeason: true },
+    { re: /\b[Ss](\d{1,2})\b/, isSeason: true },
+    { re: /\bseason\s+(\d{1,2})\b/i, isSeason: true },
+    { re: /\bepisode\s+(\d{1,3})\b/i, isSeason: false },
+  ];
+  for (const { re, isSeason } of patterns) {
+    const match = re.exec(base);
+    if (!match) continue;
+    if (isSeason) {
+      season = Number(match[1]);
+      if (match[2]) episode = Number(match[2]);
+    } else {
+      episode = Number(match[1]);
+    }
+    base = base.replace(match[0], ' ');
+  }
+  if (season !== undefined && (season < 1 || season > 99)) season = undefined;
+  if (episode !== undefined && (episode < 1 || episode > 999)) episode = undefined;
+  return { baseQuery: base.replace(/\s+/g, ' ').trim(), season, episode };
+}
+
+export async function searchTorrentCandidates(query: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0, episode = 1): Promise<TorrentCandidate[]> {
   // Torrentio Stremio addon accepts both IMDb IDs and text queries
   if (kind === 'series' && (!Number.isSafeInteger(season) || season < 1 || season > 99)) {
     throw new Error('Season must be between 1 and 99.');
   }
+  if (kind === 'series' && (!Number.isSafeInteger(episode) || episode < 1 || episode > 999)) {
+    throw new Error('Episode must be between 1 and 999.');
+  }
 
-  const resourceId = kind === 'movie' ? query : `${query}:${season}:1`;
+  const resourceId = kind === 'movie' ? query : `${query}:${season}:${episode}`;
   const base = (process.env.TORRENT_SEARCH_BASE_URL || 'https://torrentio.strem.fun').replace(/\/+$/, '');
   let response: Response;
   try {

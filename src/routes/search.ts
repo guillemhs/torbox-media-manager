@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 import { searchMusicMetadata } from '../services/musicSearch';
 import { searchTitles } from '../db/database';
 import { searchMusicTorrents } from '../services/musicSearch';
-import { searchTorrentCandidates, searchTorrentsViaProwlarr, type TorrentCandidate } from '../services/torbox/torrentSearch';
+import { searchTorrentCandidates, searchTorrentsViaProwlarr, parseSeasonEpisode, type TorrentCandidate } from '../services/torbox/torrentSearch';
 import { searchIndexerTorrents } from '../services/musicSearch';
 import { searchUsenet } from '../services/usenetSearch';
 import { pagination, sendError, extractCategoryFromName } from './routeUtils';
@@ -67,10 +67,12 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
         }
 
         if (indexers.includes('torrentio')) {
+          const parsed = kind === 'music' ? { baseQuery: query, season: undefined, episode: undefined } : parseSeasonEpisode(query);
+          const titleQuery = parsed.baseQuery || query;
           const imdbIds: string[] = [];
           let localResults: { items: unknown[] } | undefined;
           try {
-            localResults = await searchTitles({ ...page, q: query, kind: kind === 'all' ? 'all' : (kind as 'movie' | 'series' | 'all') });
+            localResults = await searchTitles({ ...page, q: titleQuery, kind: kind === 'all' ? 'all' : (kind as 'movie' | 'series' | 'all') });
           } catch (error) {
             console.warn('[search.ts] Local IMDb search failed for Torrentio:', error instanceof Error ? error.message : String(error));
           }
@@ -99,8 +101,10 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
             }
             for (const imdbId of Object.keys(imdbIdToKind)) {
               const mediaKind = imdbIdToKind[imdbId];
+              const season = mediaKind === 'series' ? (parsed.season ?? 1) : 1;
+              const episode = mediaKind === 'series' ? (parsed.episode ?? 1) : 1;
               try {
-                const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset);
+                const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, season, page.limit, page.offset, episode);
                 for (const candidate of torrentioResults) {
                   torrentCandidates.push(candidate);
                 }

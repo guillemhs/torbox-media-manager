@@ -141,7 +141,7 @@ export async function searchTorrentsViaProwlarr(query: string, limit = 50, offse
   try {
     response = await fetch(url, {
       headers: { 'X-Api-Key': key, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(60_000)
+      signal: AbortSignal.timeout(120_000)
     });
   } catch {
     throw new Error('Prowlarr search service is unavailable. Check that Prowlarr is running and reachable from the app.');

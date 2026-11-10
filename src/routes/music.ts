@@ -40,6 +40,8 @@ export const musicRoute: RequestHandler = async (req, res) => {
   const searchIndexers = sources.includes('indexers') && hasIndexerConfig;
   const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
   const searchLocal = sources.includes('local') || sources.length === 0;
+  const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
+  const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',
@@ -53,6 +55,7 @@ export const musicRoute: RequestHandler = async (req, res) => {
       includeLocal: searchLocal,
       includeIndexers: searchIndexers,
       includeUsenet: searchUsenet,
+      indexers,
       browseLink: `/browse?q=${encodeURIComponent(typeof req.query.q === 'string' ? req.query.q : '')}&kind=music`,
     });
     console.warn('[Music route] response:', {

@@ -112,10 +112,11 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
               providerNames.push('Prowlarr');
             }
 
-            if (indexers.includes('torrentio')) {
-              // Query Torrentio using the text query directly (Stremio addon)
-              searches.push(searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset));
-              providerNames.push('Torrentio');
+            // Note: Torrentio requires an IMDb ID for text search.
+            // When no local IMDb match is found, we cannot use Torrentio directly.
+            // Torrentio will be used when we have an IMDb ID from local search match.
+            if (indexers.includes('torrentio') && !indexers.includes('prowlarr')) {
+              console.warn('[search.ts] Torrentio selected but no IMDb ID available for text search; skipping Torrentio');
             }
 
             try {

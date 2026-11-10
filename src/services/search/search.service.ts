@@ -31,11 +31,13 @@ export interface MediaSearchOptions {
   includeIndexers?: boolean;
   /** Include usenet results. Default true when hasIndexerConfig. */
   includeUsenet?: boolean;
+  /** Which indexers to use: 'prowlarr', 'torrentio', or both. Omit for both. */
+  indexers?: string[];
 }
 
 /** Shared search pipeline: local titles + indexer torrents + usenet, combined and tagged. */
 export async function searchMedia(options: MediaSearchOptions): Promise<MediaSearchResult> {
-  const { query, kind, page, localKind, useMusicBrainz, localSourceLabel, indexerCategories, indexerType, categoryMode, fixedCategory, browseLink, usenetLimit = 50, includeLocal = true, includeIndexers = true, includeUsenet = true } = options;
+  const { query, kind, page, localKind, useMusicBrainz, localSourceLabel, indexerCategories, indexerType, categoryMode, fixedCategory, browseLink, usenetLimit = 50, includeLocal = true, includeIndexers = true, includeUsenet = true, indexers } = options;
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
 
   // 1. Local search
@@ -62,23 +64,36 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
     console.warn(`[searchMedia] local search unavailable:`, error instanceof Error ? error.message : String(error));
   }
 
-  // 2. Indexer (Prowlarr) torrent search
+  // 2. Indexer torrent search (Prowlarr and/or Torrentio)
   let torrentResults: Array<Record<string, unknown>> = [];
   if (includeIndexers !== false && hasIndexerConfig) {
+    const indexerList = indexers || ['prowlarr', 'torrentio'];
+    const useProwlarr = indexerList.includes('prowlarr');
+    const useTorrentio = indexerList.includes('torrentio');
+
     try {
-      const candidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, indexerCategories);
-      for (const candidate of candidates) {
-        const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
-        torrentResults.push({
-          name: candidate.name,
-          _type: 'torrent',
-          seeders: candidate.seeders,
-          leechers: candidate.leechers,
-          size: candidate.size,
-          source: candidate.source,
-          _category: category,
-          ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
-        });
+      if (useProwlarr) {
+        const candidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, indexerCategories);
+        for (const candidate of candidates) {
+          const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
+          torrentResults.push({
+            name: candidate.name,
+            _type: 'torrent',
+            seeders: candidate.seeders,
+            leechers: candidate.leechers,
+            size: candidate.size,
+            source: candidate.source,
+            _category: category,
+            ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
+            ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
+          });
+        }
+      }
+
+      if (useTorrentio) {
+        // Torrentio requires IMDb ID for text search; skip if we don't have one
+        // For text search without IMDb ID, Torrentio cannot be used directly
+        console.warn('[searchMedia] Torrentio selected but no IMDb ID available for text search; skipping Torrentio');
       }
     } catch (error) {
       console.warn(`[searchMedia] indexer search unavailable:`, error instanceof Error ? error.message : String(error));

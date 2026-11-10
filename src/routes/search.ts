@@ -100,33 +100,44 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
           } else if (hasIndexerConfig) {
             // Determine media kind for Torrentio queries
             const mediaKind = kind === 'series' ? 'series' : 'movie';
-            try {
-              const prowlarrResults = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
-              for (const candidate of prowlarrResults) {
-                torrentCandidates.push(candidate);
-              }
-              if (indexers.includes('prowlarr')) sourceNames.push('Prowlarr');
+            const searches: Promise<unknown>[] = [];
+            const providerNames: string[] = [];
 
-              // Also query Torrentio using IMDb IDs extracted from Prowlarr results
-              if (indexers.includes('torrentio')) {
-                const imdbIds = new Set<string>();
-                for (const candidate of prowlarrResults) {
-                  if (candidate.imdbId) imdbIds.add(candidate.imdbId);
-                }
-                for (const imdbId of imdbIds) {
-                  try {
-                    const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset);
-                    for (const candidate of torrentioResults) {
-                      torrentCandidates.push(candidate);
-                    }
-                    if (!sourceNames.includes('Torrentio')) sourceNames.push('Torrentio');
-                  } catch (error) {
-                    warnings.push(`Torrentio: ${error instanceof Error ? error.message : 'search failed'}`);
-                  }
-                }
+            if (indexers.includes('prowlarr')) {
+              searches.push(searchTorrentsViaProwlarr(query, page.limit, page.offset));
+              providerNames.push('Prowlarr');
+            }
+
+            if (indexers.includes('torrentio')) {
+              // Query Torrentio using the text query directly (Stremio addon)
+              searches.push(searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset));
+              providerNames.push('Torrentio');
+            }
+
+            try {
+              const searchResults = await Promise.allSettled(searches);
+              const successful: TorrentCandidate[] = searchResults.flatMap((result) =>
+                result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []
+              );
+              const sourceWarnings = searchResults.flatMap((result, index) => result.status === 'rejected'
+                ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`]
+                : []);
+              warnings.push(...sourceWarnings);
+
+              const unique = new Map<string, TorrentCandidate>();
+              for (const candidate of successful) {
+                const existing = unique.get(candidate.hash);
+                unique.set(candidate.hash, existing ? {
+                  ...existing,
+                  seeders: existing.seeders ?? candidate.seeders,
+                  leechers: existing.leechers ?? candidate.leechers,
+                  size: existing.size ?? candidate.size,
+                  downloadToken: existing.downloadToken ?? candidate.downloadToken,
+                } : candidate);
               }
+              torrentCandidates.push(...[...unique.values()]);
             } catch (error) {
-              warnings.push(error instanceof Error ? error.message : 'Prowlarr fallback search failed');
+              warnings.push(error instanceof Error ? error.message : 'Indexer fallback search failed');
             }
           }
         }

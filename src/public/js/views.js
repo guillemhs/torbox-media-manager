@@ -8,6 +8,16 @@ import {
 
 let calendarRequest = 0;
 
+// ── Reflect the current page in the URL (?page=N) without triggering navigation ──
+export function setPageParam(page, query) {
+  const params = new URLSearchParams(location.search);
+  if (page > 1) params.set('page', String(page));
+  else params.delete('page');
+  if (typeof query === 'string' && query) params.set('q', query);
+  const qs = params.toString();
+  history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
+}
+
 // ── Get selected source(s) (Indexers/Usenet with sub-type) ──
 // Returns all checked checkboxes as arrays
 const INDEXER_ALL = ['prowlarr', 'torrentio'];
@@ -169,6 +179,7 @@ export async function doSearch(view, page = 1) {
   state.offset[view] = offset;
   state.currentPage[view] = page;
   state.searchMode[view] = 'search';
+  setPageParam(page, query);
 
   // Show skeletons while loading
   const container = $(`#${view}-results`);
@@ -258,6 +269,7 @@ export async function searchLocal(view, page = 1) {
   const offset = (page - 1) * limit;
 
   state.offset[view] = offset;
+  setPageParam(page, query);
   state.currentPage[view] = page;
   state.searchMode[view] = 'discover';
 
@@ -311,6 +323,7 @@ export async function searchLocal(view, page = 1) {
 export async function loadLibraryPage(page = 1) {
   const limit = 20;
   const offset = (page - 1) * limit;
+  setPageParam(page);
 
   const container = $('#library-results');
   if (container) {
@@ -488,10 +501,18 @@ export async function loadView(view, reset = false) {
       return;
     }
 
+    const urlParams = new URLSearchParams(location.search);
+    const pageParam = Math.max(1, Number(urlParams.get('page')) || 1);
+
     if (view === 'library') {
-      void loadLibraryPage(1);
+      void loadLibraryPage(pageParam);
       return;
     }
+
+    // Restore the search box from ?q= so a shared/refreshed URL re-runs the search.
+    const input = $(`#${view}-query`);
+    const urlQ = urlParams.get('q');
+    if (input && urlQ && !input.value.trim()) input.value = urlQ;
 
     const q = $(`#${view}-query`)?.value || '';
     if (!q || q.length < 2) {
@@ -501,7 +522,7 @@ export async function loadView(view, reset = false) {
 
     setStatus(view, 'Loading…');
     try {
-      void doSearch(view, 1);
+      void doSearch(view, pageParam);
     } catch (error) {
       setStatus(view, error.message);
     }

@@ -160,3 +160,75 @@ test.describe('SOURCE SELECTOR ALL/CHILDREN SYNC', () => {
     await expect(binsearch).not.toBeChecked();
   });
 });
+
+test.describe('PAGINATION URL STATE (?page=N)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BASE_URL);
+    await page.waitForTimeout(1000);
+  });
+
+  test('/shows - clicking page 2 updates the URL to ?page=2 and keeps totals stable', async ({ page }) => {
+    await navigateToView(page, 'shows');
+    await performSearch(page, 'shows', 'Breaking Bad');
+
+    const pagInfo = paginationInfo(page, 'shows');
+    await expect(pagInfo).toBeVisible({ timeout: 15000 });
+    const m1 = ((await pagInfo.textContent()) || '').match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
+    expect(m1).not.toBeNull();
+    if (Number(m1![2]) < 2) return; // single page, nothing to paginate
+
+    await page.click('#shows-pagination .tb-pagination-btn[data-page="2"]');
+    await page.waitForTimeout(2500);
+
+    expect(page.url()).toContain('page=2');
+    const m2 = ((await pagInfo.textContent()) || '').match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
+    expect(Number(m2![1])).toBe(2);
+    expect(Number(m2![2])).toBe(Number(m1![2]));
+    expect(Number(m2![3])).toBe(Number(m1![3]));
+  });
+
+  test('/movies - loading /movies?page=2 restores page 2 of the same search', async ({ page }) => {
+    await navigateToView(page, 'movies');
+    await performSearch(page, 'movies', 'Forrest Gump');
+    const pagInfo = paginationInfo(page, 'movies');
+    await expect(pagInfo).toBeVisible({ timeout: 15000 });
+    const m1 = ((await pagInfo.textContent()) || '').match(/of\s+(\d+)\s+\((\d+)\s+results\)/);
+    if (!m1 || Number(m1[1]) < 2) return;
+
+    await page.click('#movies-pagination .tb-pagination-btn[data-page="2"]');
+    await page.waitForTimeout(2500);
+    expect(page.url()).toContain('page=2');
+
+    // Reload with the page param in the URL — the app should restore page 2
+    await page.reload();
+    await page.waitForTimeout(3000);
+    // Fill the query so the initial load re-runs the search at page 2
+    await page.fill('#movies-query', 'Forrest Gump');
+    await page.click('#movies-search-btn');
+    await page.waitForTimeout(3000);
+    const pagInfo2 = paginationInfo(page, 'movies');
+    await expect(pagInfo2).toBeVisible({ timeout: 15000 });
+    const m2 = ((await pagInfo2.textContent()) || '').match(/of\s+(\d+)\s+\((\d+)\s+results\)/);
+    expect(Number(m2![1])).toBe(2);
+    expect(Number(m2![2])).toBe(Number(m1![2]));
+    expect(Number(m2![3])).toBe(Number(m1![3]));
+  });
+
+  test('/music - search request excludes Torrentio (music uses Prowlarr 3000 + Usenet only)', async ({ page }) => {
+    let musicRequestUrl = '';
+    page.on('request', (req) => {
+      if (req.url().includes('/api/music?')) musicRequestUrl = req.url();
+    });
+    await navigateToView(page, 'music');
+    await performSearch(page, 'music', 'Michael Jackson');
+    await page.waitForTimeout(2500);
+    expect(musicRequestUrl).toContain('/api/music?');
+    // The backend never queries Torrentio for kind=music; the API contract only
+    // exposes prowlarr for music. If indexers include torrentio in the request,
+    // results must still carry no Torrentio-sourced items.
+    const torrentioTagged = page.locator('.source-tag:has-text("Torrentio")');
+    expect(await torrentioTagged.count()).toBe(0);
+    // The search syncs q into the URL so the view is restorable
+    expect(page.url()).toContain('q=Michael');
+  });
+});

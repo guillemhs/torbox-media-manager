@@ -10,6 +10,52 @@ let calendarRequest = 0;
 
 // ── Get selected source(s) (Indexers/Usenet with sub-type) ──
 // Returns all checked checkboxes as arrays
+const INDEXER_ALL = ['prowlarr', 'torrentio'];
+const USENET_ALL = ['NZBGeek', 'NZBIndex', 'Binsearch'];
+
+function syncAllToChildren(name, group, children, checked) {
+  children.forEach(subType => {
+    document.querySelectorAll(`input[name="${name}"][value="${group}:${subType.toLowerCase()}"]`)
+      .forEach(cb => { cb.checked = checked; });
+  });
+}
+
+// Wire every "*:all" checkbox so toggling it checks/unchecks its children,
+// and checking all children re-checks the "all" box.
+export function initSourceCheckboxes() {
+  document.querySelectorAll('input[type="checkbox"][name$="-source"]').forEach(cb => {
+    const [type, subType] = cb.value.split(':');
+    if (subType !== 'all') return;
+    cb.addEventListener('change', () => {
+      if (type === 'indexers') syncAllToChildren(cb.name, 'indexers', INDEXER_ALL, cb.checked);
+      if (type === 'usenet') syncAllToChildren(cb.name, 'usenet', USENET_ALL, cb.checked);
+    });
+  });
+
+  // When a child is toggled manually, update the "all" box to match.
+  document.querySelectorAll('input[type="checkbox"][name$="-source"]').forEach(cb => {
+    const [type, subType] = cb.value.split(':');
+    if (subType === 'all') return;
+    cb.addEventListener('change', () => {
+      const allChildren = type === 'indexers' ? INDEXER_ALL : type === 'usenet' ? USENET_ALL : [];
+      if (!allChildren.length) return;
+      const allBox = document.querySelector(`input[name="${cb.name}"][value="${type}:all"]`);
+      if (!allBox) return;
+      const childBoxes = allChildren.map(s => document.querySelector(`input[name="${cb.name}"][value="${type}:${s.toLowerCase()}"]`));
+      allBox.checked = childBoxes.every(box => box && box.checked);
+    });
+  });
+}
+
+// Initialize children from the "all" state on load (indexers:all starts checked).
+function initSourceCheckboxStates() {
+  document.querySelectorAll('input[type="checkbox"][name$="-source"][value$="all"]').forEach(allBox => {
+    const [type] = allBox.value.split(':');
+    if (type === 'indexers') syncAllToChildren(allBox.name, 'indexers', INDEXER_ALL, allBox.checked);
+    if (type === 'usenet') syncAllToChildren(allBox.name, 'usenet', USENET_ALL, allBox.checked);
+  });
+}
+
 export function getSelectedSource(prefix = '') {
   const name = prefix ? `${prefix}source` : 'source';
   const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
@@ -25,8 +71,7 @@ export function getSelectedSource(prefix = '') {
     if (type === 'indexers') {
       if (!sources.includes('indexers')) sources.push('indexers');
       if (subType === 'all') {
-        if (!indexers.includes('prowlarr')) indexers.push('prowlarr');
-        if (!indexers.includes('torrentio')) indexers.push('torrentio');
+        INDEXER_ALL.forEach(s => { if (!indexers.includes(s)) indexers.push(s); });
       } else {
         if (!indexers.includes(subType)) indexers.push(subType);
       }
@@ -35,9 +80,7 @@ export function getSelectedSource(prefix = '') {
     if (type === 'usenet') {
       if (!sources.includes('usenet')) sources.push('usenet');
       if (subType === 'all') {
-        if (!usenetSource.includes('NZBGeek')) usenetSource.push('NZBGeek');
-        if (!usenetSource.includes('NZBIndex')) usenetSource.push('NZBIndex');
-        if (!usenetSource.includes('Binsearch')) usenetSource.push('Binsearch');
+        USENET_ALL.forEach(s => { if (!usenetSource.includes(s)) usenetSource.push(s); });
       } else {
         if (!usenetSource.includes(subType)) usenetSource.push(subType);
       }
@@ -557,3 +600,7 @@ document.addEventListener('click', (event) => {
 
 // ── Popstate ──
 window.addEventListener('popstate', routeFromLocation);
+
+// ── Source checkbox "all" <-> children sync ──
+initSourceCheckboxStates();
+initSourceCheckboxes();

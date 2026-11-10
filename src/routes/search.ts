@@ -24,15 +24,15 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
   const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
   const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
 
-  console.log('[USENET-PIPELINE] Search indexers:', { query, kind, indexers, sources });
-
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
+  const categoryMode = 'name';
+  const fixedCategory = '';
 
   try {
     const combined: Array<Record<string, unknown> & { _source: string }> = [];
     const warnings: string[] = [];
 
-    // Local MusicBrainz search
+    // 1. Local MusicBrainz search
     if (sources.includes('local') && (kind === 'all' || kind === 'music')) {
       const musicResult = await searchMusicMetadata(query);
       for (const item of musicResult) {
@@ -40,177 +40,155 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
       }
     }
 
-    // Indexer/Torrent search
+    // 2. Indexer/Torrent search
     if (sources.includes('indexers') && hasIndexerConfig && (kind === 'all' || kind === 'torrents' || kind === 'movie' || kind === 'series' || kind === 'music')) {
       try {
         let torrentCandidates: TorrentCandidate[] = [];
         const sourceNames: string[] = [];
+        const searches: Promise<unknown>[] = [];
+        const providerNames: string[] = [];
 
-        if (kind === 'music' || kind === 'all') {
-          const musicTorrents = await searchMusicTorrents(query, indexers, page.limit, page.offset);
-          torrentCandidates.push(...musicTorrents);
-          if (indexers.includes('prowlarr')) sourceNames.push('Prowlarr');
-          if (indexers.includes('torrentio')) sourceNames.push('Torrentio');
-        }
-
-        if (kind === 'movie' || kind === 'series' || kind === 'all') {
-          const localResults = await searchTitles({ limit: 5, q: query, kind: kind === 'all' ? 'all' : kind });
-          if (localResults.items.length > 0) {
-            const firstResult = localResults.items[0] as { imdbId: string; titleType: string; primaryTitle: string };
-            const imdbId = firstResult.imdbId;
-            const mediaKind = firstResult.titleType.startsWith('tv') ? 'series' : 'movie';
-
-            const searches: Promise<unknown>[] = [];
-            const providerNames: string[] = [];
-
-            if (indexers.includes('torrentio')) {
-              console.log('[USENET-PIPELINE] Calling Torrentio:', { query, imdbId, kind: mediaKind });
-              searches.push(searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset));
-              providerNames.push('Torrentio');
-            }
-            if (indexers.includes('prowlarr')) {
-              console.log('[USENET-PIPELINE] Calling Prowlarr:', { query, imdbId, kind: mediaKind });
-              searches.push(searchIndexerTorrents(
-                mediaKind === 'series' ? `${firstResult.primaryTitle} S01` : firstResult.primaryTitle,
-                mediaKind === 'series' ? 'tvsearch' : 'movie',
-                [mediaKind === 'series' ? '5000' : '2000'],
-                page.limit,
-                page.offset,
-              ));
-              providerNames.push('Prowlarr');
-            }
-
-            const searchResults = await Promise.allSettled(searches);
-            const successful: TorrentCandidate[] = searchResults.flatMap((result) =>
-              result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []
-            );
-            const sourceWarnings = searchResults.flatMap((result, index) => result.status === 'rejected'
-              ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`]
-              : []);
-            warnings.push(...sourceWarnings);
-
-            const unique = new Map<string, TorrentCandidate>();
-            for (const candidate of successful) {
-              const existing = unique.get(candidate.hash);
-              unique.set(candidate.hash, existing ? {
-                ...existing,
-                seeders: existing.seeders ?? candidate.seeders,
-                leechers: existing.leechers ?? candidate.leechers,
-                size: existing.size ?? candidate.size,
-                downloadToken: existing.downloadToken ?? candidate.downloadToken,
-              } : candidate);
-            }
-            torrentCandidates.push(...[...unique.values()]);
-          } else if (hasIndexerConfig) {
-            // Determine media kind for Torrentio queries
-            const mediaKind = kind === 'series' ? 'series' : 'movie';
-            const searches: Promise<unknown>[] = [];
-            const providerNames: string[] = [];
-
-            if (indexers.includes('prowlarr')) {
-              searches.push(searchTorrentsViaProwlarr(query, page.limit, page.offset));
-              providerNames.push('Prowlarr');
-            }
-
-            if (indexers.includes('torrentio')) {
-              // Torrentio supports text search via Stremio addon
-              // Call Torrentio with the text query directly (no IMDb ID needed)
-              console.log('[search.ts] Calling Torrentio:', { query, kind: mediaKind });
-              searches.push(searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset));
-              providerNames.push('Torrentio');
-            }
-
-            try {
-              const searchResults = await Promise.allSettled(searches);
-              const successful: TorrentCandidate[] = searchResults.flatMap((result) =>
-                result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []
-              );
-              const sourceWarnings = searchResults.flatMap((result, index) => result.status === 'rejected'
-                ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`]
-                : []);
-              warnings.push(...sourceWarnings);
-
-              const unique = new Map<string, TorrentCandidate>();
-              for (const candidate of successful) {
-                const existing = unique.get(candidate.hash);
-                unique.set(candidate.hash, existing ? {
-                  ...existing,
-                  seeders: existing.seeders ?? candidate.seeders,
-                  leechers: existing.leechers ?? candidate.leechers,
-                  size: existing.size ?? candidate.size,
-                  downloadToken: existing.downloadToken ?? candidate.downloadToken,
-                } : candidate);
-              }
-              torrentCandidates.push(...[...unique.values()]);
-            } catch (error) {
-              warnings.push(error instanceof Error ? error.message : 'Indexer fallback search failed');
-            }
+        if (indexers.includes('prowlarr')) {
+          const candidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, indexerCategories);
+          for (const candidate of candidates) {
+            const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
+            torrentCandidates.push({
+              name: candidate.name,
+              _type: 'torrent',
+              seeders: candidate.seeders,
+              leechers: candidate.leechers,
+              size: candidate.size,
+              source: candidate.source,
+              _category: category,
+              ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
+              ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
+            });
           }
+          providerNames.push('Prowlarr');
         }
 
-        const torrentSource = sourceNames.join(' + ') || 'Torrentio + Prowlarr';
-        for (const candidate of torrentCandidates) {
-          combined.push({ ...candidate, _source: 'torrents' });
-        }
-      } catch (error) {
-        warnings.push(error instanceof Error ? error.message : 'Indexer search failed');
-      }
-    }
-
-    // Usenet search
-    if (sources.includes('usenet') && (kind === 'all' || kind === 'usenet')) {
-      try {
-        const usenetParam = scalar(req.query.usenetSource) || 'all';
-        const usenetSources = usenetParam.split(',').filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s));
-        const useUsenetSources = usenetSources.length > 0 ? usenetSources : ['NZBGeek', 'NZBIndex', 'Binsearch'];
-        for (const source of useUsenetSources) {
+        if (indexers.includes('torrentio')) {
+          const imdbIds: string[] = [];
           try {
-            const usenetResult = await searchUsenet(query, source as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
-            const candidates = usenetResult.candidates || [];
-            for (const candidate of candidates) {
-              combined.push({ ...candidate, _source: 'usenet' });
-            }
-            if (usenetResult.warnings) {
-              warnings.push(...usenetResult.warnings);
+            const localResults = await searchTitles({ ...page, q: query, kind: kind === 'all' ? 'all' : kind });
+            for (const item of localResults.items) {
+              const imdbId = (item as Record<string, unknown>).imdbId;
+              if (imdbId && !imdbIds.includes(imdbId)) {
+                imdbIds.push(imdbId);
+              }
             }
           } catch (error) {
-            console.warn(`[search.ts] Usenet search ${source} failed:`, error instanceof Error ? error.message : String(error));
+            console.warn('[search.ts] Local IMDb search failed for Torrentio:', error instanceof Error ? error.message : String(error));
+          }
+
+          if (imdbIds.length === 0) {
+            console.warn('[search.ts] Torrentio selected but no IMDb ID available; skipping Torrentio');
+          } else {
+            const mediaKind = kind === 'series' ? 'series' : 'movie';
+            for (const imdbId of imdbIds) {
+              try {
+                const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset);
+                for (const candidate of torrentioResults) {
+                  torrentCandidates.push(candidate);
+                }
+              } catch (error) {
+                console.warn('[search.ts] Torrentio search failed for IMDb', { imdbId, error: error instanceof Error ? error.message : String(error) });
+              }
+            }
+            providerNames.push('Torrentio');
           }
         }
-      } catch (error) {
-        warnings.push(error instanceof Error ? error.message : 'Usenet search failed');
+
+        try {
+          const searchResults = await Promise.allSettled(searches);
+          const successful: TorrentCandidate[] = searchResults.flatMap((result) =>
+            result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []
+          );
+          const sourceWarnings = searchResults.flatMap((result, index) => result.status === 'rejected'
+            ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`]
+            : []);
+          warnings.push(...sourceWarnings);
+
+          const unique = new Map<string, TorrentCandidate>();
+          for (const candidate of successful) {
+            const existing = unique.get(candidate.hash);
+            unique.set(candidate.hash, existing ? {
+              ...existing,
+              seeders: existing.seeders ?? candidate.seeders,
+              leechers: existing.leechers ?? candidate.leechers,
+              size: existing.size ?? candidate.size,
+              downloadToken: existing.downloadToken ?? candidate.downloadToken,
+            } : candidate);
+          }
+          torrentCandidates.push(...[...unique.values()]);
+        } catch (error) {
+          warnings.push(error instanceof Error ? error.message : 'Indexer fallback search failed');
+        }
       }
+
+      const torrentSource = sourceNames.join(' + ') || 'Torrentio + Prowlarr';
+      for (const candidate of torrentCandidates) {
+        combined.push({ ...candidate, _source: 'torrents' });
+      }
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : 'Indexer search failed');
     }
-
-    // Group results by source for frontend compatibility
-    const movies = combined.filter(item => item._source === 'local-movies');
-    const shows = combined.filter(item => item._source === 'local-shows');
-    const music = combined.filter(item => item._source === 'local-music');
-    const torrents = combined.filter(item => item._source === 'torrents');
-    const usenet = combined.filter(item => item._source === 'usenet');
-
-    // Apply pagination to each group
-    const paginatedMovies = movies.slice(page.offset, page.offset + page.limit);
-    const paginatedShows = shows.slice(page.offset, page.offset + page.limit);
-    const paginatedMusic = music.slice(page.offset, page.offset + page.limit);
-    const paginatedTorrents = torrents.slice(page.offset, page.offset + page.limit);
-    const paginatedUsenet = usenet.slice(page.offset, page.offset + page.limit);
-
-    res.setHeader('Cache-Control', 'private, no-store');
-    return res.json({
-      query,
-      kind,
-      sources,
-      indexers,
-      page: { limit: page.limit, offset: page.offset },
-      movies: { items: paginatedMovies, total: movies.length },
-      shows: { items: paginatedShows, total: shows.length },
-      music: { items: paginatedMusic, total: music.length },
-      torrents: { items: paginatedTorrents, total: torrents.length },
-      usenet: { items: paginatedUsenet, total: usenet.length },
-      warnings: warnings.length > 0 ? warnings : undefined,
-    });
-  } catch (error) {
-    return res.status(502).json({ error: error instanceof Error ? error.message : 'Search failed.' });
   }
+
+  // 3. Usenet search
+  if (sources.includes('usenet') && (kind === 'all' || kind === 'usenet')) {
+    try {
+      const usenetParam = scalar(req.query.usenetSource) || 'all';
+      const usenetSources = usenetParam.split(',').filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s));
+      const useUsenetSources = usenetSources.length > 0 ? usenetSources : ['NZBGeek', 'NZBIndex', 'Binsearch'];
+      for (const source of useUsenetSources) {
+        try {
+          const usenetResult = await searchUsenet(query, source as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
+          const candidates = usenetResult.candidates || [];
+          for (const candidate of candidates) {
+            combined.push({ ...candidate, _source: 'usenet' });
+          }
+          if (usenetResult.warnings) {
+            warnings.push(...usenetResult.warnings);
+          }
+        } catch (error) {
+          console.warn(`[search.ts] Usenet search ${source} failed:`, error instanceof Error ? error.message : String(error));
+        }
+      }
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : 'Usenet search failed');
+    }
+  }
+
+  // Group results by source for frontend compatibility
+  const movies = combined.filter(item => item._source === 'local-movies');
+  const shows = combined.filter(item => item._source === 'local-shows');
+  const music = combined.filter(item => item._source === 'local-music');
+  const torrents = combined.filter(item => item._source === 'torrents');
+  const usenet = combined.filter(item => item._source === 'usenet');
+
+  // Apply pagination to each group
+  const paginatedMovies = movies.slice(page.offset, page.offset + page.limit);
+  const paginatedShows = shows.slice(page.offset, page.offset + page.limit);
+  const paginatedMusic = music.slice(page.offset, page.offset + page.limit);
+  const paginatedTorrents = torrents.slice(page.offset, page.offset + page.limit);
+  const paginatedUsenet = usenet.slice(page.offset, page.offset + page.limit);
+
+  res.setHeader('Cache-Control', 'private, no-store');
+  return res.json({
+    query,
+    kind,
+    sources,
+    indexers,
+    page: { limit: page.limit, offset: page.offset },
+    movies: { items: paginatedMovies, total: movies.length },
+    shows: { items: paginatedShows, total: shows.length },
+    music: { items: paginatedMusic, total: music.length },
+    torrents: { items: paginatedTorrents, total: torrents.length },
+    usenet: { items: paginatedUsenet, total: usenet.length },
+    warnings: warnings.length > 0 ? warnings : undefined,
+  });
+} catch (error) {
+  return res.status(502).json({ error: error instanceof Error ? error.message : 'Search failed.' });
+}
 };

@@ -24,6 +24,8 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
   const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
   const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
 
+  console.log('[USENET-PIPELINE] Search indexers:', { query, kind, indexers, sources });
+
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
 
   try {
@@ -62,10 +64,12 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
             const providerNames: string[] = [];
 
             if (indexers.includes('torrentio')) {
+              console.log('[USENET-PIPELINE] Calling Torrentio:', { query, imdbId, kind: mediaKind });
               searches.push(searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset));
               providerNames.push('Torrentio');
             }
             if (indexers.includes('prowlarr')) {
+              console.log('[USENET-PIPELINE] Calling Prowlarr:', { query, imdbId, kind: mediaKind });
               searches.push(searchIndexerTorrents(
                 mediaKind === 'series' ? `${firstResult.primaryTitle} S01` : firstResult.primaryTitle,
                 mediaKind === 'series' ? 'tvsearch' : 'movie',

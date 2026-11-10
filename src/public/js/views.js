@@ -118,6 +118,8 @@ export async function doSearch(view, page = 1) {
   }
   setStatus(view, 'Searching…');
 
+  console.log('[USENET-PIPELINE] Frontend search:', { view, query, sources, indexers, usenetSource });
+
   try {
     let data;
     if (view === 'browse') {

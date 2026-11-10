@@ -52,13 +52,13 @@ function prowlarrSearchUrl(): URL | null {
   }
   return null;
 }
-export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
-  if (!/^tt\d+$/.test(imdbId)) throw new Error('A valid IMDb ID is required for torrent search.');
+export async function searchTorrentCandidates(query: string, kind: 'movie' | 'series', season = 1, limit = 40, offset = 0): Promise<TorrentCandidate[]> {
+  // Torrentio Stremio addon accepts both IMDb IDs and text queries
   if (kind === 'series' && (!Number.isSafeInteger(season) || season < 1 || season > 99)) {
     throw new Error('Season must be between 1 and 99.');
   }
 
-  const resourceId = kind === 'movie' ? imdbId : `${imdbId}:${season}:1`;
+  const resourceId = kind === 'movie' ? query : `${query}:${season}:1`;
   const base = (process.env.TORRENT_SEARCH_BASE_URL || 'https://torrentio.strem.fun').replace(/\/+$/, '');
   let response: Response;
   try {
@@ -90,7 +90,7 @@ export async function searchTorrentCandidates(imdbId: string, kind: 'movie' | 's
       : {};
     const name = [stream.title, hints.filename, stream.name]
       .find((candidate): candidate is string => typeof candidate === 'string' && candidate.trim().length > 0)?.trim()
-      || `${imdbId} · ${kind === 'series' ? `Season ${season}` : 'Torrent'}`;
+      || `${query} · ${kind === 'series' ? `Season ${season}` : 'Torrent'}`;
     const trackers = Array.isArray(stream.sources)
       ? stream.sources.filter((item): item is string => typeof item === 'string' && item.startsWith('tracker:')).map(item => `tr=${encodeQueryValue(item.slice(8))}`)
       : [];

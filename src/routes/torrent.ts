@@ -83,8 +83,9 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
     if (!successful.length && errors.length === searches.length) throw new Error(errors.join(' · '));
     const unique = new Map<string, typeof successful[number]>();
     for (const candidate of successful) {
-      const existing = unique.get(candidate.hash);
-      unique.set(candidate.hash, existing ? {
+      const hashKey = candidate.hash || '';
+      const existing = unique.get(hashKey);
+      unique.set(hashKey, existing ? {
         ...existing,
         seeders: existing.seeders ?? candidate.seeders,
         leechers: existing.leechers ?? candidate.leechers,

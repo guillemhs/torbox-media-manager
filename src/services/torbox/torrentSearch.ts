@@ -1,6 +1,6 @@
 export interface TorrentCandidate {
-  hash: string;
-  magnet: string;
+  hash?: string;
+  magnet?: string;
   name: string;
   seeders: number | null;
   leechers: number | null;
@@ -8,6 +8,7 @@ export interface TorrentCandidate {
   source: string;
   downloadToken?: string;
   imdbId?: string;
+  _category?: string;
 }
 
 function positiveNumber(value: unknown): number | null {

@@ -97,7 +97,7 @@ export async function doSearch(view, page = 1) {
 
   resetViewState(view);
 
-  const sourceSelection = getSelectedSource(view === 'browse' ? '' : `${view}-`);
+  const sourceSelection = getSelectedSource(`${view}-`);
   const { sources, indexers, usenetSource } = sourceSelection;
   if (sources.length === 0) {
     setStatus(view, 'Select at least one source.');

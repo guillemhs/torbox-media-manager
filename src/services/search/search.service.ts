@@ -71,46 +71,37 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
   }
 
   // 2. Indexer torrent search (Prowlarr and/or Torrentio)
-  let torrentResults: Array<Record<string, unknown>> = [];
   const indexerList = indexers || ['prowlarr', 'torrentio'];
   // Prowlarr needs Torznab config; Torrentio works standalone via its Stremio addon.
   const useProwlarr = indexerList.includes('prowlarr') && hasIndexerConfig;
   const useTorrentio = indexerList.includes('torrentio');
+
+  // Fetch a large batch (up to 100) from each provider, dedupe by hash across all
+  // of them, THEN slice for the requested page. Applying the page offset inside
+  // each provider call made totals change between pages (e.g. 74 results on page 1,
+  // 37 on page 2) because Torrentio ignores offset and returns the same streams.
+  const FETCH_LIMIT = 100;
+  const allTorrentCandidates: TorrentCandidate[] = [];
+  const seenHashes = new Set<string>();
+  const addTorrentCandidates = (candidates: TorrentCandidate[]) => {
+    for (const candidate of candidates) {
+      const key = candidate.hash || candidate.magnet || candidate.name;
+      if (key && !seenHashes.has(key)) {
+        seenHashes.add(key);
+        allTorrentCandidates.push(candidate);
+      }
+    }
+  };
+
   if (includeIndexers !== false && (useProwlarr || useTorrentio)) {
     try {
       if (useProwlarr) {
-        const candidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, indexerCategories);
-        for (const candidate of candidates) {
-          const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
-          torrentResults.push({
-            name: candidate.name,
-            _type: 'torrent',
-            seeders: candidate.seeders,
-            leechers: candidate.leechers,
-            size: candidate.size,
-            source: candidate.source,
-            _category: category,
-            ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
-            ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
-          });
-        }
+        addTorrentCandidates(await searchTorrentsViaProwlarr(query, FETCH_LIMIT, 0, indexerCategories));
       }
 
       if (useTorrentio) {
         // Torrentio's Stremio addon resolves movie/series streams by IMDb ID,
         // so resolve the text query to IMDb IDs via the local database first.
-        const torrentioCandidates: TorrentCandidate[] = [];
-        const seenTorrentKeys = new Set<string>();
-        const addTorrentioCandidates = (candidates: TorrentCandidate[]) => {
-          for (const candidate of candidates) {
-            const key = candidate.hash || candidate.magnet || candidate.name;
-            if (key && !seenTorrentKeys.has(key)) {
-              seenTorrentKeys.add(key);
-              torrentioCandidates.push(candidate);
-            }
-          }
-        };
-
         let imdbMatches: Array<Record<string, unknown>> = [];
         if (kind === 'movie' || kind === 'series' || kind === 'all') {
           try {
@@ -131,36 +122,21 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
             const season = imdbKind === 'series' ? (parsed.season ?? 1) : 1;
             const episode = imdbKind === 'series' ? (parsed.episode ?? 1) : 1;
             try {
-              addTorrentioCandidates(await searchTorrentCandidates(imdbId, imdbKind, season, page.limit, page.offset, episode));
+              addTorrentCandidates(await searchTorrentCandidates(imdbId, imdbKind, season, FETCH_LIMIT, 0, episode));
             } catch (error) {
               console.warn('[searchMedia] Torrentio search failed for IMDb', { imdbId, error: error instanceof Error ? error.message : String(error) });
             }
           }
         } else if (kind !== 'music') {
-          // Fallback: pass the text query without season/episode tokens (works with some addon setups).
+          // Fallback: pass the text query without season/episode tokens.
           try {
             const mediaKind = kind === 'series' ? 'series' : 'movie';
             const season = mediaKind === 'series' ? (parsed.season ?? 1) : 1;
             const episode = mediaKind === 'series' ? (parsed.episode ?? 1) : 1;
-            addTorrentioCandidates(await searchTorrentCandidates(titleQuery, mediaKind, season, page.limit, page.offset, episode));
+            addTorrentCandidates(await searchTorrentCandidates(titleQuery, mediaKind, season, FETCH_LIMIT, 0, episode));
           } catch (error) {
             console.warn('[searchMedia] Torrentio text search failed:', error instanceof Error ? error.message : String(error));
           }
-        }
-
-        for (const candidate of torrentioCandidates) {
-          const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
-          torrentResults.push({
-            name: candidate.name,
-            _type: 'torrent',
-            seeders: candidate.seeders,
-            leechers: candidate.leechers,
-            size: candidate.size,
-            source: candidate.source,
-            _category: category,
-            ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
-            ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
-          });
         }
       }
     } catch (error) {
@@ -168,8 +144,26 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
     }
   }
 
-  // 3. Usenet search
-  let usenetResults: Array<Record<string, unknown>> = [];
+  // Slice the deduped torrent list for the requested page; total stays stable across pages.
+  const torrentTotal = allTorrentCandidates.length;
+  const pageTorrents = allTorrentCandidates.slice(page.offset, page.offset + page.limit);
+  const torrentResults: Array<Record<string, unknown>> = pageTorrents.map((candidate) => {
+    const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
+    return {
+      name: candidate.name,
+      _type: 'torrent',
+      seeders: candidate.seeders,
+      leechers: candidate.leechers,
+      size: candidate.size,
+      source: candidate.source,
+      _category: category,
+      ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
+      ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
+    };
+  });
+
+  // 3. Usenet search — collect all, then slice for the requested page like torrents.
+  const allUsenetResults: Array<Record<string, unknown>> = [];
   if (includeUsenet !== false && hasIndexerConfig) {
     const useUsenetSources = usenetSources ? usenetSources : ['NZBGeek', 'NZBIndex', 'Binsearch'];
     try {
@@ -178,7 +172,7 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
           const usenetResult = await searchUsenet(query, source as 'all' | 'NZBIndex' | 'Binsearch', usenetLimit, 0);
           for (const candidate of usenetResult.candidates) {
             const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
-            usenetResults.push({
+            allUsenetResults.push({
               name: candidate.name,
               _type: 'usenet',
               source: candidate.source,
@@ -197,6 +191,8 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
       console.warn(`[searchMedia] usenet search unavailable:`, error instanceof Error ? error.message : String(error));
     }
   }
+  const usenetTotal = allUsenetResults.length;
+  const usenetResults = allUsenetResults.slice(page.offset, page.offset + page.limit);
 
   // 4. Combine and separate by type
   const allResults = [...localItems, ...torrentResults, ...usenetResults];
@@ -229,8 +225,8 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
     kind,
     results: {
       local: { items: localItems.slice(page.offset, page.offset + page.limit), total: localTotal },
-      torrents: { items: formattedTorrents, total: formattedTorrents.length },
-      usenet: { items: formattedUsenet, total: formattedUsenet.length },
+      torrents: { items: formattedTorrents, total: torrentTotal },
+      usenet: { items: formattedUsenet, total: usenetTotal },
     },
     torboxCacheCheckAvailable: Boolean(process.env.TORBOX_API_KEY?.trim()),
     ...(browseLink ? { browseLink } : {}),

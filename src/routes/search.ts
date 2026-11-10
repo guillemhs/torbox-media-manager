@@ -49,7 +49,8 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
         const providerNames: string[] = [];
 
         if (indexers.includes('prowlarr') && hasIndexerConfig) {
-          const candidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, undefined);
+          // Fetch a full batch (offset 0); the combined list is sliced per page at the end.
+          const candidates = await searchTorrentsViaProwlarr(query, 100, 0, undefined);
           for (const candidate of candidates) {
             const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
             torrentCandidates.push({
@@ -104,7 +105,7 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
               const season = mediaKind === 'series' ? (parsed.season ?? 1) : 1;
               const episode = mediaKind === 'series' ? (parsed.episode ?? 1) : 1;
               try {
-                const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, season, page.limit, page.offset, episode);
+                const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, season, 100, 0, episode);
                 for (const candidate of torrentioResults) {
                   torrentCandidates.push(candidate);
                 }
@@ -143,8 +144,23 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
           warnings.push(error instanceof Error ? error.message : 'Indexer fallback search failed');
         }
 
-        const torrentSource = sourceNames.join(' + ') || 'Torrentio + Prowlarr';
+        // Dedupe by hash across all providers/IMDb IDs before paginating, so the
+        // total count stays stable across pages.
+        const deduped = new Map<string, typeof torrentCandidates[number]>();
         for (const candidate of torrentCandidates) {
+          const key = (candidate as { hash?: string }).hash || (candidate as { magnet?: string }).magnet || candidate.name;
+          if (!key) continue;
+          const existing = deduped.get(key);
+          deduped.set(key, existing ? {
+            ...existing,
+            seeders: existing.seeders ?? candidate.seeders,
+            leechers: existing.leechers ?? candidate.leechers,
+            size: existing.size ?? candidate.size,
+          } : candidate);
+        }
+
+        const torrentSource = sourceNames.join(' + ') || 'Torrentio + Prowlarr';
+        for (const candidate of deduped.values()) {
           combined.push({ ...candidate, _source: 'torrents' });
         }
       } catch (error) {

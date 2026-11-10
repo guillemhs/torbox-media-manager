@@ -148,8 +148,8 @@ describe('searchMedia', () => {
       categoryMode: 'name',
     });
 
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 50, 0, 1);
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0944947', 'series', 1, 50, 0, 1);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 100, 0, 1);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0944947', 'series', 1, 100, 0, 1);
     expect(result.results.torrents.total).toBe(2);
     expect(result.results.torrents.items[0].source).toBe('Torrentio');
   });
@@ -196,7 +196,7 @@ describe('searchMedia', () => {
       categoryMode: 'name',
     });
 
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('space jam', 'movie', 1, 20, 0, 1);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('space jam', 'movie', 1, 100, 0, 1);
     expect(result.results.torrents.total).toBe(1);
   });
 
@@ -222,7 +222,7 @@ describe('searchMedia', () => {
     });
 
     expect(searchTorrentsViaProwlarr).not.toHaveBeenCalled();
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0179947', 'movie', 1, 20, 0, 1);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0179947', 'movie', 1, 100, 0, 1);
     expect(result.results.torrents.total).toBe(1);
   });
 
@@ -246,7 +246,7 @@ describe('searchMedia', () => {
     });
 
     expect(searchTitles).toHaveBeenCalledWith({ limit: 20, offset: 0, q: 'silo', kind: 'series' });
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt14710174', 'series', 3, 20, 0, 1);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt14710174', 'series', 3, 100, 0, 1);
     expect(result.results.torrents.total).toBe(1);
     expect(result.results.local.items[0].primaryTitle).toBe('Silo');
   });
@@ -268,7 +268,7 @@ describe('searchMedia', () => {
       categoryMode: 'name',
     });
 
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0903747', 'series', 3, 20, 0, 5);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt0903747', 'series', 3, 100, 0, 5);
   });
 
   it('ignores season tokens for movie Torrentio calls', async () => {
@@ -288,7 +288,7 @@ describe('searchMedia', () => {
       categoryMode: 'name',
     });
 
-    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 20, 0, 1);
+    expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 100, 0, 1);
   });
 });
 
@@ -301,5 +301,48 @@ describe('parseSeasonEpisode', () => {
     expect(parseSeasonEpisode('inception')).toEqual({ baseQuery: 'inception', season: undefined, episode: undefined });
     expect(parseSeasonEpisode('s01')).toEqual({ baseQuery: '', season: 1, episode: undefined });
   });
-});
 
+  it('keeps total stable across pages: 74 Torrentio streams -> page 1 and page 2 both report total 74', async () => {
+    (searchTitles as any).mockResolvedValue({
+      items: [{ imdbId: 'tt9999999', primaryTitle: 'Nocturne', titleType: 'tvSeries', startYear: 2022 }],
+      total: 1,
+    });
+    const streams = Array.from({ length: 74 }, (_, i) => ({
+      hash: ('hash' + String(i).padStart(2, '0') + 'a'.repeat(34)).slice(0, 40),
+      magnet: `magnet:?xt=urn:btih:hash${i}`,
+      name: `Nocturne S01E02 release ${i}`,
+      seeders: 100 - i, leechers: i, size: 1000 + i, source: 'Torrentio',
+    }));
+    (searchTorrentCandidates as any).mockResolvedValue(streams);
+
+    const base = {
+      query: 'nocturne s01e02',
+      kind: 'series' as const,
+      includeLocal: false,
+      includeUsenet: false,
+      indexers: ['torrentio'],
+      categoryMode: 'name' as const,
+    };
+
+    const page1 = await searchMedia({ ...base, page: { limit: 20, offset: 0 } });
+    const page2 = await searchMedia({ ...base, page: { limit: 20, offset: 20 } });
+    const page4 = await searchMedia({ ...base, page: { limit: 20, offset: 60 } });
+
+    for (const call of (searchTorrentCandidates as any).mock.calls) {
+      expect(call[3]).toBe(100);
+      expect(call[4]).toBe(0);
+    }
+
+    expect(page1.results.torrents.total).toBe(74);
+    expect(page1.results.torrents.items.length).toBe(20);
+    expect(page2.results.torrents.total).toBe(74);
+    expect(page2.results.torrents.items.length).toBe(20);
+    expect(page4.results.torrents.total).toBe(74);
+    expect(page4.results.torrents.items.length).toBe(14);
+
+    const p1Names = new Set(page1.results.torrents.items.map((t: any) => t.name));
+    for (const t of page2.results.torrents.items as any[]) {
+      expect(p1Names.has(t.name)).toBe(false);
+    }
+  });
+});

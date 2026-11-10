@@ -8,12 +8,27 @@ import {
 
 let calendarRequest = 0;
 
-// ── Get selected indexers ──
-export function getSelectedIndexers(prefix = '') {
-  const indexers = [];
-  if ($(`#${prefix}indexer-prowlarr`)?.checked) indexers.push('prowlarr');
-  if ($(`#${prefix}indexer-torrentio`)?.checked) indexers.push('torrentio');
-  return indexers;
+// ── Get selected source (Indexers/Usenet with sub-type) ──
+export function getSelectedSource(prefix = '') {
+  const name = prefix ? `${prefix}source` : 'source';
+  const radio = document.querySelector(`input[name="${name}"]:checked`);
+  if (!radio) return { sources: [], indexers: [], usenetSource: 'all' };
+
+  const value = radio.value; // e.g. 'indexers:all', 'usenet:nzbgeek'
+  const [type, subType] = value.split(':');
+
+  if (type === 'indexers') {
+    if (subType === 'all') {
+      return { sources: ['indexers'], indexers: ['prowlarr', 'torrentio'], usenetSource: 'all' };
+    }
+    return { sources: ['indexers'], indexers: [subType], usenetSource: 'all' };
+  }
+
+  if (type === 'usenet') {
+    return { sources: ['usenet'], indexers: [], usenetSource: subType };
+  }
+
+  return { sources: [], indexers: [], usenetSource: 'all' };
 }
 
 // ── Get master indexers checkbox state ──
@@ -82,20 +97,13 @@ export async function doSearch(view, page = 1) {
 
   resetViewState(view);
 
-  const sources = [];
-  const indexersCheckboxId = view === 'browse' ? 'source-indexers' : `${view}-source-indexers`;
-  const usenetCheckboxId = view === 'browse' ? 'source-usenet' : `${view}-source-usenet`;
-  const indexersCheckbox = $(`#${indexersCheckboxId}`);
-  const usenetCheckbox = $(`#${usenetCheckboxId}`);
-  if (indexersCheckbox && indexersCheckbox.checked) sources.push('indexers');
-  if (usenetCheckbox && usenetCheckbox.checked) sources.push('usenet');
+  const sourceSelection = getSelectedSource(view === 'browse' ? '' : `${view}-`);
+  const { sources, indexers, usenetSource } = sourceSelection;
   if (sources.length === 0) {
     setStatus(view, 'Select at least one source.');
     return;
   }
 
-  const usenetSource = $(`#${view === 'browse' ? 'usenet-source' : `${view}-usenet-source`}`)?.value || 'all';
-  const indexers = getSelectedIndexers(view === 'browse' ? '' : `${view}-`);
   const limit = 20;
   const offset = (page - 1) * limit;
 

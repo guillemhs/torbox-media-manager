@@ -4,7 +4,7 @@ import {
   renderSearchItem, renderTorboxLibrary,
 } from './render.js';
 import {
-  getSelectedIndexers, getUsenetSource, goToPage, doSearch, searchLocal,
+  getSelectedSource, goToPage, doSearch, searchLocal,
   searchUnified, loadView, loadCalendar, shiftCalendarDay,
   routeFromLocation, setRoute, searchRoute, loadLibraryPage, loadTitle, loadMusicDetail,
 } from './views.js';

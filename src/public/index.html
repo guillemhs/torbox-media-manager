@@ -149,6 +149,62 @@
         font-weight: 600;
       }
 
+      /* ── Source selection pills ── */
+      .tb-source-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .tb-source-section-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--tb-text-muted);
+        margin-top: 0.5rem;
+        margin-bottom: 0.25rem;
+        padding-left: 0.25rem;
+        flex-basis: 100%;
+      }
+
+      .tb-source-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .tb-source-pill input[type="radio"] {
+        display: none;
+      }
+
+      .tb-source-pill span {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--tb-text-muted);
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 2rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: block;
+        white-space: nowrap;
+      }
+
+      .tb-source-pill span:hover {
+        background: var(--tb-surface-hover);
+        border-color: var(--tb-accent);
+      }
+
+      .tb-source-pill input[type="radio"]:checked + span {
+        background: var(--tb-accent);
+        color: #fff;
+        border-color: var(--tb-accent);
+        box-shadow: 0 2px 4px rgba(13, 110, 253, 0.3);
+      }
+
       /* ── Hero search (initial load) ── */
       .tb-hero {
         min-height: 50vh;
@@ -692,17 +748,37 @@
                 <button id="browse-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="browse-discover-btn" class="btn btn-tb-secondary">Discover</button>
               </div>
-              <div class="tb-source-select mt-2">
-                <label class="form-check form-check-inline me-3"><input id="source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-                <label class="form-check form-check-inline me-3"><input id="source-indexer-prowlarr" type="checkbox" class="form-check-input" checked /> Prowlarr</label>
-                <label class="form-check form-check-inline me-3"><input id="source-indexer-torrentio" type="checkbox" class="form-check-input" checked /> Torrentio</label>
-                <label class="form-check form-check-inline me-3"><input id="source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
-                <select id="usenet-source" class="form-select form-select-dark form-select-sm ms-2" style="width: auto; display: inline-block;">
-                  <option value="all">All Usenet</option>
-                  <option value="NZBGeek">NZBGeek</option>
-                  <option value="NZBIndex">NZBIndex</option>
-                  <option value="Binsearch">Binsearch</option>
-                </select>
+              <div class="tb-source-pills mt-2">
+                <span class="tb-source-section-label">Indexers</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="browse-source" value="indexers:all" checked />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="browse-source" value="indexers:prowlarr" />
+                  <span>Prowlarr</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="browse-source" value="indexers:torrentio" />
+                  <span>Torrentio</span>
+                </label>
+                <span class="tb-source-section-label">Usenet</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="browse-source" value="usenet:all" />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="browse-source" value="usenet:nzbgeek" />
+                  <span>NZBGeek</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="browse-source" value="usenet:nzbindex" />
+                  <span>NZBIndex</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="browse-source" value="usenet:binsearch" />
+                  <span>Binsearch</span>
+                </label>
               </div>
               <span class="tb-route-badge" id="browse-route-badge">Filtering: All Categories</span>
             </div>
@@ -731,17 +807,37 @@
                 <button id="movies-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="movies-discover-btn" class="btn btn-tb-secondary">Discover</button>
               </div>
-              <div class="tb-source-select mt-2">
-                <label class="form-check form-check-inline me-3"><input id="movies-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-                <label class="form-check form-check-inline me-3"><input id="movies-source-indexer-prowlarr" type="checkbox" class="form-check-input" checked /> Prowlarr</label>
-                <label class="form-check form-check-inline me-3"><input id="movies-source-indexer-torrentio" type="checkbox" class="form-check-input" checked /> Torrentio</label>
-                <label class="form-check form-check-inline me-3"><input id="movies-source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
-                <select id="movies-usenet-source" class="form-select form-select-dark form-select-sm ms-2" style="width: auto; display: inline-block;">
-                  <option value="all">All Usenet</option>
-                  <option value="NZBGeek">NZBGeek</option>
-                  <option value="NZBIndex">NZBIndex</option>
-                  <option value="Binsearch">Binsearch</option>
-                </select>
+              <div class="tb-source-pills mt-2">
+                <span class="tb-source-section-label">Indexers</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="movies-source" value="indexers:all" checked />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="movies-source" value="indexers:prowlarr" />
+                  <span>Prowlarr</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="movies-source" value="indexers:torrentio" />
+                  <span>Torrentio</span>
+                </label>
+                <span class="tb-source-section-label">Usenet</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="movies-source" value="usenet:all" />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="movies-source" value="usenet:nzbgeek" />
+                  <span>NZBGeek</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="movies-source" value="usenet:nzbindex" />
+                  <span>NZBIndex</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="movies-source" value="usenet:binsearch" />
+                  <span>Binsearch</span>
+                </label>
               </div>
               <span class="tb-route-badge" id="movies-route-badge">Filtering: Movies Category 2000</span>
             </div>
@@ -770,17 +866,37 @@
                 <button id="shows-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="shows-discover-btn" class="btn btn-tb-secondary">Discover</button>
               </div>
-              <div class="tb-source-select mt-2">
-                <label class="form-check form-check-inline me-3"><input id="shows-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-                <label class="form-check form-check-inline me-3"><input id="shows-source-indexer-prowlarr" type="checkbox" class="form-check-input" checked /> Prowlarr</label>
-                <label class="form-check form-check-inline me-3"><input id="shows-source-indexer-torrentio" type="checkbox" class="form-check-input" checked /> Torrentio</label>
-                <label class="form-check form-check-inline me-3"><input id="shows-source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
-                <select id="shows-usenet-source" class="form-select form-select-dark form-select-sm ms-2" style="width: auto; display: inline-block;">
-                  <option value="all">All Usenet</option>
-                  <option value="NZBGeek">NZBGeek</option>
-                  <option value="NZBIndex">NZBIndex</option>
-                  <option value="Binsearch">Binsearch</option>
-                </select>
+              <div class="tb-source-pills mt-2">
+                <span class="tb-source-section-label">Indexers</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="shows-source" value="indexers:all" checked />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="shows-source" value="indexers:prowlarr" />
+                  <span>Prowlarr</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="shows-source" value="indexers:torrentio" />
+                  <span>Torrentio</span>
+                </label>
+                <span class="tb-source-section-label">Usenet</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="shows-source" value="usenet:all" />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="shows-source" value="usenet:nzbgeek" />
+                  <span>NZBGeek</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="shows-source" value="usenet:nzbindex" />
+                  <span>NZBIndex</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="shows-source" value="usenet:binsearch" />
+                  <span>Binsearch</span>
+                </label>
               </div>
               <span class="tb-route-badge" id="shows-route-badge">Filtering: TV Category 5000</span>
             </div>
@@ -809,17 +925,37 @@
                 <button id="music-search-btn" class="btn btn-tb-primary">Search</button>
                 <button id="music-discover-btn" class="btn btn-tb-secondary">Discover</button>
               </div>
-              <div class="tb-source-select mt-2">
-                <label class="form-check form-check-inline me-3"><input id="music-source-indexers" type="checkbox" class="form-check-input" checked /> Indexers</label>
-                <label class="form-check form-check-inline me-3"><input id="music-source-indexer-prowlarr" type="checkbox" class="form-check-input" checked /> Prowlarr</label>
-                <label class="form-check form-check-inline me-3"><input id="music-source-indexer-torrentio" type="checkbox" class="form-check-input" checked /> Torrentio</label>
-                <label class="form-check form-check-inline me-3"><input id="music-source-usenet" type="checkbox" class="form-check-input" checked /> Usenet</label>
-                <select id="music-usenet-source" class="form-select form-select-dark form-select-sm ms-2" style="width: auto; display: inline-block;">
-                  <option value="all">All Usenet</option>
-                  <option value="NZBGeek">NZBGeek</option>
-                  <option value="NZBIndex">NZBIndex</option>
-                  <option value="Binsearch">Binsearch</option>
-                </select>
+              <div class="tb-source-pills mt-2">
+                <span class="tb-source-section-label">Indexers</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="music-source" value="indexers:all" checked />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="music-source" value="indexers:prowlarr" />
+                  <span>Prowlarr</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="music-source" value="indexers:torrentio" />
+                  <span>Torrentio</span>
+                </label>
+                <span class="tb-source-section-label">Usenet</span>
+                <label class="tb-source-pill">
+                  <input type="radio" name="music-source" value="usenet:all" />
+                  <span>ALL</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="music-source" value="usenet:nzbgeek" />
+                  <span>NZBGeek</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="music-source" value="usenet:nzbindex" />
+                  <span>NZBIndex</span>
+                </label>
+                <label class="tb-source-pill">
+                  <input type="radio" name="music-source" value="usenet:binsearch" />
+                  <span>Binsearch</span>
+                </label>
               </div>
               <span class="tb-route-badge" id="music-route-badge">Filtering: Audio Category 3000</span>
             </div>

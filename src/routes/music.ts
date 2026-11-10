@@ -37,7 +37,8 @@ export const musicRoute: RequestHandler = async (req, res) => {
   const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const sources = parseSources(scalar(req.query.sources));
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
-  const searchIndexers = sources.includes('indexers') && hasIndexerConfig;
+  // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
+  const searchIndexers = sources.includes('indexers');
   const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
   const searchLocal = sources.includes('local') || sources.length === 0;
   const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';

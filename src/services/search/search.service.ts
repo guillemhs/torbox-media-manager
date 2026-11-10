@@ -68,11 +68,11 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
 
   // 2. Indexer torrent search (Prowlarr and/or Torrentio)
   let torrentResults: Array<Record<string, unknown>> = [];
-  if (includeIndexers !== false && hasIndexerConfig) {
-    const indexerList = indexers || ['prowlarr', 'torrentio'];
-    const useProwlarr = indexerList.includes('prowlarr');
-    const useTorrentio = indexerList.includes('torrentio');
-
+  const indexerList = indexers || ['prowlarr', 'torrentio'];
+  // Prowlarr needs Torznab config; Torrentio works standalone via its Stremio addon.
+  const useProwlarr = indexerList.includes('prowlarr') && hasIndexerConfig;
+  const useTorrentio = indexerList.includes('torrentio');
+  if (includeIndexers !== false && (useProwlarr || useTorrentio)) {
     try {
       if (useProwlarr) {
         const candidates = await searchTorrentsViaProwlarr(query, page.limit, page.offset, indexerCategories);
@@ -93,27 +93,66 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
       }
 
       if (useTorrentio) {
-        // Torrentio supports text search via Stremio addon
-        // Call Torrentio with the text query directly (no IMDb ID needed)
-        try {
-          const mediaKind = kind === 'series' ? 'series' : 'movie';
-          const torrentioResults = await searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset);
-          for (const candidate of torrentioResults) {
-            const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
-            torrentResults.push({
-              name: candidate.name,
-              _type: 'torrent',
-              seeders: candidate.seeders,
-              leechers: candidate.leechers,
-              size: candidate.size,
-              source: candidate.source,
-              _category: category,
-              ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
-              ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
-            });
+        // Torrentio's Stremio addon resolves movie/series streams by IMDb ID,
+        // so resolve the text query to IMDb IDs via the local database first.
+        const torrentioCandidates: TorrentCandidate[] = [];
+        const seenTorrentKeys = new Set<string>();
+        const addTorrentioCandidates = (candidates: TorrentCandidate[]) => {
+          for (const candidate of candidates) {
+            const key = candidate.hash || candidate.magnet || candidate.name;
+            if (key && !seenTorrentKeys.has(key)) {
+              seenTorrentKeys.add(key);
+              torrentioCandidates.push(candidate);
+            }
           }
-        } catch (error) {
-          console.warn('[searchMedia] Torrentio search failed:', error instanceof Error ? error.message : String(error));
+        };
+
+        let imdbMatches: Array<Record<string, unknown>> = [];
+        if (kind === 'movie' || kind === 'series' || kind === 'all') {
+          try {
+            const localResults = await searchTitles({ q: query, kind: kind === 'all' ? 'all' : kind, limit: 10, offset: 0 });
+            imdbMatches = localResults.items as Array<Record<string, unknown>>;
+          } catch (error) {
+            console.warn('[searchMedia] Local IMDb lookup for Torrentio failed:', error instanceof Error ? error.message : String(error));
+          }
+        }
+
+        if (imdbMatches.length > 0) {
+          // Multiple IMDb IDs: query Torrentio for each one, using the local
+          // title type to pick the movie vs series stream endpoint.
+          for (const item of imdbMatches) {
+            const imdbId = typeof item.imdbId === 'string' ? item.imdbId : '';
+            if (!/^tt\d+$/.test(imdbId)) continue;
+            const imdbKind: 'movie' | 'series' = (item.titleType === 'tvSeries' || item.titleType === 'tvMiniSeries') ? 'series' : 'movie';
+            try {
+              addTorrentioCandidates(await searchTorrentCandidates(imdbId, imdbKind, 1, page.limit, page.offset));
+            } catch (error) {
+              console.warn('[searchMedia] Torrentio search failed for IMDb', { imdbId, error: error instanceof Error ? error.message : String(error) });
+            }
+          }
+        } else if (kind !== 'music') {
+          // Fallback: pass the raw text query (works with some addon setups).
+          try {
+            const mediaKind = kind === 'series' ? 'series' : 'movie';
+            addTorrentioCandidates(await searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset));
+          } catch (error) {
+            console.warn('[searchMedia] Torrentio text search failed:', error instanceof Error ? error.message : String(error));
+          }
+        }
+
+        for (const candidate of torrentioCandidates) {
+          const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
+          torrentResults.push({
+            name: candidate.name,
+            _type: 'torrent',
+            seeders: candidate.seeders,
+            leechers: candidate.leechers,
+            size: candidate.size,
+            source: candidate.source,
+            _category: category,
+            ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
+            ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
+          });
         }
       }
     } catch (error) {

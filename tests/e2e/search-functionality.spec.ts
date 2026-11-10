@@ -70,8 +70,10 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
         const sourceBadges = page.locator('.tb-source-badge');
         const badgeTexts = await sourceBadges.allTextContents();
         const hasProwlarr = badgeTexts.some(b => b.includes('Prowlarr'));
-        const hasUsenet = badgeTexts.some(b => b.includes('Usenet') || b.includes('NZBGeek'));
+        const hasTorrentio = badgeTexts.some(b => b.includes('Torrentio'));
+        const hasUsenet = badgeTexts.some(b => b.includes('Usenet') || b.includes('NZBGeek') || b.includes('NZBIndex') || b.includes('Binsearch'));
         expect(hasProwlarr).toBeTruthy();
+        expect(hasTorrentio).toBeTruthy();
         expect(hasUsenet).toBeTruthy();
       }
 
@@ -99,8 +101,10 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
         const sourceBadges = page.locator('.tb-source-badge');
         const badgeTexts = await sourceBadges.allTextContents();
         const hasProwlarr = badgeTexts.some(b => b.includes('Prowlarr'));
-        const hasUsenet = badgeTexts.some(b => b.includes('Usenet') || b.includes('NZBGeek'));
+        const hasTorrentio = badgeTexts.some(b => b.includes('Torrentio'));
+        const hasUsenet = badgeTexts.some(b => b.includes('Usenet') || b.includes('NZBGeek') || b.includes('NZBIndex') || b.includes('Binsearch'));
         expect(hasProwlarr).toBeTruthy();
+        expect(hasTorrentio).toBeTruthy();
         expect(hasUsenet).toBeTruthy();
       }
 
@@ -127,7 +131,7 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
         const sourceBadges = page.locator('.tb-source-badge');
         const badgeTexts = await sourceBadges.allTextContents();
         const hasProwlarr = badgeTexts.some(b => b.includes('Prowlarr'));
-        const hasUsenet = badgeTexts.some(b => b.includes('Usenet') || b.includes('NZBGeek'));
+        const hasUsenet = badgeTexts.some(b => b.includes('Usenet') || b.includes('NZBGeek') || b.includes('NZBIndex') || b.includes('Binsearch'));
         const hasTorrentio = badgeTexts.some(b => b.includes('Torrentio'));
         expect(hasProwlarr).toBeTruthy();
         expect(hasUsenet).toBeTruthy();
@@ -137,5 +141,4 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
       await expect(page.locator('#music-route-badge')).toContainText('Audio Category 3000');
     });
   });
-
 });

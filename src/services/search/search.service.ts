@@ -1,6 +1,6 @@
 import { searchTitles } from '../../db/database';
 import { searchMusicMetadata } from '../musicSearch';
-import { searchTorrentsViaProwlarr, type TorrentCandidate } from '../torbox/torrentSearch';
+import { searchTorrentsViaProwlarr, searchTorrentCandidates, type TorrentCandidate } from '../torbox/torrentSearch';
 import { searchUsenet } from '../usenetSearch';
 import { extractCategoryFromTitle, extractCategoryFromName, formatTorrentMetadata, formatUsenetMetadata, pagination } from '../../routes/routeUtils';
 
@@ -91,9 +91,28 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
       }
 
       if (useTorrentio) {
-        // Torrentio requires IMDb ID for text search; skip if we don't have one
-        // For text search without IMDb ID, Torrentio cannot be used directly
-        console.warn('[searchMedia] Torrentio selected but no IMDb ID available for text search; skipping Torrentio');
+        // Torrentio supports text search via Stremio addon
+        // Call Torrentio with the text query directly (no IMDb ID needed)
+        const mediaKind = kind === 'series' ? 'series' : 'movie';
+        try {
+          const torrentioResults = await searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset);
+          for (const candidate of torrentioResults) {
+            const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
+            torrentResults.push({
+              name: candidate.name,
+              _type: 'torrent',
+              seeders: candidate.seeders,
+              leechers: candidate.leechers,
+              size: candidate.size,
+              source: candidate.source,
+              _category: category,
+              ...(candidate.hash ? { hash: candidate.hash, magnet: candidate.magnet, downloadToken: candidate.downloadToken } : {}),
+              ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
+            });
+          }
+        } catch (error) {
+          console.warn('[searchMedia] Torrentio search failed:', error instanceof Error ? error.message : String(error));
+        }
       }
     } catch (error) {
       console.warn(`[searchMedia] indexer search unavailable:`, error instanceof Error ? error.message : String(error));

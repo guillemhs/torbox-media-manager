@@ -8,27 +8,43 @@ import {
 
 let calendarRequest = 0;
 
-// ── Get selected source (Indexers/Usenet with sub-type) ──
+// ── Get selected source(s) (Indexers/Usenet with sub-type) ──
+// Returns all checked checkboxes as arrays
 export function getSelectedSource(prefix = '') {
   const name = prefix ? `${prefix}source` : 'source';
-  const radio = document.querySelector(`input[name="${name}"]:checked`);
-  if (!radio) return { sources: [], indexers: [], usenetSource: 'all' };
+  const checkboxes = document.querySelectorAll(`input[name="${name}"]:checked`);
 
-  const value = radio.value; // e.g. 'indexers:all', 'usenet:nzbgeek'
-  const [type, subType] = value.split(':');
+  const sources = [];
+  const indexers = [];
+  const usenetSource = [];
 
-  if (type === 'indexers') {
-    if (subType === 'all') {
-      return { sources: ['indexers'], indexers: ['prowlarr', 'torrentio'], usenetSource: 'all' };
+  checkboxes.forEach(cb => {
+    const value = cb.value; // e.g. 'indexers:all', 'usenet:nzbgeek'
+    const [type, subType] = value.split(':');
+
+    if (type === 'indexers') {
+      if (!sources.includes('indexers')) sources.push('indexers');
+      if (subType === 'all') {
+        if (!indexers.includes('prowlarr')) indexers.push('prowlarr');
+        if (!indexers.includes('torrentio')) indexers.push('torrentio');
+      } else {
+        if (!indexers.includes(subType)) indexers.push(subType);
+      }
     }
-    return { sources: ['indexers'], indexers: [subType], usenetSource: 'all' };
-  }
 
-  if (type === 'usenet') {
-    return { sources: ['usenet'], indexers: [], usenetSource: subType };
-  }
+    if (type === 'usenet') {
+      if (!sources.includes('usenet')) sources.push('usenet');
+      if (subType === 'all') {
+        if (!usenetSource.includes('NZBGeek')) usenetSource.push('NZBGeek');
+        if (!usenetSource.includes('NZBIndex')) usenetSource.push('NZBIndex');
+        if (!usenetSource.includes('Binsearch')) usenetSource.push('Binsearch');
+      } else {
+        if (!usenetSource.includes(subType)) usenetSource.push(subType);
+      }
+    }
+  });
 
-  return { sources: [], indexers: [], usenetSource: 'all' };
+  return { sources, indexers, usenetSource };
 }
 
 // ── Get master indexers checkbox state ──

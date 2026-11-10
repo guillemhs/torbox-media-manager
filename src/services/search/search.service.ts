@@ -33,11 +33,13 @@ export interface MediaSearchOptions {
   includeUsenet?: boolean;
   /** Which indexers to use: 'prowlarr', 'torrentio', or both. Omit for both. */
   indexers?: string[];
+  /** Which usenet sources to use: 'NZBGeek', 'NZBIndex', 'Binsearch'. Omit for all. */
+  usenetSources?: string[];
 }
 
 /** Shared search pipeline: local titles + indexer torrents + usenet, combined and tagged. */
 export async function searchMedia(options: MediaSearchOptions): Promise<MediaSearchResult> {
-  const { query, kind, page, localKind, useMusicBrainz, localSourceLabel, indexerCategories, indexerType, categoryMode, fixedCategory, browseLink, usenetLimit = 50, includeLocal = true, includeIndexers = true, includeUsenet = true, indexers } = options;
+  const { query, kind, page, localKind, useMusicBrainz, localSourceLabel, indexerCategories, indexerType, categoryMode, fixedCategory, browseLink, usenetLimit = 50, includeLocal = true, includeIndexers = true, includeUsenet = true, indexers, usenetSources } = options;
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
 
   // 1. Local search
@@ -149,20 +151,27 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
   // 3. Usenet search
   let usenetResults: Array<Record<string, unknown>> = [];
   if (includeUsenet !== false && hasIndexerConfig) {
+    const useUsenetSources = usenetSources ? usenetSources : ['NZBGeek', 'NZBIndex', 'Binsearch'];
     try {
-      const usenetResult = await searchUsenet(query, 'all', usenetLimit, 0);
-      for (const candidate of usenetResult.candidates) {
-        const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
-        usenetResults.push({
-          name: candidate.name,
-          _type: 'usenet',
-          source: candidate.source,
-          _category: category,
-          ...(candidate.id ? { id: candidate.id } : {}),
-          ...(candidate.posted !== undefined ? { posted: candidate.posted } : {}),
-          ...(candidate.complete !== undefined ? { complete: candidate.complete } : {}),
-          ...(candidate.size !== undefined ? { size: candidate.size } : {}),
-        });
+      for (const source of useUsenetSources) {
+        try {
+          const usenetResult = await searchUsenet(query, source as 'all' | 'NZBIndex' | 'Binsearch', usenetLimit, 0);
+          for (const candidate of usenetResult.candidates) {
+            const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
+            usenetResults.push({
+              name: candidate.name,
+              _type: 'usenet',
+              source: candidate.source,
+              _category: category,
+              ...(candidate.id ? { id: candidate.id } : {}),
+              ...(candidate.posted !== undefined ? { posted: candidate.posted } : {}),
+              ...(candidate.complete !== undefined ? { complete: candidate.complete } : {}),
+              ...(candidate.size !== undefined ? { size: candidate.size } : {}),
+            });
+          }
+        } catch (error) {
+          console.warn(`[searchMedia] Usenet search ${source} failed:`, error instanceof Error ? error.message : String(error));
+        }
       }
     } catch (error) {
       console.warn(`[searchMedia] usenet search unavailable:`, error instanceof Error ? error.message : String(error));

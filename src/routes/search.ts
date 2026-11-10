@@ -112,13 +112,37 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
               providerNames.push('Prowlarr');
             }
 
-            // Torrentio supports text search via Stremio addon
-            // Call Torrentio with the text query directly (no IMDb ID needed)
-            if (indexers.includes('torrentio')) {
+            // Torrentio requires IMDb IDs - only call if Prowlarr returned IMDb IDs
+            // We'll collect IMDb IDs from Prowlarr results first, then query Torrentio
+            const torrentioImdbIds: string[] = [];
+
+            if (indexers.includes('prowlarr')) {
+              const prowlarrResults = await searchTorrentsViaProwlarr(query, page.limit, page.offset);
+              providerNames.push('Prowlarr');
+              for (const candidate of prowlarrResults) {
+                torrentCandidates.push(candidate);
+                if (candidate.imdbId) {
+                  torrentioImdbIds.push(candidate.imdbId);
+                }
+              }
+            }
+
+            if (indexers.includes('torrentio') && torrentioImdbIds.length > 0) {
               const mediaKind = kind === 'series' ? 'series' : 'movie';
-              console.log('[search.ts] Calling Torrentio:', { query, kind: mediaKind });
-              searches.push(searchTorrentCandidates(query, mediaKind, 1, page.limit, page.offset));
+              console.log('[search.ts] Calling Torrentio with IMDb IDs:', { imdbIds: torrentioImdbIds, kind: mediaKind });
+              for (const imdbId of torrentioImdbIds) {
+                try {
+                  const torrentioResults = await searchTorrentCandidates(imdbId, mediaKind, 1, page.limit, page.offset);
+                  for (const candidate of torrentioResults) {
+                    torrentCandidates.push(candidate);
+                  }
+                } catch (error) {
+                  console.warn('[search.ts] Torrentio search failed for IMDb', { imdbId, error: error instanceof Error ? error.message : String(error) });
+                }
+              }
               providerNames.push('Torrentio');
+            } else if (indexers.includes('torrentio')) {
+              console.warn('[search.ts] Torrentio selected but no IMDb IDs available from Prowlarr; skipping Torrentio');
             }
 
             try {

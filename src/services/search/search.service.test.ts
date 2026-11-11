@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { searchMedia } from './search.service';
+import { searchMedia, clearProviderCache } from './search.service';
 
 // Mock dependencies
 vi.mock('../../db/database', () => ({
@@ -23,6 +23,7 @@ import { searchUsenet } from '../usenetSearch';
 
 beforeEach(() => {
   vi.resetAllMocks();
+  clearProviderCache();
   process.env.TORZNAB_URL = 'http://prowlarr:9696/api'
   process.env.TORZNAB_API_KEY = 'test-key';
   process.env.TORBOX_API_KEY = 'test-key';
@@ -289,6 +290,39 @@ describe('searchMedia', () => {
     });
 
     expect(searchTorrentCandidates).toHaveBeenCalledWith('tt1375666', 'movie', 1, 100, 0, 1);
+  });
+  it('serves page 2 from cache: Torrentio fetched once even when the live total would drift', async () => {
+    (searchTitles as any).mockResolvedValue({
+      items: [{ imdbId: 'tt11198330', primaryTitle: 'Nocturne', titleType: 'tvSeries', startYear: 2021 }],
+      total: 1,
+    });
+    let call = 0;
+    (searchTorrentCandidates as any).mockImplementation(async () => {
+      call++;
+      const n = call === 1 ? 103 : 102; // simulate live drift between calls
+      return Array.from({ length: n }, (_, i) => ({
+        hash: ('h' + String(i).padStart(3, '0') + 'b'.repeat(36)).slice(0, 40),
+        magnet: `magnet:?xt=urn:btih:h${i}`,
+        name: `Nocturne S01E02 r${i}`,
+        seeders: 50 - i, leechers: i, size: 1000, source: 'Torrentio',
+      }));
+    });
+
+    const base = {
+      query: 'nocturne s01e02',
+      kind: 'series' as const,
+      includeLocal: false,
+      includeUsenet: false,
+      indexers: ['torrentio'],
+      categoryMode: 'name' as const,
+    };
+    const page1 = await searchMedia({ ...base, page: { limit: 20, offset: 0 } });
+    const page2 = await searchMedia({ ...base, page: { limit: 20, offset: 20 } });
+
+    expect(page1.results.torrents.total).toBe(103);
+    expect(page2.results.torrents.total).toBe(103);
+    expect(page2.results.torrents.items.length).toBe(20);
+    expect(call).toBe(1);
   });
 });
 

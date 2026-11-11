@@ -4,6 +4,42 @@ import { searchTorrentsViaProwlarr, searchTorrentCandidates, parseSeasonEpisode,
 import { searchUsenet } from '../usenetSearch';
 import { extractCategoryFromTitle, extractCategoryFromName, formatTorrentMetadata, formatUsenetMetadata, pagination } from '../../routes/routeUtils';
 
+// Short-lived in-memory cache for provider results. Each page navigation re-runs
+// the search; Torrentio's live result set can drift by a few streams between calls,
+// which made the reported total change between pages (103 -> 102). Caching the
+// fetched, deduped lists for a few minutes keeps pagination totals stable.
+const PROVIDER_CACHE_TTL_MS = 5 * 60 * 1000;
+interface ProviderCacheEntry {
+  expires: number;
+  torrents: TorrentCandidate[];
+  usenet: Array<Record<string, unknown>>;
+}
+const providerCache = new Map<string, ProviderCacheEntry>();
+
+function providerCacheKey(parts: string[]): string {
+  return parts.join('|');
+}
+
+function getCachedProviders(key: string): ProviderCacheEntry | undefined {
+  const entry = providerCache.get(key);
+  if (!entry) return undefined;
+  if (entry.expires < Date.now()) {
+    providerCache.delete(key);
+    return undefined;
+  }
+  return entry;
+}
+
+function setCachedProviders(key: string, entry: Omit<ProviderCacheEntry, 'expires'>): void {
+  if (providerCache.size > 200) providerCache.clear();
+  providerCache.set(key, { ...entry, expires: Date.now() + PROVIDER_CACHE_TTL_MS });
+}
+
+/** Test helper: clear the provider result cache. */
+export function clearProviderCache(): void {
+  providerCache.clear();
+}
+
 export interface MediaSearchOptions {
   query: string;
   kind: 'movie' | 'series' | 'music' | 'all';
@@ -93,7 +129,19 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
     }
   };
 
-  if (includeIndexers !== false && (useProwlarr || useTorrentio)) {
+  const cacheKey = providerCacheKey([
+    'v1', titleQuery, kind, indexerList.join(','), String(includeIndexers !== false),
+    (usenetSources || ['NZBGeek', 'NZBIndex', 'Binsearch']).join(','), String(includeUsenet !== false),
+    String(parsed.season ?? ''), String(parsed.episode ?? ''),
+  ]);
+  let allUsenetCached: Array<Record<string, unknown>> | undefined;
+  const cached = getCachedProviders(cacheKey);
+  if (cached) {
+    for (const c of cached.torrents) addTorrentCandidates([c]);
+    allUsenetCached = cached.usenet;
+  }
+
+  if (includeIndexers !== false && (useProwlarr || useTorrentio) && !cached) {
     try {
       if (useProwlarr) {
         addTorrentCandidates(await searchTorrentsViaProwlarr(query, FETCH_LIMIT, 0, indexerCategories));
@@ -163,8 +211,8 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
   });
 
   // 3. Usenet search — collect all, then slice for the requested page like torrents.
-  const allUsenetResults: Array<Record<string, unknown>> = [];
-  if (includeUsenet !== false && hasIndexerConfig) {
+  const allUsenetResults: Array<Record<string, unknown>> = allUsenetCached ? [...allUsenetCached] : [];
+  if (includeUsenet !== false && hasIndexerConfig && !allUsenetCached) {
     const useUsenetSources = usenetSources ? usenetSources : ['NZBGeek', 'NZBIndex', 'Binsearch'];
     try {
       for (const source of useUsenetSources) {
@@ -193,6 +241,10 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
   }
   const usenetTotal = allUsenetResults.length;
   const usenetResults = allUsenetResults.slice(page.offset, page.offset + page.limit);
+
+  if (!cached) {
+    setCachedProviders(cacheKey, { torrents: [...allTorrentCandidates], usenet: [...allUsenetResults] });
+  }
 
   // 4. Combine and separate by type
   const allResults = [...localItems, ...torrentResults, ...usenetResults];

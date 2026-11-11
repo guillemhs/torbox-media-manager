@@ -18,13 +18,23 @@ async function performSearch(page: any, view: string, query: string) {
 }
 
 async function selectOnlyTorrentio(page: any, view: string) {
-  // Deselect the "all" indexers pill, then select only Torrentio
-  const allBox = page.locator(`input[name="${view}-source"][value="indexers:all"]`);
-  if (await allBox.isChecked()) await allBox.uncheck();
-  const prowlarr = page.locator(`input[name="${view}-source"][value="indexers:prowlarr"]`);
-  if (await prowlarr.isChecked()) await prowlarr.uncheck();
-  const torrentio = page.locator(`input[name="${view}-source"][value="indexers:torrentio"]`);
-  if (!(await torrentio.isChecked())) await torrentio.check();
+  // Deselect the "all" indexers pill (inputs are display:none -> click the pill label),
+  // then select only Torrentio
+  const allBox = input(page, view, 'indexers:all');
+  if (await allBox.isChecked()) await pill(page, view, 'indexers:all').click();
+  const prowlarr = input(page, view, 'indexers:prowlarr');
+  if (await prowlarr.isChecked()) await pill(page, view, 'indexers:prowlarr').click();
+  const torrentio = input(page, view, 'indexers:torrentio');
+  if (!(await torrentio.isChecked())) await pill(page, view, 'indexers:torrentio').click();
+}
+
+
+function pill(page: any, view: string, value: string) {
+  return page.locator(`label.tb-source-pill:has(input[name="${view}-source"][value="${value}"])`);
+}
+
+function input(page: any, view: string, value: string) {
+  return page.locator(`input[name="${view}-source"][value="${value}"]`);
 }
 
 function paginationInfo(page: any, view: string) {
@@ -77,6 +87,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
 
   test('/movies - pagination totals are consistent between page 1 and page 2', async ({ page }) => {
     await navigateToView(page, 'movies');
+    await selectOnlyTorrentio(page, 'movies');
     await performSearch(page, 'movies', 'Forrest Gump');
 
     const pagInfo = paginationInfo(page, 'movies');
@@ -96,6 +107,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
 
   test('/browse - pagination totals are consistent between page 1 and page 2', async ({ page }) => {
     await navigateToView(page, 'browse');
+    await selectOnlyTorrentio(page, 'browse');
     await performSearch(page, 'browse', 'Nocturne');
 
     const pagInfo = paginationInfo(page, 'browse');
@@ -122,9 +134,9 @@ test.describe('SOURCE SELECTOR ALL/CHILDREN SYNC', () => {
 
   test('toggling Indexers-ALL checks/unchecks Prowlarr and Torrentio', async ({ page }) => {
     await navigateToView(page, 'browse');
-    const allBox = page.locator('input[name="browse-source"][value="indexers:all"]');
-    const prowlarr = page.locator('input[name="browse-source"][value="indexers:prowlarr"]');
-    const torrentio = page.locator('input[name="browse-source"][value="indexers:torrentio"]');
+    const allBox = input(page, 'browse', 'indexers:all');
+    const prowlarr = input(page, 'browse', 'indexers:prowlarr');
+    const torrentio = input(page, 'browse', 'indexers:torrentio');
 
     // Initial: indexers:all is checked -> children should be checked too
     await expect(allBox).toBeChecked();
@@ -132,29 +144,29 @@ test.describe('SOURCE SELECTOR ALL/CHILDREN SYNC', () => {
     await expect(torrentio).toBeChecked();
 
     // Deselect ALL -> children deselect
-    await allBox.uncheck();
+    await pill(page, 'browse', 'indexers:all').click();
     await expect(prowlarr).not.toBeChecked();
     await expect(torrentio).not.toBeChecked();
 
     // Select ALL -> children select
-    await allBox.check();
+    await pill(page, 'browse', 'indexers:all').click();
     await expect(prowlarr).toBeChecked();
     await expect(torrentio).toBeChecked();
   });
 
   test('toggling Usenet-ALL checks/unchecks NZBGeek, NZBIndex, Binsearch', async ({ page }) => {
     await navigateToView(page, 'browse');
-    const allBox = page.locator('input[name="browse-source"][value="usenet:all"]');
-    const nzbgeek = page.locator('input[name="browse-source"][value="usenet:nzbgeek"]');
-    const nzbindex = page.locator('input[name="browse-source"][value="usenet:nzbindex"]');
-    const binsearch = page.locator('input[name="browse-source"][value="usenet:binsearch"]');
+    const allBox = input(page, 'browse', 'usenet:all');
+    const nzbgeek = input(page, 'browse', 'usenet:nzbgeek');
+    const nzbindex = input(page, 'browse', 'usenet:nzbindex');
+    const binsearch = input(page, 'browse', 'usenet:binsearch');
 
-    await allBox.check();
+    await pill(page, 'browse', 'usenet:all').click();
     await expect(nzbgeek).toBeChecked();
     await expect(nzbindex).toBeChecked();
     await expect(binsearch).toBeChecked();
 
-    await allBox.uncheck();
+    await pill(page, 'browse', 'usenet:all').click();
     await expect(nzbgeek).not.toBeChecked();
     await expect(nzbindex).not.toBeChecked();
     await expect(binsearch).not.toBeChecked();
@@ -189,6 +201,7 @@ test.describe('PAGINATION URL STATE (?page=N)', () => {
 
   test('/movies - loading /movies?page=2 restores page 2 of the same search', async ({ page }) => {
     await navigateToView(page, 'movies');
+    await selectOnlyTorrentio(page, 'movies');
     await performSearch(page, 'movies', 'Forrest Gump');
     const pagInfo = paginationInfo(page, 'movies');
     await expect(pagInfo).toBeVisible({ timeout: 15000 });

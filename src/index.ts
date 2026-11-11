@@ -58,6 +58,17 @@ app.use('/vendor/bootstrap/css', express.static(path.join(__dirname, '../node_mo
 app.use('/vendor/bootstrap/js', express.static(path.join(__dirname, '../node_modules/bootstrap/dist/js')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Browser navigations (Accept: text/html) to UI routes get the SPA; XHR/fetch
+// calls (Accept: */*) fall through to the JSON routes below — /library is both
+// a UI route and an API endpoint, so they must be disambiguated by Accept.
+const SPA_PATHS = ['/', '/browse', '/movies', '/shows', '/music', '/library', '/calendar'];
+app.use((req, res, next) => {
+  if (req.method === 'GET' && SPA_PATHS.includes(req.path) && (req.headers.accept || '').includes('text/html')) {
+    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+  next();
+});
+
 app.get('/health', async (_req, res) => {
   res.json({ status: 'ok', mode: process.env.TORBOX_API_KEY?.trim() ? 'torbox-integrated' : 'local-offline' });
 });

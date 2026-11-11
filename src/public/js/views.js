@@ -279,7 +279,8 @@ export async function doSearch(view, page = 1) {
       }
     }
 
-    setStatus(view, '');
+    const warnList = Array.isArray(data.warnings) ? data.warnings : [];
+    setStatus(view, warnList.length ? '⚠ ' + warnList.join(' · ') : '');
   } catch (error) {
     setStatus(view, error.message);
     hideSkeletons(view);

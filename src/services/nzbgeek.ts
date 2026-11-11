@@ -52,6 +52,38 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+let egressIpPromise: Promise<string | null> | null = null;
+
+/** Best-effort lookup of the current egress IP (cached), so operators know which IP to whitelist. */
+function getEgressIp(): Promise<string | null> {
+  if (!egressIpPromise) {
+    egressIpPromise = (async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5_000);
+        const res = await fetch('https://api.ipify.org?format=text', { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!res.ok) return null;
+        const ip = (await res.text()).trim();
+        return /^\d{1,3}(\.\d{1,3}){3}$/.test(ip) ? ip : null;
+      } catch {
+        return null;
+      }
+    })();
+  }
+  return egressIpPromise;
+}
+
+/** NZBGeek/Newznab signals API-level failures with an <error> element, sometimes on HTTP 200. */
+function extractNewznabError(xml: string): string | null {
+  const tag = /<error\b[^>]*>/i.exec(xml);
+  if (!tag) return null;
+  const code = /code=["']([^"']*)["']/i.exec(tag[0])?.[1];
+  const description = /description=["']([^"']*)["']/i.exec(tag[0])?.[1];
+  if (description) return code ? `NZBGeek API error ${code}: ${description}` : `NZBGeek API error: ${description}`;
+  return `NZBGeek API error: ${tag[0]}`;
+}
+
 export class NzbgeekClient {
   private readonly host: string;
   private readonly apiKey: string;
@@ -67,13 +99,16 @@ export class NzbgeekClient {
     this.maxRetries = config.maxRetries ?? 3;
   }
 
-  /** Log the configured whitelist IP reference for dynamic IP tracking. */
+  /** Log the configured whitelist IP reference and the observed egress IP for dynamic IP tracking. */
   logWhitelistReference(): void {
     if (this.whitelistIp) {
       log('Whitelist IP reference configured', { whitelistIp: this.whitelistIp });
     } else {
       log('No whitelist IP reference configured; set NZBGEEK_WHITELIST_IP if your DIGI Mobil IP is whitelisted on NZBGeek.');
     }
+    void getEgressIp().then((ip) => {
+      if (ip) log('Observed egress IP (whitelist this on NZBGeek if you get error 103)', { egressIp: ip, whitelistIp: this.whitelistIp });
+    });
   }
 
   private async fetchWithRetry(path: string, params: Record<string, string>, retriesLeft: number): Promise<Response> {
@@ -163,6 +198,11 @@ export class NzbgeekClient {
 
     const bytes = Buffer.from(await response.arrayBuffer());
     const prefix = bytes.toString('utf8', 0, Math.min(bytes.length, 4096)).replace(/^\uFEFF/, '').trimStart();
+    const apiError = extractNewznabError(prefix);
+    if (apiError) {
+      log('API error on download', { id, error: apiError });
+      throw new Error(apiError);
+    }
     if (bytes.length < 20 || !/<(?:[\w.-]+:)?nzb(?:\s|>)/i.test(prefix)) {
       throw new Error('NZBGeek response was not a valid NZB XML file.');
     }
@@ -171,6 +211,12 @@ export class NzbgeekClient {
 
   private parseSearchResponse(xml: string, limit: number, offset: number): NzbgeekSearchResponse {
     // Newznab search returns XML. Parse defensively without external dependencies.
+    // NZBGeek reports API errors (bad key, unapproved IP) as <error> elements, sometimes with HTTP 200.
+    const apiError = extractNewznabError(xml);
+    if (apiError) {
+      log('API error on search', { error: apiError, snippet: xml.slice(0, 300) });
+      throw new Error(apiError);
+    }
     const results: NzbgeekResult[] = [];
 
     // Extract total count from <channel> or root attributes

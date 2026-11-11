@@ -6,7 +6,7 @@ import {
 import {
   getSelectedSource, goToPage, doSearch, searchLocal,
   searchUnified, loadView, loadCalendar, shiftCalendarDay,
-  routeFromLocation, setRoute, searchRoute, loadLibraryPage, loadTitle, loadMusicDetail,
+  routeFromLocation, setRoute, searchRoute, loadLibraryPage, renderLibraryPage, loadTitle, loadMusicDetail,
 } from './views.js';
 
 // ---- Search button handlers ----
@@ -47,6 +47,41 @@ document.getElementById('shows-discover-btn')?.addEventListener('click', () => {
 document.getElementById('music-discover-btn')?.addEventListener('click', () => {
   state.musicSearched = false;
   void searchLocal('music', 1);
+});
+
+// ---- Library controls ----
+document.getElementById('library-query')?.addEventListener('input', () => {
+  state.currentPage['library'] = 1;
+  void renderLibraryPage(1);
+});
+
+document.getElementById('library-sort')?.addEventListener('change', () => {
+  state.currentPage['library'] = 1;
+  void renderLibraryPage(1);
+});
+
+document.getElementById('library-filter')?.addEventListener('change', () => {
+  state.currentPage['library'] = 1;
+  void renderLibraryPage(1);
+});
+
+// ---- Copy magnet link (delegated) ----
+document.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  const btn = target.closest('[data-copy-magnet]');
+  if (!btn) return;
+  event.preventDefault();
+  const magnet = decodeURIComponent(btn.dataset.copyMagnet || '');
+  navigator.clipboard.writeText(magnet).then(() => {
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+    btn.classList.add('btn-tb-secondary');
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.classList.remove('btn-tb-secondary');
+    }, 1200);
+  }).catch(() => {});
 });
 
 // ---- Link interception ----

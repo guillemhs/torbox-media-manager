@@ -255,26 +255,9 @@ export function renderMusicNotFound() {
 
 // ── Library list rendering ──
 export function renderTorboxLibrary(items) {
-  const query = $('#library-query')?.value.trim().toLocaleLowerCase() || '';
-  const sort = $('#library-sort')?.value || 'created';
-  const filter = $('#library-filter')?.value || 'all';
-  const videoExt = /\.(?:mp4|m4v|mkv|avi|mov|wmv|flv|webm|m4v|mpeg|mpg|ts)/;
+  const videoExt = /\.(?:mp4|m4v|mkv|avi|mov|wmv|flv|webm|mpeg|mpg|ts)/;
 
-  let filtered = items.filter((item) => {
-    const name = item.name || item.title || item.original_name || '';
-    if (query && !name.toLocaleLowerCase().includes(query)) return false;
-    if (filter === 'video' && !videoExt.test(item.extension || item.file_extension || '')) return false;
-    if (filter === 'music' && !/\.(?:mp3|wav|flac|m4a|aac|ogg|opus|wma|alac|ape)$/i.test(item.extension || item.file_extension || '')) return false;
-    if (filter === 'other' && videoExt.test(item.extension || item.file_extension || '')) return false;
-    return true;
-  });
-
-  if (sort === 'name') filtered.sort((a, b) => (a.name || a.title || '').localeCompare(b.name || b.title || ''));
-  else if (sort === 'size') filtered.sort((a, b) => (b.bytes || b.size || 0) - (a.bytes || a.size || 0));
-  else if (sort === 'status') filtered.sort((a, b) => (b.download_state || b.status || '').localeCompare(a.download_state || a.status || ''));
-  else filtered.sort((a, b) => (b.created || b.created_at || b.added || b.created_at || 0) - (a.created || a.created_at || a.added || a.created_at || 0));
-
-  return filtered.map((item) => {
+  return items.map((item) => {
     const imdbId = item.imdbId || item.imdb_id || '';
     const kind = item.kind || (item.titleType && /^tv/i.test(item.titleType) ? 'series' : 'movie');
     const isMusic = item._source === 'local-music' || item.kind === 'music' || item.type === 'Album' || item.type === 'Single' || item.type === 'EP';
@@ -286,28 +269,58 @@ export function renderTorboxLibrary(items) {
     const created = item.created || item.created_at || item.added || item.created_at || '';
     const createdDate = created ? new Date(created).toLocaleDateString() : '';
     const hash = item.hash || item.info_hash || '';
-    const hashShort = hash ? hash.slice(0, 8) + '…' : '';
+    const hashShort = hash ? hash.slice(0, 8) + '\u2026' : '';
     const itemId = item.id || item.idx || 0;
+    const progress = item.progress !== undefined ? Number(item.progress) : 0;
+    const pct = (progress * 100).toFixed(1);
+    const downloadSpeed = item.download_speed ? fmtBytes(item.download_speed) + '/s' : '';
+    const uploadSpeed = item.upload_speed ? fmtBytes(item.upload_speed) + '/s' : '';
+    const eta = item.eta ? new Date(item.eta * 1000).toLocaleTimeString() : '';
+    const downloadPresent = item.download_present === true || item.download_present === 1;
+    const magnet = item.magnet || '';
 
-    // Build file list if available
+    // Build file list (all files)
     let filesHtml = '';
     const files = item.files || item.files_list || [];
     if (files && files.length > 0) {
-      const fileList = files.slice(0, 10).map(f => {
-        const fName = f.name || file.name || 'File';
+      const fileList = files.map(f => {
+        const fName = f.name || 'File';
         const fSize = fmtBytes(f.size || f.bytes || 0);
-        return `<div class="library-file-row"><span class="library-file-name">${esc(fName)}</span><span class="library-file-size">${esc(fSize)}</span></div>`;
+        const fId = f.id || '';
+        const dlLink = fId && downloadPresent ? `<a href="/torbox/usenet/${itemId}/files/${fId}" class="library-file-download" title="Download">${esc(fName)}</a>` : `<span class="library-file-name">${esc(fName)}</span>`;
+        return `<div class="library-file-row">${dlLink}<span class="library-file-size">${esc(fSize)}</span></div>`;
       }).join('');
-      const moreCount = files.length - 10;
-      const moreHtml = moreCount > 0 ? `<div class="library-file-more">+ ${moreCount} more file${moreCount !== 1 ? 's' : ''}</div>` : '';
-      filesHtml = `<div class="library-files"><div class="library-files-header">${files.length} file${files.length !== 1 ? 's' : ''}</div>${fileList}${moreCount > 0 ? moreHtml : ''}</div>`;
+      filesHtml = `<div class="library-files"><div class="library-files-header">${files.length} file${files.length !== 1 ? 's' : ''}</div>${fileList}</div>`;
     }
+
+    // Build action links
+    let actionLinks = '';
+    if (imdbId) {
+      actionLinks += `<a href="/title/${encodeURIComponent(imdbId)}?kind=${kind}" class="library-action-btn" title="View details"><i class="fas fa-info-circle"></i></a>`;
+    }
+    if (magnet) {
+      actionLinks += `<button class="library-action-btn" data-copy-magnet="${encodeURIComponent(magnet)}" title="Copy magnet"><i class="fas fa-copy"></i></button>`;
+    }
+    if (downloadPresent && itemId) {
+      actionLinks += `<a href="/torbox/usenet/${itemId}/files/0" class="library-action-btn dl-link" title="Download"><i class="fas fa-download"></i></a>`;
+    }
+
+    // Progress bar
+    const progressBar = `
+      <div class="library-progress">
+        <div class="library-progress-bar" style="width: ${pct}%"></div>
+        <span class="library-progress-text">${pct}%</span>
+      </div>
+    `;
 
     return `
       <article class="library-item${isMusic ? ' music-item' : ''}${isVideo ? ' video-item' : ''}">
         <div class="library-item-main">
-          <div class="library-item-title">
-            ${imdbId ? `<a href="/title/${encodeURIComponent(imdbId)}?kind=${kind}" class="library-item-link" title="View details">${esc(item.name || item.title || item.original_name || 'Unknown')}</a>` : `<span title="${esc(item.name || item.title || item.original_name || 'Unknown')}">${esc(item.name || item.title || item.original_name || 'Unknown')}</span>`}
+          <div class="library-item-header">
+            <div class="library-item-title">
+              ${imdbId ? `<a href="/title/${encodeURIComponent(imdbId)}?kind=${kind}" class="library-item-link" title="View details">${esc(item.name || item.title || item.original_name || 'Unknown')}</a>` : `<span title="${esc(item.name || item.title || item.original_name || 'Unknown')}">${esc(item.name || item.title || item.original_name || 'Unknown')}</span>`}
+            </div>
+            <div class="library-item-actions-links">${actionLinks}</div>
           </div>
           <div class="library-item-meta">
             <span class="library-item-category">${category}</span>
@@ -315,6 +328,12 @@ export function renderTorboxLibrary(items) {
             ${createdDate ? `<span class="library-item-date">${esc(createdDate)}</span>` : ''}
             ${hashShort ? `<span class="library-item-hash" title="${esc(hash)}">${hashShort}</span>` : ''}
             ${itemId ? `<span class="library-item-id">#${itemId}</span>` : ''}
+          </div>
+          ${progressBar}
+          <div class="library-item-meta-row">
+            ${downloadSpeed ? `<span class="library-item-speed">\u2193 ${esc(downloadSpeed)}</span>` : ''}
+            ${uploadSpeed ? `<span class="library-item-speed">\u2191 ${esc(uploadSpeed)}</span>` : ''}
+            ${eta ? `<span class="library-item-eta">ETA ${esc(eta)}</span>` : ''}
           </div>
         </div>
         <div class="library-item-actions">
@@ -324,9 +343,10 @@ export function renderTorboxLibrary(items) {
       ${filesHtml ? filesHtml : ''}
     </article>
   `;
-}).join('');
-}
-// ── Calendar / schedule cards ──
+  }).join('');
+};
+
+// ── Calendar / schedule cards ──// ── Calendar / schedule cards ──// ── Calendar / schedule cards ──
 export function scheduleCards(episodes) {
   return episodes.map((ep) => {
     const show = ep.show || {};

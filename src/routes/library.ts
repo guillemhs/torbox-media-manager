@@ -24,21 +24,24 @@ function getTempDownloadService(): import('../services/temp-downloads').TempDown
 export const getLibraryRoute: RequestHandler = async (req, res) => {
   try {
     const local = scanLocalMedia();
-    const page = pagination(req.query as Record<string, unknown>, 1000);
+    // Fetch ALL local media items (client-side pagination handles the rest)
     const result: Record<string, unknown> = {
       mode: process.env.TORBOX_API_KEY?.trim() ? 'torbox-integrated' : 'local-offline',
-      localMedia: { ...local, total: local.items.length, items: local.items.slice(page.offset, page.offset + page.limit), limit: page.limit, offset: page.offset },
+      localMedia: { ...local, total: local.items.length, items: local.items, limit: local.items.length, offset: 0 },
       message: 'Local files are scanned from LOCAL_MEDIA_PATH.',
     };
     if (process.env.TORBOX_API_KEY?.trim()) {
+      // Fetch ALL TorBox items (no server-side pagination; client paginates)
       const [torrentResponse, usenetResponse] = await Promise.allSettled([
-        getTorrentList(undefined, { limit: page.limit, offset: page.offset }),
-        getUsenetList(undefined, { limit: page.limit, offset: page.offset }),
+        getTorrentList(undefined, { limit: 10000, offset: 0, bypass_cache: false }),
+        getUsenetList(undefined, { limit: 10000, offset: 0 }),
       ]);
       if (torrentResponse.status === 'rejected') throw torrentResponse.reason;
       const torrentItems = Array.isArray(torrentResponse.value.data) ? torrentResponse.value.data : [torrentResponse.value.data];
       const usenetItems = usenetResponse.status === 'fulfilled' ? (Array.isArray(usenetResponse.value.data) ? usenetResponse.value.data : [usenetResponse.value.data]) : [];
-      result.torbox = [...torrentItems, ...usenetItems];
+      const allTorbox = [...torrentItems, ...usenetItems];
+      result.torbox = allTorbox;
+      result.torboxTotal = allTorbox.length;
       result.music = normalizeTorBoxMusicLibrary(torrentItems);
       if (usenetResponse.status === 'rejected') result.usenetError = usenetResponse.reason instanceof Error ? usenetResponse.reason.message : 'TorBox Usenet library is unavailable.';
     }

@@ -645,6 +645,72 @@
         text-align: center;
         padding: 0.5rem 0;
       }
+      .library-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+      }
+      .library-item-actions-links {
+        display: flex;
+        gap: 0.35rem;
+      }
+      .library-action-btn {
+        width: 2rem;
+        height: 2rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--tb-border);
+        border-radius: 0.375rem;
+        background: var(--tb-surface);
+        color: var(--tb-text-muted);
+        text-decoration: none;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+      .library-action-btn:hover {
+        border-color: var(--tb-accent);
+        color: var(--tb-accent);
+        background: var(--tb-surface-hover);
+      }
+      .library-action-btn.dl-link {
+        background: var(--tb-success);
+        border-color: var(--tb-success);
+        color: #fff;
+      }
+      .library-action-btn.dl-link:hover {
+        background: #157347;
+        border-color: #157347;
+      }
+      .library-progress {
+        margin-top: 0.5rem;
+        height: 6px;
+        background: #334155;
+        border-radius: 3px;
+        overflow: hidden;
+        font-size: 0.7rem;
+      }
+      .library-progress-bar {
+        height: 100%;
+        background: var(--tb-accent);
+        transition: width 0.3s ease;
+      }
+      .library-progress-text {
+        font-size: 0.7rem;
+        color: var(--tb-text-muted);
+        margin-top: 0.2rem;
+        text-align: right;
+      }
+      .library-item-speed {
+        font-size: 0.75rem;
+        color: var(--tb-text-muted);
+      }
+      .library-item-eta {
+        font-size: 0.75rem;
+        color: var(--tb-text-muted);
+      }
 
       /* ── Buttons ── */
       .btn-tb-primary {

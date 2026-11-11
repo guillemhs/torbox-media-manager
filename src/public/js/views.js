@@ -363,8 +363,7 @@ export async function searchLocal(view, page = 1) {
 
 // ── Library page load ──
 export async function loadLibraryPage(page = 1) {
-  const limit = 20;
-  const offset = (page - 1) * limit;
+  const LIBRARY_PAGE_SIZE = 20;
   setPageParam(page);
 
   const container = $('#library-results');
@@ -372,31 +371,32 @@ export async function loadLibraryPage(page = 1) {
   setStatus('library', 'Loading…');
 
   try {
-    const data = await jsonFetch(`/library?limit=${limit}&offset=${offset}`);
+    // Fetch ALL library items (backend returns everything; client paginates)
+    const data = await jsonFetch(`/library`);
     let rows = data.torbox || [];
     const recentIds = new Set(state.recentTorrents.map((item) => Number(item.id)));
     rows = [...state.recentTorrents, ...rows.filter((item) => !recentIds.has(Number(item.id)))];
+
+    // Store ALL items for client-side pagination/filter/sort
     state.items['library'] = rows;
-    state.offset['library'] = offset + rows.length;
     state.currentPage['library'] = page;
+    state.libraryPageSize = LIBRARY_PAGE_SIZE;
 
     hideSkeletons('library');
-    if (container) {
-      container.innerHTML = rows.length ? renderTorboxLibrary(rows) : '';
-    }
-    if (rows.length) hideEmpty('library'); else showEmpty('library');
+    renderLibraryPage(page);
 
     const count = $('#library-count');
     if (count) {
-      count.textContent = rows.length ? `Showing ${rows.length} item${rows.length !== 1 ? 's' : ''}` : '';
+      count.textContent = rows.length ? `Showing ${rows.length} item${rows.length !== 1 ? 's' : ''} (total ${rows.length})` : '';
       count.style.display = rows.length ? 'block' : 'none';
     }
 
     const pagContainer = document.getElementById('library-pagination');
     if (pagContainer) {
-      if (rows.length >= limit) {
+      const totalPages = Math.max(1, Math.ceil(rows.length / LIBRARY_PAGE_SIZE));
+      if (totalPages > 1) {
         pagContainer.classList.remove('hidden');
-        pagContainer.innerHTML = renderPaginationHtml('library', rows.length, page, limit);
+        pagContainer.innerHTML = renderPaginationHtml('library', rows.length, page, LIBRARY_PAGE_SIZE);
       } else {
         pagContainer.classList.add('hidden');
         pagContainer.innerHTML = '';
@@ -409,6 +409,62 @@ export async function loadLibraryPage(page = 1) {
     hideSkeletons('library');
     if (container) container.innerHTML = '';
     showEmpty('library');
+  }
+}
+
+/** Render the current library page (client-side pagination + filter + sort). */
+export function renderLibraryPage(page = 1) {
+  const LIBRARY_PAGE_SIZE = state.libraryPageSize || 20;
+  const container = $('#library-results');
+  if (!container) return;
+
+  const allItems = state.items['library'] || [];
+  const query = $('#library-query')?.value.trim().toLocaleLowerCase() || '';
+  const sort = $('#library-sort')?.value || 'created';
+  const filter = $('#library-filter')?.value || 'all';
+
+  const videoExt = /\.(?:mp4|m4v|mkv|avi|mov|wmv|flv|webm|mpeg|mpg|ts)/;
+  const audioExt = /\.(?:mp3|wav|flac|m4a|aac|ogg|opus|wma|alac|ape)$/i;
+
+  let filtered = allItems.filter((item) => {
+    const name = item.name || item.title || item.original_name || '';
+    if (query && !name.toLocaleLowerCase().includes(query)) return false;
+    const ext = item.extension || item.file_extension || '';
+    if (filter === 'video' && !videoExt.test(ext)) return false;
+    if (filter === 'music' && !audioExt.test(ext)) return false;
+    if (filter === 'other' && (videoExt.test(ext) || audioExt.test(ext))) return false;
+    return true;
+  });
+
+  if (sort === 'name') filtered.sort((a, b) => (a.name || a.title || '').localeCompare(b.name || b.title || ''));
+  else if (sort === 'size') filtered.sort((a, b) => (b.bytes || b.size || 0) - (a.bytes || a.size || 0));
+  else if (sort === 'status') filtered.sort((a, b) => (b.download_state || b.status || '').localeCompare(a.download_state || a.status || ''));
+  else filtered.sort((a, b) => (b.created || b.created_at || b.added || b.created_at || 0) - (a.created || a.created_at || a.added || b.created_at || 0));
+
+  const total = filtered.length;
+  const offset = (page - 1) * LIBRARY_PAGE_SIZE;
+  const pageItems = filtered.slice(offset, offset + LIBRARY_PAGE_SIZE);
+
+  container.innerHTML = pageItems.length ? renderTorboxLibrary(pageItems) : '';
+
+  if (pageItems.length) hideEmpty('library'); else showEmpty('library');
+
+  const count = $('#library-count');
+  if (count) {
+    count.textContent = total ? `Showing ${pageItems.length} of ${total} item${total !== 1 ? 's' : ''}` : '';
+    count.style.display = total ? 'block' : 'none';
+  }
+
+  const pagContainer = document.getElementById('library-pagination');
+  if (pagContainer) {
+    const totalPages = Math.max(1, Math.ceil(total / LIBRARY_PAGE_SIZE));
+    if (totalPages > 1) {
+      pagContainer.classList.remove('hidden');
+      pagContainer.innerHTML = renderPaginationHtml('library', total, page, LIBRARY_PAGE_SIZE);
+    } else {
+      pagContainer.classList.add('hidden');
+      pagContainer.innerHTML = '';
+    }
   }
 }
 

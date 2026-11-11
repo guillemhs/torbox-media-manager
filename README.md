@@ -32,11 +32,32 @@ To enable TMDB posters, request an API Read Access Token in your TMDB account's 
 
 Music search uses the free MusicBrainz web service for release and artist metadata, with Cover Art Archive artwork. In Browse, use **Search** to browse MusicBrainz releases, or **Search indexers** to search Prowlarr directly with the full query you entered. Compose includes Prowlarr as the indexer manager. Open Prowlarr at `http://<server-ip>:9696`, add the indexers you are authorized to use, then copy its API key from **Settings → General** into `TORZNAB_API_KEY` in `.env`. Set `TORZNAB_URL` to a Prowlarr Torznab feed URL (usually `http://prowlarr:9696/<indexer-id>/api` from inside the Compose network); the app derives the Prowlarr aggregate search endpoint from this URL and queries all enabled indexers. `TORZNAB_MUSIC_CATEGORY` defaults to `3000`; movie and TV searches use categories `2000` and `5000`. Torrent results from Prowlarr are combined with Torrentio for movies and shows. For an indexer that requires FlareSolverr, go to **Settings → Indexers → Indexer Proxies → Add → FlareSolverr**. Set Host to `http://flaresolverr:8191` and give the proxy a tag such as `flaresolverr`; then edit that indexer and add the same tag. The FlareSolverr service is internal to the Compose network and has no published host port. Prowlarr uses the proxy only for matching tags when Cloudflare is detected. Restart with `docker compose up -d` after editing `.env` or Compose. Prowlarr's config persists in `./data/prowlarr` by default. Music, movie, and show candidates use the same **Add cached** action, which asks TorBox to add only torrents it already has cached.
 
-To check adding a torrent, choose **Add to TorBox**, paste a magnet URI or info hash you are authorized to use, and submit it. **Only add if TorBox already has it cached** prevents uncached items from being added. The page should show TorBox's response; the TorBox library view should then list the item. This sends the magnet/hash to TorBox through the app and does not download the media to the app host.
+### Torrentio (Stremio addon)
 
-The TorBox library view lists torrent downloads from your account and lets you search and sort the current list locally by name, hash, status, size, or date added. Search does not issue a new TorBox query.
+Torrentio resolves streams by IMDb ID, not by free text. When you search with only Torrentio selected, the app internally looks up the query in the local IMDb database to get IMDb ID(s), then calls Torrentio with those IMDb IDs — but only Torrentio results are shown.
 
-For a quick service check, run `docker compose ps` and confirm `app` is `healthy`, then `curl -fsS http://localhost:8066/health` and `curl -fsS http://localhost:8066/admin/imdb/status`. The UI can browse the rows already imported while the IMDb import is still running.
+- If the IMDb database returns more than one IMDb ID, results from every ID are fetched, deduplicated by hash/magnet, and paginated together.
+- Torrentio works without Prowlarr/Torznab configuration; only the Prowlarr branch requires `TORZNAB_URL`/`TORZNAB_API_KEY`.
+- Pagination totals stay stable across pages: each provider is fetched once (`limit=100, offset=0`), results are deduplicated by hash across all providers/IMDb IDs, then sliced per page. A 5-minute in-memory cache prevents totals from drifting while you navigate pages.
+
+### Usenet (NZBGeek, NZBIndex, Binsearch)
+
+Usenet search works both individually and as **All**:
+
+- **NZBGeek** — Newznab API via `NZBGEEK_API_HOST`/`NZBGEEK_API_KEY`. If NZBGeek rejects the request (for example error `103: IP Address … Not Approved` because your egress IP isn't whitelisted), the error is surfaced as a warning in the search status line instead of silently returning 0 results. The observed egress IP is logged next to `NZBGEEK_WHITELIST_IP` so you know which IP to whitelist on NZBGeek.
+- **NZBIndex** — JSON API, no key required.
+- **Binsearch** — HTML scraping of `/details/<id>` result links (with checkbox `name` fallback).
+
+Set `NZBGEEK_API_HOST`, `NZBGEEK_API_KEY`, `NZBGEEK_WHITELIST_IP`, `NZBGEEK_REQUEST_TIMEOUT_MS`, and `NZBGEEK_MAX_RETRIES` in `.env` for NZBGeek.
+
+### Source selector ALL / children sync
+
+In the search box, each view has **Indexers** (ALL / Prowlarr / Torrentio) and **Usenet** (ALL / NZBGeek / NZBIndex / Binsearch) pills:
+
+- Selecting **Indexers - ALL** checks Prowlarr and Torrentio; deselecting it unchecks both.
+- Selecting **Usenet - ALL** checks NZBGeek, NZBIndex, and Binsearch; deselecting it unchecks all three.
+- Checking every child re-checks the ALL pill; unchecking any child unchecks the ALL pill.
+- `Usenet - ALL` is checked by default on Browse, Movies, Shows, and Music.
 
 ## Routes
 
@@ -59,3 +80,23 @@ For a quick service check, run `docker compose ps` and confirm `app` is `healthy
 IMDb ingestion reads TSV rows incrementally and writes small batches to SQLite/PostgreSQL. The dataset files are saved under `IMDB_DATA_PATH`, so subsequent imports use the local copy. TVMaze responses are cached according to `TVMAZE_SYNC_INTERVAL` (default 24 hours), with stale cache fallback when its API cannot be reached. The browser fetches catalog and local-library pages incrementally. Puppertino 2.0 is bundled locally. Local catalog and schedule routes work without a TorBox key; music/cloud operations return 503 until it is configured.
 
 The server is intended for a trusted self-hosted network and does not implement user authentication. Do not expose it directly to the public internet.
+
+## Environment variables
+
+| Variable | Purpose |
+|---|---|
+| `TORBOX_API_KEY` | TorBox account key for cloud library/music operations |
+| `TORZNAB_URL` | Prowlarr Torznab feed URL (e.g. `https://prowlarr.tatsukai.com/api`) |
+| `TORZNAB_API_KEY` | Prowlarr API key |
+| `TORZNAB_MUSIC_CATEGORY` | Prowlarr category for music searches (default `3000`) |
+| `NZBGEEK_API_HOST` | NZBGeek Newznab API host |
+| `NZBGEEK_API_KEY` | NZBGeek API key |
+| `NZBGEEK_WHITELIST_IP` | Reference IP whitelisted on NZBGeek (for dynamic-IP tracking) |
+| `NZBGEEK_REQUEST_TIMEOUT_MS` | NZBGeek request timeout (default `30000`) |
+| `NZBGEEK_MAX_RETRIES` | NZBGeek retry count on transient failures (default `3`) |
+| `TMDB_API_READ_ACCESS_TOKEN` | TMDB read access token for posters |
+| `IMDB_AUTO_IMPORT` | Enable/disable startup IMDb import |
+| `IMDB_DATA_PATH` | Path for downloaded IMDb dataset files |
+| `TVMAZE_SYNC_INTERVAL` | TVMaze cache interval in hours (default `24`) |
+| `HOST_MEDIA_PATH` | Host media directory |
+| `POSTGRES_PASSWORD`, `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_DATA_PATH` | PostgreSQL configuration |

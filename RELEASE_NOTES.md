@@ -34,6 +34,8 @@
 - **Skeleton loading cards** — `placeholder-glow` skeletons shown while searching; dedicated empty-state container per view. (`2e01e21`)
 - **SPA fallback** — `/library` and `/music` serve `index.php` for HTML Accept headers instead of 404ing on JSON API routes. (`db054c4`, `7b868d5`)
 - **Pagination in URL** — `?page=N` and `?q=` persisted via `history.replaceState`; `loadView()` restores state on refresh. (`bb1db75`)
+- **SyntaxError on music pages** — fixed `onerror` handler in `renderSearchItem` that used backslash-escaped quotes (`\"`) inside HTML attributes, which broke attribute parsing and caused `Invalid or unexpected token` errors. Now uses `&quot;` HTML entities. (`e8f3736`)
+- **Clearer API errors** — `jsonFetch` now validates `Content-Type` before parsing JSON, throwing a descriptive error if HTML is returned instead of JSON. (`e8f3736`)
 
 ### Usenet pipeline
 - **NZB download endpoint** — TorBox Web Download expects `link` field, not `url`. (`7729338`)

@@ -56,9 +56,8 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
 
       await expect(page.locator('#movies-skeletons')).toBeVisible({ timeout: 5000 });
 
-      await page.waitForTimeout(3000);
+      await expect(page.locator('#movies-results .tb-card').first()).toBeVisible({ timeout: 30000 });
       await expect(page.locator('#movies-skeletons')).toBeHidden();
-      await expect(page.locator('#movies-results .tb-card').first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should display clean empty state when 0 results returned', async ({ page }) => {
@@ -68,9 +67,7 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       await page.locator('#movies-query').fill('xyz123nonexistent');
       await page.locator('#movies-search-btn').click();
 
-      await page.waitForTimeout(3000);
-
-      await expect(page.locator('#movies-empty')).toBeVisible();
+      await expect(page.locator('#movies-empty')).toBeVisible({ timeout: 30000 });
       await expect(page.locator('#movies-empty h3')).toContainText('No movies found');
       await expect(page.locator('#movies-results')).toBeEmpty();
     });

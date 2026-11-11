@@ -105,9 +105,8 @@ test.describe('DISCOVER FUNCTIONALITY - Metadata Action Flow', () => {
       expect(hasProwlarr).toBeFalsy();
       expect(hasUsenet).toBeFalsy();
 
-      // Verify card aspect ratio is 1:1 for music
-      const firstCover = results.first().locator('.tb-card-cover');
-      await expect(firstCover).toHaveClass(/music/);
+      // Verify the music card is rendered with the music (1:1 square) variant
+      await expect(results.first()).toHaveClass(/music-card/);
     });
   });
 

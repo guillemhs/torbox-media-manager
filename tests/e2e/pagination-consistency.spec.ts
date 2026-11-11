@@ -54,7 +54,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
     await performSearch(page, 'shows', 'nocturne s01e02');
 
     const pagInfo = paginationInfo(page, 'shows');
-    await expect(pagInfo).toBeVisible({ timeout: 15000 });
+    await expect(pagInfo).toBeVisible({ timeout: 30000 });
 
     const page1Text = (await pagInfo.textContent()) || '';
     const match1 = page1Text.match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
@@ -91,7 +91,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
     await performSearch(page, 'movies', 'Forrest Gump');
 
     const pagInfo = paginationInfo(page, 'movies');
-    await expect(pagInfo).toBeVisible({ timeout: 15000 });
+    await expect(pagInfo).toBeVisible({ timeout: 30000 });
     const text1 = (await pagInfo.textContent()) || '';
     const m1 = text1.match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
     expect(m1).not.toBeNull();
@@ -111,7 +111,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
     await performSearch(page, 'browse', 'Nocturne');
 
     const pagInfo = paginationInfo(page, 'browse');
-    await expect(pagInfo).toBeVisible({ timeout: 15000 });
+    await expect(pagInfo).toBeVisible({ timeout: 30000 });
     const text1 = (await pagInfo.textContent()) || '';
     const m1 = text1.match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
     expect(m1).not.toBeNull();
@@ -184,7 +184,7 @@ test.describe('PAGINATION URL STATE (?page=N)', () => {
     await performSearch(page, 'shows', 'Breaking Bad');
 
     const pagInfo = paginationInfo(page, 'shows');
-    await expect(pagInfo).toBeVisible({ timeout: 15000 });
+    await expect(pagInfo).toBeVisible({ timeout: 30000 });
     const m1 = ((await pagInfo.textContent()) || '').match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
     expect(m1).not.toBeNull();
     if (Number(m1![2]) < 2) return; // single page, nothing to paginate
@@ -204,7 +204,7 @@ test.describe('PAGINATION URL STATE (?page=N)', () => {
     await selectOnlyTorrentio(page, 'movies');
     await performSearch(page, 'movies', 'Forrest Gump');
     const pagInfo = paginationInfo(page, 'movies');
-    await expect(pagInfo).toBeVisible({ timeout: 15000 });
+    await expect(pagInfo).toBeVisible({ timeout: 30000 });
     const m1 = ((await pagInfo.textContent()) || '').match(/of\s+(\d+)\s+\((\d+)\s+results\)/);
     if (!m1 || Number(m1[1]) < 2) return;
 

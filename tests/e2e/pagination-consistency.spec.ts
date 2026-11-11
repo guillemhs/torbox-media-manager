@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:8066';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:8066';
 
 async function navigateToView(page: any, viewName: string) {
   await page.goto(BASE_URL);
@@ -14,7 +14,14 @@ async function performSearch(page: any, view: string, query: string) {
   const input = page.locator('#' + view + '-query');
   await input.fill(query);
   await page.click('#' + view + '-search-btn');
-  await page.waitForTimeout(2500);
+  // Combined searches (Prowlarr + Torrentio + 3 usenet sources) can take a while;
+  // wait until the status line leaves the Searching/Loading state instead of a fixed delay.
+  await page.waitForFunction((v) => {
+    const s = document.querySelector('#' + v + '-status');
+    const t = s ? s.textContent || '' : '';
+    return !/Searching|Loading/.test(t);
+  }, view, { timeout: 90000 }).catch(() => {});
+  await page.waitForTimeout(500);
 }
 
 async function selectOnlyTorrentio(page: any, view: string) {
@@ -43,6 +50,7 @@ function paginationInfo(page: any, view: string) {
 }
 
 test.describe('PAGINATION CONSISTENCY', () => {
+  test.setTimeout(180000);
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
     await page.waitForTimeout(1000);
@@ -174,6 +182,7 @@ test.describe('SOURCE SELECTOR ALL/CHILDREN SYNC', () => {
 });
 
 test.describe('PAGINATION URL STATE (?page=N)', () => {
+  test.setTimeout(180000); // cold provider cache (Prowlarr/Torrentio/Usenet) can be slow on first hit
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
     await page.waitForTimeout(1000);

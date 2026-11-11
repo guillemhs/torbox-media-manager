@@ -6,6 +6,12 @@ import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
 import { pagination, sendError } from './routeUtils';
 
+function canonicalUsenetSources(value: string | undefined): string[] | undefined {
+  const valid: Record<string, string> = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
+  const list = [...new Set((value || 'all').split(',').map(s => valid[s.trim().toLowerCase()]).filter((s): s is string => Boolean(s)))];
+  return list.length > 0 ? list : undefined; // undefined = all sources
+}
+
 let tempDownloadServiceInstance: import('../services/temp-downloads').TempDownloadService | undefined;
 
 function getTempDownloadService(): import('../services/temp-downloads').TempDownloadService {
@@ -47,10 +53,11 @@ export const usenetSearchRoute: RequestHandler = async (req, res) => {
   const query = scalar(req.query.q)?.trim() || '';
   const sourceValue = scalar(req.query.source) || 'all';
   if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Usenet search must be between 2 and 180 characters.' });
-  if (!['all', 'NZBIndex', 'Binsearch', 'NZBGeek'].includes(sourceValue)) return res.status(400).json({ error: 'source must be all, NZBIndex, Binsearch, or NZBGeek.' });
+  const canonicalSource = sourceValue.toLowerCase() === 'all' ? 'all' : (canonicalUsenetSources(sourceValue)?.[0]);
+  if (!canonicalSource) return res.status(400).json({ error: 'source must be all, NZBIndex, Binsearch, or NZBGeek.' });
   const page = pagination(req.query as Record<string, unknown>);
   try {
-    const data = await searchUsenet(query, sourceValue as 'all' | 'NZBIndex' | 'Binsearch' | 'NZBGeek', page.limit, page.offset);
+    const data = await searchUsenet(query, canonicalSource as 'all' | 'NZBIndex' | 'Binsearch' | 'NZBGeek', page.limit, page.offset);
     res.setHeader('Cache-Control', 'private, no-store');
     return res.json(data);
   } catch (error) { return sendError(res, error); }

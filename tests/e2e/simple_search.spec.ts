@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+const BASE_URL = process.env.BASE_URL || 'http://localhost:8066';
+
 test.describe('Simple search tests', () => {
   test('browse search shows results', async ({ page }) => {
-    await page.goto('http://localhost:8066/browse');
+    await page.goto(BASE_URL + '/browse');
     await page.waitForTimeout(2000);
     
     const input = page.locator('#browse-query');
@@ -23,7 +25,7 @@ test.describe('Simple search tests', () => {
   });
 
   test('movies search shows results', async ({ page }) => {
-    await page.goto('http://localhost:8066/movies');
+    await page.goto(BASE_URL + '/movies');
     await page.waitForTimeout(2000);
     
     const input = page.locator('#movies-query');

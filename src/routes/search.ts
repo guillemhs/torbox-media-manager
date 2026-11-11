@@ -7,6 +7,12 @@ import { searchIndexerTorrents } from '../services/musicSearch';
 import { searchUsenet } from '../services/usenetSearch';
 import { pagination, sendError, extractCategoryFromName } from './routeUtils';
 
+function canonicalUsenetSources(value: string | undefined): string[] | undefined {
+  const valid: Record<string, string> = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
+  const list = [...new Set((value || 'all').split(',').map(s => valid[s.trim().toLowerCase()]).filter((s): s is string => Boolean(s)))];
+  return list.length > 0 ? list : undefined; // undefined = all sources
+}
+
 export const unifiedSearchRoute: RequestHandler = async (req, res) => {
   const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const query = scalar(req.query.q)?.trim() || '';
@@ -171,9 +177,7 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
   // 3. Usenet search
   if (sources.includes('usenet') && (kind === 'all' || kind === 'usenet')) {
     try {
-      const usenetParam = scalar(req.query.usenetSource) || 'all';
-      const usenetSources = usenetParam.split(',').filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s));
-      const useUsenetSources = usenetSources.length > 0 ? usenetSources : ['NZBGeek', 'NZBIndex', 'Binsearch'];
+      const useUsenetSources = canonicalUsenetSources(scalar(req.query.usenetSource)) ?? ['NZBGeek', 'NZBIndex', 'Binsearch'];
       for (const source of useUsenetSources) {
         try {
           const usenetResult = await searchUsenet(query, source as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);

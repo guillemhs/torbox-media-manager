@@ -1,12 +1,26 @@
 import { test, expect } from '@playwright/test';
 
+const BASE_URL = process.env.BASE_URL || 'http://localhost:8066';
+
 test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
 
+  test.setTimeout(180000); // cold provider cache (Prowlarr/Torrentio/Usenet) can be slow on first hit
   test.beforeEach(async ({ page }) => {
     // Ensure API key status is set for torbox-integrated mode
-    await page.goto('/health');
-    await page.waitForResponse('**/health');
+    await Promise.all([
+      page.waitForResponse('**/health'),
+      page.goto('/health'),
+    ]);
   });
+
+  async function waitForSearchDone(page: any, view: string) {
+    await page.waitForFunction((v: string) => {
+      const s = document.querySelector('#' + v + '-status');
+      const t = s ? s.textContent || '' : '';
+      return !/Searching|Loading/.test(t);
+    }, view, { timeout: 120000 }).catch(() => {});
+    await page.waitForTimeout(500);
+  }
 
   test.describe('/browse - Search', () => {
     test('should render Indexers (Prowlarr + Torrentio) & Usenet results for query "Nocturne"', async ({ page }) => {
@@ -25,7 +39,7 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
       await page.locator('#browse-search-btn').click();
 
       // Wait for results to load
-      await page.waitForTimeout(5000);
+      await waitForSearchDone(page, 'browse');
 
       // Verify results grid is rendered
       const resultCards = page.locator('#browse-results .tb-card');
@@ -59,7 +73,7 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
       await page.locator('#movies-search-btn').click();
 
       // Wait for results
-      await page.waitForTimeout(5000);
+      await waitForSearchDone(page, 'movies');
 
       // Verify results grid
       const resultCards = page.locator('#movies-results .tb-card');
@@ -92,7 +106,7 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
       await page.locator('#shows-query').fill('Breaking Bad');
       await page.locator('#shows-search-btn').click();
 
-      await page.waitForTimeout(5000);
+      await waitForSearchDone(page, 'shows');
 
       const resultCards = page.locator('#shows-results .tb-card');
       if (await resultCards.count() > 0) {
@@ -122,7 +136,7 @@ test.describe('SEARCH FUNCTIONALITY - Dual Action Flow', () => {
       await page.locator('#music-query').fill('Michael Jackson');
       await page.locator('#music-search-btn').click();
 
-      await page.waitForTimeout(5000);
+      await waitForSearchDone(page, 'music');
 
       const resultCards = page.locator('#music-results .tb-card');
       if (await resultCards.count() > 0) {

@@ -54,6 +54,8 @@ function hideEmpty(view) {
 // Returns all checked checkboxes as arrays
 const INDEXER_ALL = ['prowlarr', 'torrentio'];
 const USENET_ALL = ['NZBGeek', 'NZBIndex', 'Binsearch'];
+// Map from lowercase sub-type values (as appear in HTML) to canonical names
+const USENET_CANONICAL = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
 
 function syncAllToChildren(name, group, children, checked) {
   children.forEach(subType => {
@@ -124,7 +126,10 @@ export function getSelectedSource(prefix = '') {
       if (subType === 'all') {
         USENET_ALL.forEach(s => { if (!usenetSource.includes(s)) usenetSource.push(s); });
       } else {
-        if (!usenetSource.includes(subType)) usenetSource.push(subType);
+        // Normalize lowercase subType to canonical name (e.g. nzbgeek -> NZBGeek)
+        const canonical = USENET_CANONICAL[subType];
+        if (canonical && !usenetSource.includes(canonical)) usenetSource.push(canonical);
+        else if (!usenetSource.includes(subType)) usenetSource.push(subType);
       }
     }
   });

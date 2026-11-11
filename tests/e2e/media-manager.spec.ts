@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:8066';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:8066';
 
 async function navigateToView(page: any, viewName: string) {
   await page.click('a[data-view="' + viewName + '"]');

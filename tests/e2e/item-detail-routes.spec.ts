@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const BASE_URL = process.env.BASE_URL || 'http://localhost:8066';
+
 test.describe('ITEM DETAIL ROUTES & RENDERING', () => {
 
   test.describe('Movie Detail', () => {

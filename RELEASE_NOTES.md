@@ -3,7 +3,7 @@
 **Release:** `20261111`  
 **Date:** 2026-11-11  
 **Previous release:** `20261106`  
-**Deployed:** `guillem@192.168.1.5:/opt/torbox-media-manager` (production, `http://localhost:8066`)
+**Deployed:** `user@0.0.0.0:/opt/torbox-media-manager` (production, `http://localhost:8066`)
 
 ---
 
@@ -96,7 +96,7 @@ docker compose up -d app
 curl -fsS http://localhost:8066/health
 ```
 
-The app is deployed at `http://192.168.1.5:8066` and responds `HTTP 200` on `/health`.
+The app is deployed at `http://0.0.0.0:8066` and responds `HTTP 200` on `/health`.
 
 ---
 

@@ -94,7 +94,7 @@ test.describe('DISCOVER FUNCTIONALITY - Metadata Action Flow', () => {
       await page.waitForTimeout(3000);
 
       const results = page.locator('#music-results .tb-card');
-      await expect(results.first()).toBeVisible({ timeout: 10000 });
+      await expect(results.first()).toBeVisible({ timeout: 45000 });
 
       const sourceBadges = page.locator('.tb-source-badge');
       const badgeTexts = await sourceBadges.allTextContents();

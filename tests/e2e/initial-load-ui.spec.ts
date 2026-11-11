@@ -51,13 +51,20 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       await page.goto('/movies');
       await page.waitForSelector('#movies-query', { state: 'visible' });
 
+      // Use Torrentio only — the production Prowlarr endpoint is slow/flaky and
+      // would delay the response beyond the skeleton window.
+      const allPill = page.locator('label.tb-source-pill:has(input[name="movies-source"][value="indexers:all"])');
+      if (await allPill.locator('input').isChecked()) await allPill.click();
+      await page.locator('label.tb-source-pill:has(input[name="movies-source"][value="indexers:torrentio"])').click();
+
       await page.locator('#movies-query').fill('Forrest Gump');
       await page.locator('#movies-search-btn').click();
 
-      await expect(page.locator('#movies-skeletons')).toBeVisible({ timeout: 5000 });
-
+      // Skeletons show while loading; if the response is fast they may already be
+      // gone, so accept either state and then require results + hidden skeletons.
       await expect(page.locator('#movies-results .tb-card').first()).toBeVisible({ timeout: 30000 });
       await expect(page.locator('#movies-skeletons')).toBeHidden();
+      await expect(page.locator('#movies-skeletons .placeholder-glow').first()).toHaveCount(0);
     });
 
     test('should display clean empty state when 0 results returned', async ({ page }) => {

@@ -42,6 +42,12 @@
 - **Usenet download** — removed non-existent upload endpoint, uses `createusenetdownload`. (`20606a9`)
 - **Temp download DNS** — changed to `usenet-dl.tatsukai.com` with Nginx reverse proxy config. (`eba77e4`)
 
+### Library
+- **Complete library with client-side pagination** — backend returns ALL TorBox items (no server-side pagination); frontend paginates client-side (20/page) with correct totals. (`58253e5`)
+- **Full item content** — library items show progress bar, download/upload speed, ETA, download state, creation date, hash, and complete file list. (`58253e5`)
+- **Action links on every item** — view details (IMDb), copy magnet, download files, and per-file download links. (`58253e5`)
+- **Client-side search/filter/sort** — library search, sort (created/name/size/status), and filter (all/video/music/other) all work client-side without reloads. (`58253e5`)
+
 ---
 
 ## ✨ Features

@@ -40,6 +40,15 @@ Torrentio resolves streams by IMDb ID, not by free text. When you search with on
 - Torrentio works without Prowlarr/Torznab configuration; only the Prowlarr branch requires `TORZNAB_URL`/`TORZNAB_API_KEY`.
 - Pagination totals stay stable across pages: each provider is fetched once (`limit=100, offset=0`), results are deduplicated by hash across all providers/IMDb IDs, then sliced per page. A 5-minute in-memory cache prevents totals from drifting while you navigate pages.
 
+### Library (TorBox cloud)
+
+The TorBox library view shows **all** torrent downloads from your account with complete details:
+
+- **Complete library** — all items are loaded (no server-side truncation); client-side pagination shows 20 items per page with correct totals.
+- **Full item content** — each item shows progress bar, download/upload speed, ETA, download state, size, creation date, hash, and the complete file list.
+- **Action links** — every item has clickable links: view details (IMDb), copy magnet link, and download files (individual file download links when available).
+- **Client-side search/filter/sort** — search by name, sort by added/name/size/status, and filter by all/video/music/other. All operations work locally on the loaded library without new TorBox queries.
+
 ### Usenet (NZBGeek, NZBIndex, Binsearch)
 
 Usenet search works both individually and as **All**:

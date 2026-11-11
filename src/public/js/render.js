@@ -21,7 +21,7 @@ export function renderSkeletonGrid(count = 8, kind = 'movie') {
   let html = '';
   for (let i = 0; i < count; i++) {
     html += `
-      <div class="tb-skeleton-card">
+      <div class="tb-skeleton-card placeholder-glow">
         <div class="tb-skeleton-body">
           <div class="tb-skeleton-line title"></div>
           <div class="tb-skeleton-line meta"></div>

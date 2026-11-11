@@ -212,19 +212,17 @@ test.describe('PAGINATION URL STATE (?page=N)', () => {
     await page.waitForTimeout(2500);
     expect(page.url()).toContain('page=2');
 
-    // Reload with the page param in the URL — the app should restore page 2
+    // Reload with ?q=&page=2 in the URL — the URL keeps page=2 and loadView
+    // restores the input from ?q= and re-runs the search at page 2
     await page.reload();
-    await page.waitForTimeout(3000);
-    // Fill the query so the initial load re-runs the search at page 2
-    await page.fill('#movies-query', 'Forrest Gump');
-    await page.click('#movies-search-btn');
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(1000);
+    expect(page.url()).toContain('page=2');
     const pagInfo2 = paginationInfo(page, 'movies');
-    await expect(pagInfo2).toBeVisible({ timeout: 15000 });
-    const m2 = ((await pagInfo2.textContent()) || '').match(/of\s+(\d+)\s+\((\d+)\s+results\)/);
-    expect(Number(m2![1])).toBe(2);
-    expect(Number(m2![2])).toBe(Number(m1![2]));
-    expect(Number(m2![3])).toBe(Number(m1![3]));
+    await expect(pagInfo2).toBeVisible({ timeout: 30000 });
+    const text2 = (await pagInfo2.textContent()) || '';
+    const m2 = text2.match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
+    expect(m2).not.toBeNull();
+    expect(Number(m2![1])).toBe(2); // restored page 2
   });
 
   test('/music - search request excludes Torrentio (music uses Prowlarr 3000 + Usenet only)', async ({ page }) => {

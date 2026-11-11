@@ -18,6 +18,38 @@ export function setPageParam(page, query) {
   history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
 }
 
+
+// ── Loading skeleton / empty-state containers per view ──
+function showSkeletons(view, kind) {
+  const skel = $(`#${view}-skeletons`);
+  if (skel) {
+    skel.innerHTML = renderSkel(8, kind);
+    skel.classList.remove('hidden');
+  }
+  const emptyEl = $(`#${view}-empty`);
+  if (emptyEl) emptyEl.classList.add('hidden');
+  const results = $(`#${view}-results`);
+  if (results) results.innerHTML = '';
+}
+
+function hideSkeletons(view) {
+  const skel = $(`#${view}-skeletons`);
+  if (skel) {
+    skel.classList.add('hidden');
+    skel.innerHTML = '';
+  }
+}
+
+function showEmpty(view) {
+  const emptyEl = $(`#${view}-empty`);
+  if (emptyEl) emptyEl.classList.remove('hidden');
+}
+
+function hideEmpty(view) {
+  const emptyEl = $(`#${view}-empty`);
+  if (emptyEl) emptyEl.classList.add('hidden');
+}
+
 // ── Get selected source(s) (Indexers/Usenet with sub-type) ──
 // Returns all checked checkboxes as arrays
 const INDEXER_ALL = ['prowlarr', 'torrentio'];
@@ -120,6 +152,8 @@ export function resetViewState(view) {
   state.searchMode[view] = 'search';
   const container = $(`#${view}-results`);
   if (container) container.innerHTML = '';
+  hideSkeletons(view);
+  hideEmpty(view);
   const count = $(`#${view}-count`);
   if (count) { count.textContent = ''; count.style.display = 'none'; }
   const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
@@ -183,9 +217,7 @@ export async function doSearch(view, page = 1) {
 
   // Show skeletons while loading
   const container = $(`#${view}-results`);
-  if (container) {
-    container.innerHTML = renderSkel(8, view === 'music' ? 'music' : 'movie');
-  }
+  showSkeletons(view, view === 'music' ? 'music' : 'movie');
   setStatus(view, 'Searching…');
 
   console.log('[USENET-PIPELINE] Frontend search:', { view, query, sources, indexers, usenetSource });
@@ -228,10 +260,12 @@ export async function doSearch(view, page = 1) {
     state.items[view] = rows;
     state.offset[view] = offset + rows.length;
 
+    hideSkeletons(view);
     if (container) {
-      container.innerHTML = rows.length ? rows.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
+      container.innerHTML = rows.length ? rows.map((item, idx) => renderSearchItem(item, idx)).join('') : '';
       observeArtwork(container);
     }
+    if (rows.length) hideEmpty(view); else showEmpty(view);
 
     const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
     const pagContainer = document.getElementById(pagId);
@@ -248,7 +282,9 @@ export async function doSearch(view, page = 1) {
     setStatus(view, '');
   } catch (error) {
     setStatus(view, error.message);
-    if (container) container.innerHTML = empty('Search failed.');
+    hideSkeletons(view);
+    if (container) container.innerHTML = '';
+    showEmpty(view);
   }
 }
 
@@ -274,9 +310,7 @@ export async function searchLocal(view, page = 1) {
   state.searchMode[view] = 'discover';
 
   const container = $(`#${view}-results`);
-  if (container) {
-    container.innerHTML = renderSkel(8, view === 'music' ? 'music' : 'movie');
-  }
+  showSkeletons(view, view === 'music' ? 'music' : 'movie');
   setStatus(view, 'Searching…');
 
   try {
@@ -295,10 +329,12 @@ export async function searchLocal(view, page = 1) {
     state.items[view] = local;
     state.offset[view] = offset + local.length;
 
+    hideSkeletons(view);
     if (container) {
-      container.innerHTML = local.length ? local.map((item, idx) => renderSearchItem(item, idx)).join('') : empty('No results found.');
+      container.innerHTML = local.length ? local.map((item, idx) => renderSearchItem(item, idx)).join('') : '';
       observeArtwork(container);
     }
+    if (local.length) hideEmpty(view); else showEmpty(view);
 
     const pagId = view === 'browse' ? 'browse-pagination' : `${view}-pagination`;
     const pagContainer = document.getElementById(pagId);
@@ -326,9 +362,7 @@ export async function loadLibraryPage(page = 1) {
   setPageParam(page);
 
   const container = $('#library-results');
-  if (container) {
-    container.innerHTML = renderSkel(8, 'movie');
-  }
+  showSkeletons('library', 'movie');
   setStatus('library', 'Loading…');
 
   try {
@@ -340,9 +374,11 @@ export async function loadLibraryPage(page = 1) {
     state.offset['library'] = offset + rows.length;
     state.currentPage['library'] = page;
 
+    hideSkeletons('library');
     if (container) {
-      container.innerHTML = rows.length ? renderTorboxLibrary(rows) : empty('No Library items found.');
+      container.innerHTML = rows.length ? renderTorboxLibrary(rows) : '';
     }
+    if (rows.length) hideEmpty('library'); else showEmpty('library');
 
     const count = $('#library-count');
     if (count) {
@@ -364,7 +400,9 @@ export async function loadLibraryPage(page = 1) {
     setStatus('library', data.usenetError ? `TorBox Usenet list unavailable: ${data.usenetError}` : '');
   } catch (error) {
     setStatus('library', error.message);
-    if (container) container.innerHTML = empty('Failed to load library.');
+    hideSkeletons('library');
+    if (container) container.innerHTML = '';
+    showEmpty('library');
   }
 }
 

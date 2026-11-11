@@ -8,7 +8,7 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       await page.waitForSelector('#browse-query', { state: 'visible' });
 
       await expect(page.locator('#browse-query')).toBeVisible();
-      await expect(page.locator('.tb-hero-input-group')).toBeVisible();
+      await expect(page.locator('#view-browse .tb-hero-input-group')).toBeVisible();
       await expect(page.locator('#browse-results')).toBeEmpty();
       await expect(page.locator('#browse-skeletons')).toBeHidden();
       await expect(page.locator('#browse-empty')).toBeHidden();
@@ -20,7 +20,7 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       await page.waitForSelector('#movies-query', { state: 'visible' });
 
       await expect(page.locator('#movies-query')).toBeVisible();
-      await expect(page.locator('.tb-hero-input-group')).toBeVisible();
+      await expect(page.locator('#view-movies .tb-hero-input-group')).toBeVisible();
       await expect(page.locator('#movies-results')).toBeEmpty();
       await expect(page.locator('#movies-skeletons')).toBeHidden();
     });
@@ -30,7 +30,7 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       await page.waitForSelector('#shows-query', { state: 'visible' });
 
       await expect(page.locator('#shows-query')).toBeVisible();
-      await expect(page.locator('.tb-hero-input-group')).toBeVisible();
+      await expect(page.locator('#view-shows .tb-hero-input-group')).toBeVisible();
       await expect(page.locator('#shows-results')).toBeEmpty();
       await expect(page.locator('#shows-skeletons')).toBeHidden();
     });
@@ -40,7 +40,7 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       await page.waitForSelector('#music-query', { state: 'visible' });
 
       await expect(page.locator('#music-query')).toBeVisible();
-      await expect(page.locator('.tb-hero-input-group')).toBeVisible();
+      await expect(page.locator('#view-music .tb-hero-input-group')).toBeVisible();
       await expect(page.locator('#music-results')).toBeEmpty();
       await expect(page.locator('#music-skeletons')).toBeHidden();
     });

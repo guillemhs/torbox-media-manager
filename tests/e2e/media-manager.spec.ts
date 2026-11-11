@@ -195,7 +195,7 @@ test.describe('INITIAL LOAD & UI BEHAVIOR', () => {
     const resultsCount = await page.locator('#movies-results .search-result-item').count();
 
     if (resultsCount > 0 && await pagination.isVisible()) {
-      const page2Button = page.locator('#movies-pagination button[data-page="2"]');
+      const page2Button = page.locator('#movies-pagination button[aria-label="Page 2"]');
       if (await page2Button.isVisible()) {
         await page2Button.click();
         await page.waitForTimeout(1000);
@@ -215,7 +215,7 @@ test.describe('INITIAL LOAD & UI BEHAVIOR', () => {
     const resultsCount = await page.locator('#browse-results .search-result-item').count();
 
     if (resultsCount > 0 && await pagination.isVisible()) {
-      const page2Button = page.locator('#browse-pagination button[data-page="2"]');
+      const page2Button = page.locator('#browse-pagination button[aria-label="Page 2"]');
       if (await page2Button.isVisible()) {
         await page2Button.click();
         await page.waitForTimeout(1000);
@@ -254,7 +254,7 @@ test.describe('LIBRARY FUNCTIONALITY', () => {
     const items = page.locator('.library-item');
 
     if (await items.count() > 0 && await pagination.isVisible()) {
-      const page2Button = page.locator('#library-pagination button[data-page="2"]');
+      const page2Button = page.locator('#library-pagination button[aria-label="Page 2"]');
       if (await page2Button.isVisible()) {
         await page2Button.click();
         await page.waitForTimeout(1000);

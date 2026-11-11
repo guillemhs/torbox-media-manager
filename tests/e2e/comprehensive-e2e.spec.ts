@@ -328,7 +328,7 @@ test.describe('TORBOX MEDIA MANAGER - Complete E2E Verification', () => {
       const pagContainer = page.locator('#browse-pagination');
       if (await pagContainer.count() > 0 && !(await pagContainer.hasClass('hidden'))) {
         // Click page 2
-        const page2Btn = pagContainer.locator('[data-page="2"]');
+        const page2Btn = pagContainer.locator('[aria-label="Page 2"]');
         if (await page2Btn.count() > 0) {
           await page2Btn.click();
           await page.waitForTimeout(3000);

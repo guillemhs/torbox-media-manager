@@ -65,7 +65,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
     expect(totalPages1).toBeGreaterThan(1);
 
     // Click page 2
-    await page.click('#shows-pagination .tb-pagination-btn[data-page="2"]');
+    await page.click('#shows-pagination .tb-pagination-btn[aria-label="Page 2"]');
     await page.waitForTimeout(2500);
 
     const page2Text = (await pagInfo.textContent()) || '';
@@ -77,7 +77,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
     expect(Number(match2![3])).toBe(totalResults1);
 
     // Navigate to the last page — totals must still match
-    await page.click(`#shows-pagination .tb-pagination-btn[data-page="${totalPages1}"]`);
+    await page.click(`#shows-pagination .tb-pagination-btn[aria-label="Page ${totalPages1}"]`);
     await page.waitForTimeout(2500);
     const lastText = (await pagInfo.textContent()) || '';
     const matchLast = lastText.match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
@@ -97,7 +97,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
     expect(m1).not.toBeNull();
     if (Number(m1![2]) < 2) return; // not multi-page, nothing to verify
 
-    await page.click('#movies-pagination .tb-pagination-btn[data-page="2"]');
+    await page.click('#movies-pagination .tb-pagination-btn[aria-label="Page 2"]');
     await page.waitForTimeout(2500);
     const text2 = (await pagInfo.textContent()) || '';
     const m2 = text2.match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
@@ -117,7 +117,7 @@ test.describe('PAGINATION CONSISTENCY', () => {
     expect(m1).not.toBeNull();
     if (Number(m1![2]) < 2) return;
 
-    await page.click('#browse-pagination .tb-pagination-btn[data-page="2"]');
+    await page.click('#browse-pagination .tb-pagination-btn[aria-label="Page 2"]');
     await page.waitForTimeout(2500);
     const text2 = (await pagInfo.textContent()) || '';
     const m2 = text2.match(/Page\s+(\d+)\s+of\s+(\d+)\s+\((\d+)\s+results\)/);
@@ -189,7 +189,7 @@ test.describe('PAGINATION URL STATE (?page=N)', () => {
     expect(m1).not.toBeNull();
     if (Number(m1![2]) < 2) return; // single page, nothing to paginate
 
-    await page.click('#shows-pagination .tb-pagination-btn[data-page="2"]');
+    await page.click('#shows-pagination .tb-pagination-btn[aria-label="Page 2"]');
     await page.waitForTimeout(2500);
 
     expect(page.url()).toContain('page=2');
@@ -208,7 +208,7 @@ test.describe('PAGINATION URL STATE (?page=N)', () => {
     const m1 = ((await pagInfo.textContent()) || '').match(/of\s+(\d+)\s+\((\d+)\s+results\)/);
     if (!m1 || Number(m1[1]) < 2) return;
 
-    await page.click('#movies-pagination .tb-pagination-btn[data-page="2"]');
+    await page.click('#movies-pagination .tb-pagination-btn[aria-label="Page 2"]');
     await page.waitForTimeout(2500);
     expect(page.url()).toContain('page=2');
 

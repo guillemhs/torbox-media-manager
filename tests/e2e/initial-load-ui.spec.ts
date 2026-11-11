@@ -120,7 +120,7 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       const pageCount = await page.locator('#movies-pagination .tb-pagination-btn[data-page]').count();
 
       if (pageCount > 1) {
-        await page.locator('#movies-pagination .tb-pagination-btn[data-page="2"]').click();
+        await page.locator('#movies-pagination .tb-pagination-btn[aria-label="Page 2"]').click();
         await page.waitForTimeout(2000);
         await expect(page.locator('#movies-results .tb-card').first()).toBeVisible();
       }
@@ -136,7 +136,7 @@ test.describe('INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR', () => 
       if (await pagination.isVisible()) {
         const pageCount = await page.locator('#library-pagination .tb-pagination-btn[data-page]').count();
         if (pageCount > 1) {
-          await page.locator('#library-pagination .tb-pagination-btn[data-page="2"]').click();
+          await page.locator('#library-pagination .tb-pagination-btn[aria-label="Page 2"]').click();
           await page.waitForTimeout(2000);
           await expect(page.locator('#library-results .tb-list-item').first()).toBeVisible();
         }

@@ -108,7 +108,7 @@ test.describe('LIBRARY & CALENDAR', () => {
 
         if (count > 1) {
           // Click page 2
-          await page.locator('#library-pagination .tb-pagination-btn[data-page="2"]').click();
+          await page.locator('#library-pagination .tb-pagination-btn[aria-label="Page 2"]').click();
           await page.waitForTimeout(2000);
 
           // Verify page 2 content loaded

@@ -38,21 +38,48 @@ async function searchBinsearch(query: string, limit = 50, offset = 0): Promise<U
   url.searchParams.set('q', query);
   url.searchParams.set('max', String(Math.min(200, Math.max(1, limit))));
   const html = await readResponse(await fetch(url, { headers: { 'User-Agent': 'TorBoxMediaManager/1.0 (+self-hosted media indexer search)', Accept: 'text/html' }, signal: AbortSignal.timeout(30_000) }));
-  // Binsearch exposes selected article identifiers as checkbox values. Keep parsing
-  // deliberately defensive because the public HTML is not a versioned API.
+  // Binsearch exposes each result as a /details/<id> link whose text is the subject.
+  // Keep parsing deliberately defensive because the public HTML is not a versioned API.
+  const decodeEntities = (value: string): string =>
+    value.replace(/<[^>]*>/g, ' ')
+      .replace(/&(?:nbsp|#160);/gi, ' ')
+      .replace(/&quot;/gi, '"').replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+      .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+      .replace(/\s+/g, ' ').trim();
+
   const candidates: UsenetCandidate[] = [];
-  const checkbox = /<input\b[^>]*type=["']?checkbox["']?[^>]*>/gi;
-  for (const match of html.matchAll(checkbox)) {
-    const tag = match[0];
-    const value = /\bvalue=["']([^"']+)["']/i.exec(tag)?.[1];
-    if (!value || value.length > 500 || /^(?:on|off)$/i.test(value)) continue;
-    const before = html.slice(Math.max(0, (match.index || 0) - 1600), match.index || 0);
-    const row = /<(?:tr|li)\b[^>]*>([\s\S]*?)$/i.exec(before)?.[1] || before.slice(-900);
-    const name = row.replace(/<[^>]*>/g, ' ').replace(/&(?:nbsp|amp|quot|lt|gt);/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!name || candidates.some(candidate => candidate.id === value)) continue;
-    candidates.push({ id: value, name: name.slice(-240), source: 'Binsearch' });
+  const seen = new Set<string>();
+  const linkRegex = /<a\b[^>]*href=["']\/details\/([^"'?#]+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+  for (const match of html.matchAll(linkRegex)) {
+    const id = match[1];
+    if (!id || id.length > 500 || seen.has(id)) continue;
+    const name = decodeEntities(match[2]);
+    if (!name) continue;
+    seen.add(id);
+    candidates.push({ id, name: name.slice(-240), source: 'Binsearch' });
     if (candidates.length >= offset + limit) break;
   }
+
+  // Fallback: older markup carries the article id in the checkbox name attribute.
+  if (candidates.length === 0) {
+    const checkbox = /<input\b[^>]*type=["']?checkbox["']?[^>]*>/gi;
+    for (const match of html.matchAll(checkbox)) {
+      const tag = match[0];
+      const value = /\bvalue=["']([^"']+)["']/i.exec(tag)?.[1];
+      const nameAttr = /\bname=["']([^"']+)["']/i.exec(tag)?.[1];
+      const id = value && !/^(?:on|off)$/i.test(value) ? value : nameAttr;
+      if (!id || id.length > 500 || seen.has(id)) continue;
+      const before = html.slice(Math.max(0, (match.index || 0) - 1600), match.index || 0);
+      const row = /<(?:tr|li)\b[^>]*>([\s\S]*?)$/i.exec(before)?.[1] || before.slice(-900);
+      const name = decodeEntities(row);
+      if (!name) continue;
+      seen.add(id);
+      candidates.push({ id, name: name.slice(-240), source: 'Binsearch' });
+      if (candidates.length >= offset + limit) break;
+    }
+  }
+
   return candidates.slice(offset, offset + limit);
 }
 

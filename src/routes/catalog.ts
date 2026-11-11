@@ -16,12 +16,15 @@ export const moviesRoute: RequestHandler = async (req, res) => {
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
   // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
   const searchIndexers = sources.includes('indexers');
-  const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
+  const searchUsenet = sources.includes('usenet');
   const searchLocal = sources.includes('local') || sources.length === 0;
   const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
   const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
   const usenetParam = scalar(req.query.usenetSource) || 'all';
-  const usenetSources = usenetParam.split(',').filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s));
+  // 'all' (or an empty/unknown value) must mean every source: pass undefined so the
+  // search service applies its default instead of an empty list (which matched nothing).
+  const usenetList = [...new Set(usenetParam.split(',').map(s => s.trim()).filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s)))];
+  const usenetSources = usenetList.length > 0 ? usenetList : undefined;
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',
@@ -55,12 +58,15 @@ export const showsRoute: RequestHandler = async (req, res) => {
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
   // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
   const searchIndexers = sources.includes('indexers');
-  const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
+  const searchUsenet = sources.includes('usenet');
   const searchLocal = sources.includes('local') || sources.length === 0;
   const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
   const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
   const usenetParam = scalar(req.query.usenetSource) || 'all';
-  const usenetSources = usenetParam.split(',').filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s));
+  // 'all' (or an empty/unknown value) must mean every source: pass undefined so the
+  // search service applies its default instead of an empty list (which matched nothing).
+  const usenetList = [...new Set(usenetParam.split(',').map(s => s.trim()).filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s)))];
+  const usenetSources = usenetList.length > 0 ? usenetList : undefined;
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',
@@ -100,12 +106,15 @@ export const browseRoute: RequestHandler = async (req, res) => {
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
   // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
   const searchIndexers = sources.includes('indexers');
-  const searchUsenet = sources.includes('usenet') && hasIndexerConfig;
+  const searchUsenet = sources.includes('usenet');
   const searchLocal = sources.includes('local') || sources.length === 0;
   const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
   const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
   const usenetParam = scalar(req.query.usenetSource) || 'all';
-  const usenetSources = usenetParam.split(',').filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s));
+  // 'all' (or an empty/unknown value) must mean every source: pass undefined so the
+  // search service applies its default instead of an empty list (which matched nothing).
+  const usenetList = [...new Set(usenetParam.split(',').map(s => s.trim()).filter(s => ['NZBGeek', 'NZBIndex', 'Binsearch'].includes(s)))];
+  const usenetSources = usenetList.length > 0 ? usenetList : undefined;
   try {
     const result = await searchMedia({
       query: typeof req.query.q === 'string' ? req.query.q : '',

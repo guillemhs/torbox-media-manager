@@ -212,7 +212,7 @@ export async function searchMedia(options: MediaSearchOptions): Promise<MediaSea
 
   // 3. Usenet search — collect all, then slice for the requested page like torrents.
   const allUsenetResults: Array<Record<string, unknown>> = allUsenetCached ? [...allUsenetCached] : [];
-  if (includeUsenet !== false && hasIndexerConfig && !allUsenetCached) {
+  if (includeUsenet !== false && !allUsenetCached) {
     const useUsenetSources = usenetSources ? usenetSources : ['NZBGeek', 'NZBIndex', 'Binsearch'];
     try {
       for (const source of useUsenetSources) {

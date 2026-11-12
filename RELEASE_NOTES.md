@@ -1,6 +1,6 @@
 # TorBox Media Manager — Release Notes
 
-**Release:** `20261111`  
+**Release:** `202611`  
 **Date:** 2026-11-11  
 **Previous release:** `20261106`  
 **Deployed:** `user@0.0.0.0:/opt/torbox-media-manager` (production, `http://localhost:8066`)

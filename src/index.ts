@@ -7,7 +7,6 @@ import {
   getLibraryRoute,
   usenetSearchRoute,
   addUsenetToTorboxRoute,
-  deleteTorrentRoute,
   downloadUsenetFileRoute,
   streamTorboxTrackRoute,
   triggerLibraryScanRoute,
@@ -75,7 +74,6 @@ app.get('/health', async (_req, res) => {
 });
 app.get('/library', getLibraryRoute);
 app.get('/library/status', getLibraryStatusRoute);
-app.delete('/library/torrent/:torrentId', deleteTorrentRoute);
 app.post('/library/scan', triggerLibraryScanRoute);
 app.post('/library/sync', syncLibraryTorboxRoute);
 app.post('/torbox/torrents', addTorrentToTorboxRoute);

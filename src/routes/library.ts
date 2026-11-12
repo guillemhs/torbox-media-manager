@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express';
 import { getLibraryStatus, scanLocalMedia } from '../services/media.service';
-import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, createWebDownload, deleteTorrent, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError } from '../services/torbox/client';
+import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, createWebDownload, getTorrentList, getUsenetList, requestTorrentDownload, requestUsenetDownload, TorboxApiError } from '../services/torbox/client';
 import { buildTempDownloadService } from '../services/temp-downloads';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
@@ -147,16 +147,3 @@ export const syncLibraryTorboxRoute: RequestHandler = async (_req, res) => {
 };
 
 export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(getLibraryStatus());
-
-export const deleteTorrentRoute: RequestHandler = async (req, res) => {
-  if (!process.env.TORBOX_API_KEY?.trim()) return res.status(503).json({ error: 'TORBOX_API_KEY is not configured.' });
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
-  const torrentId = scalar(req.params.torrentId);
-  if (!torrentId) return res.status(400).json({ error: 'Torrent ID is required.' });
-  try {
-    const result = await deleteTorrent(torrentId);
-    return res.json({ success: true, detail: result.detail, data: result.data });
-  } catch (error) {
-    return sendError(res, error);
-  }
-};

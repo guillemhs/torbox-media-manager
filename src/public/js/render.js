@@ -188,6 +188,11 @@ export function renderTitleDetail(title) {
           ${title.seasonCount ? `<p><strong>Seasons:</strong> ${esc(title.seasonCount)}</p>` : ''}
           ${title.showStatus ? `<p><strong>Status:</strong> ${esc(title.showStatus)}</p>` : ''}
           ${title.genres ? `<p><strong>Genres:</strong> ${esc(title.genres)}</p>` : ''}
+          <div class="detail-actions">
+            ${title.imdbId ? `<a href="https://www.imdb.com/title/${encodeURIComponent(title.imdbId)}/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-sm"><i class="fas fa-external-link-alt"></i> Open on IMDb</a>` : ''}
+            <button class="btn btn-tb-primary btn-sm" data-search-title="${encodeURIComponent(title.imdbId)}" data-search-kind="${kind}" data-search-title-text="${esc(title.primaryTitle || title.name || '')}"><i class="fas fa-search"></i> Search Torrents</button>
+            <button class="btn btn-outline-secondary btn-sm" data-search-usenet="${encodeURIComponent(title.primaryTitle || title.name || '')}"><i class="fas fa-download"></i> Search Usenet</button>
+          </div>
         </div>
       </div>
     </div>

@@ -198,6 +198,24 @@ document.addEventListener('click', (event) => {
     return;
   }
 
+  const searchTitleBtn = target.closest('[data-search-title]');
+  if (searchTitleBtn) {
+    event.preventDefault();
+    const imdbId = decodeURIComponent(searchTitleBtn.dataset.searchTitle);
+    const kind = searchTitleBtn.dataset.searchKind;
+    const titleText = decodeURIComponent(searchTitleBtn.dataset.searchTitleText || '');
+    setRoute(`/${kind}s?q=${encodeURIComponent(titleText)}&kind=${encodeURIComponent(kind)}&sources=indexers&indexers=prowlarr,torrentio`);
+    return;
+  }
+
+  const searchUsenetBtn = target.closest('[data-search-usenet]');
+  if (searchUsenetBtn) {
+    event.preventDefault();
+    const query = decodeURIComponent(searchUsenetBtn.dataset.searchUsenet);
+    setRoute(`/browse?q=${encodeURIComponent(query)}&kind=all&sources=usenet&usenetSource=all`);
+    return;
+  }
+
   const usenetBtn = target.closest('[data-usenet-add]');
   if (usenetBtn) {
     event.preventDefault();

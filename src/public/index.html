@@ -499,6 +499,23 @@
       .detail-info p strong { color: var(--tb-text); }
       .artwork-source { font-size: 0.75rem; color: var(--tb-text-muted); margin-top: 0.5rem; }
 
+      .detail-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+      }
+      .detail-actions .btn {
+        font-weight: 600;
+        padding: 0.625rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .detail-actions .btn i { font-size: 0.9rem; }
+
       /* Responsive: side-by-side on desktop, stacked on mobile */
       @media (min-width: 768px) {
         .detail-content { flex-direction: row; gap: 2rem; align-items: flex-start; }

@@ -72,8 +72,16 @@ export async function getTvmazeSchedule(options: ScheduleOptions) {
     if (!response.ok) throw new Error(`TVMaze returned HTTP ${response.status}`);
     const episodes = await response.json();
     if (!Array.isArray(episodes)) throw new Error('TVMaze returned an unexpected schedule format');
-    await saveCachedSchedule(cacheKey, episodes);
-    return { episodes, cached: false, stale: false, fetchedAt: new Date().toISOString() };
+    // TVMaze web schedule embeds show data under _embedded.show; promote to top-level show
+    const normalized = episodes.map((ep: Record<string, unknown>) => {
+      if (!ep.show && ep._embedded && typeof ep._embedded === 'object') {
+        const embedded = ep._embedded as Record<string, unknown>;
+        if (embedded.show) ep.show = embedded.show;
+      }
+      return ep;
+    });
+    await saveCachedSchedule(cacheKey, normalized);
+    return { episodes: normalized, cached: false, stale: false, fetchedAt: new Date().toISOString() };
   } catch (error) {
     if (stale) {
       return { episodes: stale, cached: true, stale: true, fetchedAt: cached!.fetchedAt };

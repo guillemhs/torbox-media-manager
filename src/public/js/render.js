@@ -304,6 +304,9 @@ export function renderTorboxLibrary(items) {
     if (downloadPresent && itemId) {
       actionLinks += `<a href="/torbox/usenet/${itemId}/files/0" class="library-action-btn dl-link" title="Download"><i class="fas fa-download"></i></a>`;
     }
+    if (itemId) {
+      actionLinks += `<button class="library-action-btn delete-link" data-delete-torrent="${itemId}" title="Delete torrent"><i class="fas fa-trash-alt"></i></button>`;
+    }
 
     // Progress bar
     const progressBar = `

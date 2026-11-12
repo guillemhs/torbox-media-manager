@@ -365,7 +365,8 @@ export function scheduleCards(episodes) {
     const code = season && number ? `S${String(season).padStart(2, '0')}E${String(number).padStart(2, '0')}` : '';
     const showId = show.id || '';
     const imdbId = show.externals?.imdb || '';
-    const detailLink = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=series` : `/tvmaze/${showId}`;
+    // Prefer local IMDb title page; fall back to searching the local catalog by show name
+    const detailLink = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=series` : `/browse?q=${encodeURIComponent(show.name || '')}&kind=series`;
     return `
       <article class="episode-card">
         <a href="${detailLink}" class="episode-link" title="View ${esc(show.name || '')} details">

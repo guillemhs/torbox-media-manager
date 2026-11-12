@@ -290,7 +290,7 @@ export async function controlTorrent(
   const response = await fetch('https://api.torbox.app/v1/api/torrents/controltorrent', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ torrent_id: String(torrentId), action }),
+    body: JSON.stringify({ torrent_id: String(torrentId), operation: action }),
     signal: AbortSignal.timeout(15_000)
   });
   let body: unknown;

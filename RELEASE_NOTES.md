@@ -54,6 +54,7 @@
 - **Working episode links** — calendar episode cards link to title details (`/title/:imdbId` or `/tvmaze/:id`). (`3fcb08f`)
 - **Platform filter** — platform dropdown is populated from calendar data; filter by any streaming service. (`3fcb08f`)
 - **Date picker** — select any date to view that day's streaming schedule. (`3fcb08f`)
+- **Calendar search** — search calendar content directly by title or show name. Works with streaming platforms (Netflix, Apple TV+, Prime Video, etc.). (`6e8b069`)
 - **Template literal fix** — calendar summary count now renders correctly instead of showing raw `${...}` syntax. (`edbd581`)
 - **HTML stripping fix** — episode summaries strip HTML tags before escaping, so `<p>` tags don't appear as literal text. (`edbd581`)
 

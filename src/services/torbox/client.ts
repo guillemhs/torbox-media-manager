@@ -284,7 +284,7 @@ export async function deleteTorrent(
   apiKey = process.env.TORBOX_API_KEY
 ): Promise<TorboxEnvelope<Record<string, unknown>>> {
   const token = requireApiKey(apiKey);
-  const response = await fetch('https://api.torbox.app/v1/api/torrents/removetorrent', {
+  const response = await fetch('https://api.torbox.app/v1/api/torrents/delete', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ torrent_id: String(torrentId) }),

@@ -465,6 +465,48 @@
       }
       .tb-detail-poster.movie img { aspect-ratio: 2 / 3; object-fit: cover; height: auto; }
       .tb-detail-poster.music img { aspect-ratio: 1 / 1; object-fit: cover; height: auto; }
+
+      /* ── Title detail page (rendered by renderTitleDetail) ── */
+      .title-detail { padding: 1rem 0; }
+      .title-detail-header { margin-bottom: 1.5rem; }
+      .title-detail-header h1 { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.5rem 0; color: var(--tb-text); }
+      .title-meta { color: var(--tb-text-muted); font-size: 0.95rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .detail-content { display: flex; flex-direction: column; gap: 1.5rem; }
+      .detail-poster { position: relative; display: flex; justify-content: center; }
+      .detail-poster img {
+        width: 100%;
+        max-width: 300px;
+        border-radius: 0.75rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        height: auto;
+      }
+      .detail-poster.movie img { aspect-ratio: 2 / 3; object-fit: cover; }
+      .detail-poster.series img { aspect-ratio: 2 / 3; object-fit: cover; }
+      .detail-poster img.no-poster, .no-poster {
+        width: 100%;
+        max-width: 300px;
+        height: 450px;
+        background: var(--tb-surface-hover);
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--tb-text-muted);
+        font-size: 0.9rem;
+      }
+      .detail-info h2 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem 0; color: var(--tb-text); }
+      .detail-info p { margin: 0 0 0.75rem 0; color: var(--tb-text); line-height: 1.6; }
+      .detail-info p strong { color: var(--tb-text); }
+      .artwork-source { font-size: 0.75rem; color: var(--tb-text-muted); margin-top: 0.5rem; }
+
+      /* Responsive: side-by-side on desktop, stacked on mobile */
+      @media (min-width: 768px) {
+        .detail-content { flex-direction: row; gap: 2rem; align-items: flex-start; }
+        .detail-poster { flex: 0 0 auto; max-width: 300px; }
+        .detail-info { flex: 1; }
+        .title-detail-header h1 { font-size: 2rem; }
+      }
+
       .tb-detail-info h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--tb-text); }
       .tb-detail-meta { color: var(--tb-text-muted); font-size: 0.95rem; margin-bottom: 1rem; }
       .tb-detail-meta span { margin-right: 1rem; }

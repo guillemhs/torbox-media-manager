@@ -722,6 +722,74 @@
         color: var(--tb-text-muted);
       }
 
+      /* ── Calendar episode cards ── */
+      .episode-card {
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .episode-card:hover {
+        border-color: var(--tb-accent);
+        transform: translateY(-2px);
+      }
+      .episode-link {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        height: 100%;
+      }
+      .episode-link:hover {
+        background: var(--tb-surface-hover);
+      }
+      .episode-card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        display: block;
+      }
+      .episode-copy {
+        padding: 0.75rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .episode-name {
+        font-weight: 600;
+        color: var(--tb-text);
+        margin: 0 0 0.25rem 0;
+        font-size: 0.95rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .episode-time {
+        font-size: 0.8rem;
+        color: var(--tb-accent);
+        margin: 0 0 0.25rem 0;
+        font-weight: 500;
+      }
+      .episode-meta {
+        font-size: 0.8rem;
+        color: var(--tb-text-muted);
+        margin: 0 0 0.5rem 0;
+      }
+      .episode-summary {
+        font-size: 0.85rem;
+        color: var(--tb-text);
+        margin: 0;
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
       /* ── Buttons ── */
       .btn-tb-primary {
         background: var(--tb-accent);

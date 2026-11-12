@@ -641,8 +641,11 @@ export async function loadCalendar() {
   try {
     setStatus('calendar', 'Loading…');
     const date = new Date().toISOString().slice(0, 10);
+    const dateInput = $('#calendar-date');
+    if (dateInput) dateInput.value = date;
     const data = await jsonFetch(`/api/calendar?date=${date}`);
     state.calendarData = data;
+    populateCalendarPlatforms(data);
     const container = $('#calendar-results');
     if (container) {
       container.innerHTML = renderCalendar();
@@ -657,6 +660,29 @@ export async function loadCalendar() {
   }
 }
 
+/** Populate the platform dropdown with unique platforms from the calendar data. */
+export function populateCalendarPlatforms(data) {
+  const select = $('#calendar-platform');
+  if (!select) return;
+  const currentValue = select.value;
+  const platforms = new Set();
+  for (const ep of data.episodes || []) {
+    const show = ep.show || {};
+    const platform = show.network?.name || show.webChannel?.name || '';
+    if (platform) platforms.add(platform);
+  }
+  // Rebuild options: keep 'all', then add sorted platforms
+  const options = ['<option value="all">All</option>'];
+  for (const p of [...platforms].sort()) {
+    options.push(`<option value="${esc(p)}">${esc(p)}</option>`);
+  }
+  select.innerHTML = options.join('');
+  // Restore previous selection if still available
+  if (currentValue && currentValue !== 'all' && platforms.has(currentValue)) {
+    select.value = currentValue;
+  }
+}
+
 // ── Shift calendar day ──
 export async function shiftCalendarDay(offset) {
   try {
@@ -666,6 +692,7 @@ export async function shiftCalendarDay(offset) {
     const date = today.toISOString().slice(0, 10);
     const data = await jsonFetch(`/api/calendar?date=${date}`);
     state.calendarData = data;
+    populateCalendarPlatforms(data);
     const container = $('#calendar-results');
     if (container) {
       container.innerHTML = renderCalendar();
@@ -679,6 +706,39 @@ export async function shiftCalendarDay(offset) {
     setStatus('calendar', error.message);
   }
 }
+
+// ── Calendar date picker handler ──
+document.getElementById('calendar-date')?.addEventListener('change', (event) => {
+  const target = event.target instanceof HTMLInputElement ? event.target : null;
+  if (!target || !target.value) return;
+  setStatus('calendar', 'Loading…');
+  void (async () => {
+    try {
+      const data = await jsonFetch(`/api/calendar?date=${target.value}`);
+      state.calendarData = data;
+      populateCalendarPlatforms(data);
+      const container = $('#calendar-results');
+      if (container) {
+        container.innerHTML = renderCalendar();
+      }
+      const summary = $('#calendar-summary');
+      if (summary && data.episodes) {
+        summary.textContent = `\${data.episodes.length} episode\${data.episodes.length !== 1 ? 's' : ''}`;
+      }
+      setStatus('calendar', '');
+    } catch (error) {
+      setStatus('calendar', error.message);
+    }
+  })();
+});
+
+// ── Calendar platform filter handler ──
+document.getElementById('calendar-platform')?.addEventListener('change', () => {
+  const container = $('#calendar-results');
+  if (container) {
+    container.innerHTML = renderCalendar();
+  }
+});
 
 // ── Pagination click handler (all views) ──
 document.addEventListener('click', (event) => {

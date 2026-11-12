@@ -358,21 +358,26 @@ export function scheduleCards(episodes) {
     const season = Number(ep.season);
     const number = Number(ep.number);
     const code = season && number ? `S${String(season).padStart(2, '0')}E${String(number).padStart(2, '0')}` : '';
+    const showId = show.id || '';
+    const imdbId = show.externals?.imdb || '';
+    const detailLink = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=series` : `/tvmaze/${showId}`;
     return `
       <article class="episode-card">
-        ${image ? `<img src="${esc(image)}" alt="${esc(show.name || '')} ${code}" />` : ''}
-        <div class="episode-copy">
-          <div class="episode-name">${esc(ep.name || 'Untitled')}</div>
-          <div class="episode-time">${esc(ep.airtime || '')}</div>
-          <div class="episode-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</div>
-          <div class="episode-summary">${esc(ep.summary || '').replace(/<[^>]*>/g, ' ')}</div>
-        </div>
-      </div>
-    </article>`;
+        <a href="${detailLink}" class="episode-link" title="View ${esc(show.name || '')} details">
+          ${image ? `<img src="${esc(image)}" alt="${esc(show.name || '')} ${code}" loading="lazy" />` : ''}
+          <div class="episode-copy">
+            <div class="episode-name">${esc(ep.name || 'Untitled')}</div>
+            <div class="episode-time">${esc(ep.airtime || '')}</div>
+            <div class="episode-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</div>
+            <div class="episode-summary">${esc(ep.summary || '').replace(/<[^>]*>/g, ' ')}</div>
+          </div>
+        </a>
+      </article>
+    `;
   }).join('');
-}
+};
 
-// ── Calendar rendering ──
+// ── Calendar rendering ──// ── Calendar rendering ──
 export function renderCalendar() {
   const data = state.calendarData || { episodes: [] };
   const query = $('#calendar-query')?.value.trim().toLocaleLowerCase() || '';

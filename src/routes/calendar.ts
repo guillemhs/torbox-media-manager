@@ -30,7 +30,8 @@ export const calendarRoute: RequestHandler = async (req, res) => {
 
   const date = scalar(req.query.date) || new Date().toISOString().slice(0, 10);
   const country = scalar(req.query.country);
-  const web = scalar(req.query.type) === 'web';
+  // Default to web schedule (streaming platforms: Netflix, Apple TV+, Prime Video, etc.)
+  const web = scalar(req.query.type) !== 'broadcast';
   try { return res.json(await getTvmazeSchedule({ date, country, web })); }
   catch (error) { return res.status(400).json({ error: error instanceof Error ? error.message : 'TVMaze schedule request failed' }); }
 };

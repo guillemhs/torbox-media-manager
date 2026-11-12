@@ -60,6 +60,7 @@
 ### Title Detail Pages
 - **Action buttons** — every title detail page now has action buttons: Open on IMDb, Search Torrents (Prowlarr/Torrentio), and Search Usenet (NZBGeek/NZBIndex/Binsearch). (`e49a6f4`)
 - **Responsive poster** — title detail posters are now responsive with proper aspect ratios (2:3 for movies/series) and side-by-side layout on desktop. (`f60a146`)
+- **Poster caption** — artwork source (e.g. TMDB) now appears as a centered caption below the poster instead of floating in the middle of the page. (`721ab2e`)
 
 ---
 

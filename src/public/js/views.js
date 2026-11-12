@@ -740,6 +740,22 @@ document.getElementById('calendar-platform')?.addEventListener('change', () => {
   }
 });
 
+// ── Calendar search input handler ──
+document.getElementById('calendar-query')?.addEventListener('input', () => {
+  const container = $('#calendar-results');
+  if (container) {
+    container.innerHTML = renderCalendar();
+  }
+});
+
+// ── Calendar search button handler ──
+document.getElementById('calendar-search-btn')?.addEventListener('click', () => {
+  const container = $('#calendar-results');
+  if (container) {
+    container.innerHTML = renderCalendar();
+  }
+});
+
 // ── Pagination click handler (all views) ──
 document.addEventListener('click', (event) => {
   const target = event.target instanceof Element ? event.target : null;

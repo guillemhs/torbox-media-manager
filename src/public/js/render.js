@@ -178,7 +178,7 @@ export function renderTitleDetail(title) {
       <div class="detail-content">
         <div class="detail-poster ${kind}">
           ${artworkUrl ? `<img src="${esc(artworkUrl)}" alt="${esc(title.primaryTitle || title.name || '')} poster" loading="lazy" class="${kind}">` : '<div class="no-poster">No Poster Available</div>'}
-          ${artworkSource ? `<div class="artwork-source">${esc(artworkSource)}</div>` : ''}
+          ${artworkSource ? `<div class="poster-caption">${esc(artworkSource)}</div>` : ''}
         </div>
 
         <div class="detail-info">

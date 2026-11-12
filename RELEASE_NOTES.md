@@ -47,7 +47,7 @@
 - **Full item content** — library items show progress bar, download/upload speed, ETA, download state, creation date, hash, and complete file list. (`58253e5`)
 - **Action links on every item** — view details (IMDb), copy magnet, download files, and per-file download links. (`58253e5`)
 - **Client-side search/filter/sort** — library search, sort (created/name/size/status), and filter (all/video/music/other) all work client-side without reloads. (`58253e5`)
-- **Delete** — the TorBox API v1 does not expose a torrent deletion endpoint; use the TorBox web interface to delete torrents. (`dbeb18f`)
+- **Delete torrent** — delete button (trash icon) on each library item uses `POST /v1/api/torrents/controltorrent` with `operation=delete` to permanently remove torrents from your TorBox account. (`c3c8ae0`)
 
 ---
 

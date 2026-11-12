@@ -46,7 +46,7 @@ The TorBox library view shows **all** torrent downloads from your account with c
 
 - **Complete library** — all items are loaded (no server-side truncation); client-side pagination shows 20 items per page with correct totals.
 - **Full item content** — each item shows progress bar, download/upload speed, ETA, download state, size, creation date, hash, and the complete file list.
-- **Action links** — every item has clickable links: view details (IMDb), copy magnet link, and download files (individual file download links when available).
+- **Action links** — every item has clickable links: view details (IMDb), copy magnet link, download files (individual file download links when available), and delete torrent (permanently removes from TorBox account).
 - **Client-side search/filter/sort** — search by name, sort by added/name/size/status, and filter by all/video/music/other. All operations work locally on the loaded library without new TorBox queries.
 
 ### Usenet (NZBGeek, NZBIndex, Binsearch)

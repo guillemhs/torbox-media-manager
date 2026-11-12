@@ -67,10 +67,10 @@ For each route below, verify that entering the query and clicking the secondary 
 
 ## 5. ITEM DETAIL ROUTES & RENDERING
 
-- **Movie Detail:** Verify `https://tmm.tatsukai.com/title/tt0109830?kind=movie` renders the movie correctly with a 2:3 poster container, metadata badges, release year, genres, overview layout, and action buttons (Open on IMDb, Search Torrents, Search Usenet).
-- **TV Show Detail:** Verify `https://tmm.tatsukai.com/title/tt0903747?kind=series` renders the TV show correctly with poster, metadata, action buttons, and overview layout.
-- **Music Release Detail:** Verify `https://tmm.tatsukai.com/music/release/a87dfac7-aca6-42e0-93cd-da849434cf6d` renders the music release correctly with square cover art (1:1 ratio), metadata, tracklist, and details.
-- **TVMaze Show Detail:** Verify `https://tmm.tatsukai.com/tvmaze/90392` renders the TVMaze show correctly with poster, metadata, summary, network, status, and action buttons (Open Local Title, Open on IMDb, Search Usenet).
+- **Movie Detail:** Verify `/title/tt0109830?kind=movie` renders the movie correctly with a 2:3 poster container, metadata badges, release year, genres, overview layout, and action buttons (Open on IMDb, Search Torrents, Search Usenet).
+- **TV Show Detail:** Verify `/title/tt0903747?kind=series` renders the TV show correctly with poster, metadata, action buttons, and overview layout.
+- **Music Release Detail:** Verify `/music/release/a87dfac7-aca6-42e0-93cd-da849434cf6d` renders the music release correctly with square cover art (1:1 ratio), metadata, tracklist, and details.
+- **TVMaze Show Detail:** Verify `/tvmaze/90392` renders the TVMaze show correctly with poster, metadata, summary, network, status, and action buttons (Open Local Title, Open on IMDb, Search Usenet).
 - **Poster Caption:** Verify artwork source (e.g., "TMDB") appears as a centered caption below the poster image on title detail pages.
 - **Responsive Detail Layout:** Verify title detail pages stack poster and info vertically on mobile, side-by-side on desktop (≥768px).
 

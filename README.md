@@ -104,7 +104,7 @@ The server is intended for a trusted self-hosted network and does not implement 
 | Variable | Purpose |
 |---|---|
 | `TORBOX_API_KEY` | TorBox account key for cloud library/music operations |
-| `TORZNAB_URL` | Prowlarr Torznab feed URL (e.g. `https://prowlarr.tatsukai.com/api`) |
+| `TORZNAB_URL` | Prowlarr Torznab feed URL (e.g. `http://your-prowlarr-instance/api`) |
 | `TORZNAB_API_KEY` | Prowlarr API key |
 | `TORZNAB_MUSIC_CATEGORY` | Prowlarr category for music searches (default `3000`) |
 | `NZBGEEK_API_HOST` | NZBGeek Newznab API host |

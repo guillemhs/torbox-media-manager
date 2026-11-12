@@ -40,7 +40,7 @@
 ### Usenet pipeline
 - **NZB download endpoint** — TorBox Web Download expects `link` field, not `url`. (`7729338`)
 - **Usenet download** — removed non-existent upload endpoint, uses `createusenetdownload`. (`20606a9`)
-- **Temp download DNS** — changed to `usenet-dl.tatsukai.com` with Nginx reverse proxy config. (`eba77e4`)
+- **Temp download DNS** — changed to your temp download domain with Nginx reverse proxy config. (`eba77e4`)
 
 ### Library
 - **Complete library with client-side pagination** — backend returns ALL TorBox items (no server-side pagination); frontend paginates client-side (20/page) with correct totals. (`58253e5`)

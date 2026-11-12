@@ -258,6 +258,69 @@ export function renderMusicNotFound() {
     </article>`;
 }
 
+// ── TVMaze show detail page ──
+export function renderTvmazeShow(show) {
+  const image = show.image?.medium || show.image?.original || '';
+  const network = show.network?.name || show.webChannel?.name || '';
+  const rating = show.rating?.average;
+  const genres = show.genres || [];
+  const premiered = show.premiered || '';
+  const ended = show.ended || '';
+  const summary = show.summary || '';
+  const officialSite = show.officialSite || '';
+  const externals = show.externals || {};
+  const imdbId = externals.imdb || '';
+
+  return `
+    <section class="tvmaze-detail">
+      <div class="tvmaze-detail-header">
+        <h1>${esc(show.name || 'Unknown Show')}</h1>
+        <div class="tvmaze-meta">
+          ${esc(show.type || 'TV Show')}
+          ${premiered ? `· ${esc(premiered)}` : ''}
+          ${show.averageRuntime ? `· ${esc(show.averageRuntime)} min` : ''}
+          ${rating ? `· ⭐ ${esc(rating)}` : ''}
+        </div>
+        ${officialSite ? `<div class="tvmaze-official-site"><a href="${esc(officialSite)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i> Official Site</a></div>` : ''}
+      </div>
+
+      <div class="detail-content">
+        <div class="detail-poster">
+          ${image ? `<img src="${esc(image)}" alt="${esc(show.name || '')} poster" loading="lazy">` : '<div class="no-poster">No Poster Available</div>'}
+        </div>
+
+        <div class="detail-info">
+          <h2>Details</h2>
+          ${summary ? `<p>${esc(summary.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())}</p>` : ''}
+          ${genres.length ? `<p><strong>Genres:</strong> ${esc(genres.join(', '))}</p>` : ''}
+          ${network ? `<p><strong>Network:</strong> ${esc(network)}</p>` : ''}
+          ${show.status ? `<p><strong>Status:</strong> ${esc(show.status)}</p>` : ''}
+          ${show.language ? `<p><strong>Language:</strong> ${esc(show.language)}</p>` : ''}
+          ${imdbId ? `<p><strong>IMDb ID:</strong> ${esc(imdbId)}</p>` : ''}
+          ${show.id ? `<p><strong>TVMaze ID:</strong> ${esc(show.id)}</p>` : ''}
+          <div class="detail-actions">
+            ${imdbId ? `<a href="/title/${encodeURIComponent(imdbId)}?kind=series" class="btn btn-tb-primary btn-sm"><i class="fas fa-external-link-alt"></i> Open Local Title</a>` : ''}
+            ${imdbId ? `<a href="https://www.imdb.com/title/${encodeURIComponent(imdbId)}/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-sm"><i class="fas fa-external-link-alt"></i> Open on IMDb</a>` : ''}
+            <button class="btn btn-outline-secondary btn-sm" data-search-usenet="${esc(show.name || '')}"><i class="fas fa-download"></i> Search Usenet</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+export function renderTvmazeShowNotFound() {
+  return `
+    <article class="tvmaze-detail">
+      <div class="tvmaze-detail-header">
+        <h1>Show Not Found</h1>
+      </div>
+      <div class="detail-content">
+        <p>The requested TVMaze show could not be found.</p>
+      </div>
+    </article>`;
+}
+
 // ── Library list rendering ──
 export function renderTorboxLibrary(items) {
   const videoExt = /\.(?:mp4|m4v|mkv|avi|mov|wmv|flv|webm|mpeg|mpg|ts)/;

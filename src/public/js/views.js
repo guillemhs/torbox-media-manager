@@ -4,6 +4,7 @@ import {
   renderPaginationHtml, renderSearchResults, renderSearchItem,
   renderTorboxLibrary, renderCalendar, renderSkeletonGrid as renderSkel,
   renderTitleDetail, renderTitleNotFound, renderMusicDetail, renderMusicNotFound,
+  renderTvmazeShow, renderTvmazeShowNotFound,
 } from './render.js';
 
 let calendarRequest = 0;
@@ -524,6 +525,27 @@ export async function loadMusicDetail(mbId) {
   }
 }
 
+// ── Load TVMaze show detail page ──
+export async function loadTvmazeShow(tvmazeId) {
+  try {
+    setStatus('tvmaze', 'Loading…');
+    const show = await jsonFetch(`/tvmaze/shows/${encodeURIComponent(tvmazeId)}`);
+
+    const detailContent = $('#tvmaze-detail-content');
+    if (detailContent) {
+      detailContent.innerHTML = renderTvmazeShow(show);
+      observeArtwork(detailContent);
+    }
+    setStatus('tvmaze', '');
+  } catch (error) {
+    const detailContent = $('#tvmaze-detail-content');
+    if (detailContent) {
+      detailContent.innerHTML = renderTvmazeShowNotFound();
+    }
+    setStatus('tvmaze', error.message);
+  }
+}
+
 // ── Route from browser location ──
 export function routeFromLocation() {
   const path = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '');
@@ -546,13 +568,15 @@ export function routeFromLocation() {
     return;
   }
   if (tvmazeMatch) {
-    void loadView('calendar', true);
+    const tvmazeId = tvmazeMatch[1];
+    showView('tvmaze');
+    void loadTvmazeShow(tvmazeId);
     return;
   }
 
   const viewMap = {
     '': 'browse', browse: 'browse', movies: 'movies', shows: 'shows',
-    music: 'music', 'music-detail': 'music-detail',
+    music: 'music', 'music-detail': 'music-detail', tvmaze: 'tvmaze',
     library: 'library', calendar: 'calendar',
   };
   const view = viewMap[path] || 'browse';

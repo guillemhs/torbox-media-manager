@@ -276,3 +276,35 @@ export async function createWebDownload(
 }
 
 
+
+/**
+ * Control a torrent in the TorBox account.
+ * Supported actions: 'delete' (removes torrent and files permanently).
+ */
+export async function controlTorrent(
+  torrentId: number | string,
+  action: string,
+  apiKey = process.env.TORBOX_API_KEY
+): Promise<TorboxEnvelope<Record<string, unknown>>> {
+  const token = requireApiKey(apiKey);
+  const response = await fetch('https://api.torbox.app/v1/api/torrents/controltorrent', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ torrent_id: String(torrentId), action }),
+    signal: AbortSignal.timeout(15_000)
+  });
+  let body: unknown;
+  const responseText = await response.text();
+  try { body = responseText ? JSON.parse(responseText) as unknown : undefined; } catch { body = responseText; }
+  if (!response.ok) {
+    const detail = typeof body === 'object' && body !== null && 'detail' in body ? String(body.detail)
+      : typeof body === 'object' && body !== null && 'error' in body ? String(body.error)
+      : typeof body === 'string' && body.trim() ? `TorBox returned HTTP ${response.status}: ${body.trim().slice(0, 500)}`
+      : `TorBox returned HTTP ${response.status}`;
+    throw new TorboxApiError(response.status, detail, body);
+  }
+  if (!body || typeof body !== 'object' || !('success' in body)) throw new TorboxApiError(502, 'TorBox returned an unexpected response', body);
+  const envelope = body as TorboxEnvelope<Record<string, unknown>>;
+  if (!envelope.success) throw new TorboxApiError(502, envelope.detail || envelope.error || 'TorBox rejected the control request', body);
+  return envelope;
+}

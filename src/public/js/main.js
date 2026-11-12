@@ -173,6 +173,31 @@ document.addEventListener('click', (event) => {
     return;
   }
 
+  const deleteBtn = target.closest('[data-delete-torrent]');
+  if (deleteBtn) {
+    event.preventDefault();
+    const torrentId = deleteBtn.dataset.deleteTorrent;
+    if (!torrentId) return;
+    if (!confirm('Delete this torrent from TorBox? This cannot be undone.')) return;
+    deleteBtn.disabled = true;
+    deleteBtn.style.opacity = '0.5';
+    void (async () => {
+      try {
+        await jsonFetch(`/library/torrent/${encodeURIComponent(torrentId)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        showToast('Torrent deleted from TorBox');
+        void loadLibraryPage(state.currentPage['library'] || 1);
+      } catch (error) {
+        showToast(error.message, 'error');
+        deleteBtn.disabled = false;
+        deleteBtn.style.opacity = '1';
+      }
+    })();
+    return;
+  }
+
   const usenetBtn = target.closest('[data-usenet-add]');
   if (usenetBtn) {
     event.preventDefault();

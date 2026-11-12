@@ -369,7 +369,7 @@ export function scheduleCards(episodes) {
             <div class="episode-name">${esc(ep.name || 'Untitled')}</div>
             <div class="episode-time">${esc(ep.airtime || '')}</div>
             <div class="episode-meta">${esc(show.name || '')} ${code} · ${esc(show.network?.name || show.webChannel?.name || '')}</div>
-            <div class="episode-summary">${esc(ep.summary || '').replace(/<[^>]*>/g, ' ')}</div>
+            <div class="episode-summary">${esc((ep.summary || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())}</div>
           </div>
         </a>
       </article>

@@ -652,7 +652,7 @@ export async function loadCalendar() {
     }
     const summary = $('#calendar-summary');
     if (summary && data.episodes) {
-      summary.textContent = `\${data.episodes.length} episode\${data.episodes.length !== 1 ? 's' : ''}`;
+      summary.textContent = `${data.episodes.length} episode${data.episodes.length !== 1 ? 's' : ''}`;
     }
     setStatus('calendar', '');
   } catch (error) {
@@ -699,7 +699,7 @@ export async function shiftCalendarDay(offset) {
     }
     const summary = $('#calendar-summary');
     if (summary && data.episodes) {
-      summary.textContent = `\${data.episodes.length} episode\${data.episodes.length !== 1 ? 's' : ''}`;
+      summary.textContent = `${data.episodes.length} episode${data.episodes.length !== 1 ? 's' : ''}`;
     }
     setStatus('calendar', '');
   } catch (error) {
@@ -723,7 +723,7 @@ document.getElementById('calendar-date')?.addEventListener('change', (event) => 
       }
       const summary = $('#calendar-summary');
       if (summary && data.episodes) {
-        summary.textContent = `\${data.episodes.length} episode\${data.episodes.length !== 1 ? 's' : ''}`;
+        summary.textContent = `${data.episodes.length} episode${data.episodes.length !== 1 ? 's' : ''}`;
       }
       setStatus('calendar', '');
     } catch (error) {

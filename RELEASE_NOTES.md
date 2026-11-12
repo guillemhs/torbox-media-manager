@@ -49,6 +49,12 @@
 - **Client-side search/filter/sort** — library search, sort (created/name/size/status), and filter (all/video/music/other) all work client-side without reloads. (`58253e5`)
 - **Delete torrent** — delete button (trash icon) on each library item uses `POST /v1/api/torrents/controltorrent` with `operation=delete` to permanently remove torrents from your TorBox account. (`c3c8ae0`)
 
+### Calendar
+- **Streaming-platform relevant results** — calendar now defaults to TVMaze's web schedule (`/schedule/web`) showing streaming platforms (Netflix, Prime Video, HBO Max, Disney+, etc.) instead of broadcast TV. (`b2130a2`)
+- **Working episode links** — calendar episode cards link to title details (`/title/:imdbId` or `/tvmaze/:id`). (`3fcb08f`)
+- **Platform filter** — platform dropdown is populated from calendar data; filter by any streaming service. (`3fcb08f`)
+- **Date picker** — select any date to view that day's streaming schedule. (`3fcb08f`)
+
 ---
 
 ## ✨ Features

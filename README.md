@@ -49,6 +49,15 @@ The TorBox library view shows **all** torrent downloads from your account with c
 - **Action links** — every item has clickable links: view details (IMDb), copy magnet link, download files (individual file download links when available), and delete torrent (permanently removes from TorBox account).
 - **Client-side search/filter/sort** — search by name, sort by added/name/size/status, and filter by all/video/music/other. All operations work locally on the loaded library without new TorBox queries.
 
+### Calendar (TVMaze streaming schedule)
+
+The Calendar view shows upcoming TV episodes from streaming platforms via TVMaze's web schedule API:
+
+- **Streaming platforms** — defaults to TVMaze's web schedule showing Netflix, Prime Video, HBO Max, Disney+, and other streaming services. Use the platform filter to narrow to a specific service.
+- **Working links** — click any episode to view its details page (IMDb title or TVMaze show page).
+- **Date picker** — select any date to view that day's streaming schedule.
+- **Platform filter** — the platform dropdown is automatically populated from the calendar data.
+
 ### Usenet (NZBGeek, NZBIndex, Binsearch)
 
 Usenet search works both individually and as **All**:
@@ -73,7 +82,7 @@ In the search box, each view has **Indexers** (ALL / Prowlarr / Torrentio) and *
 - `/` — Puppertino browser for IMDb movies/shows, local media, TorBox torrents/music, and the TVMaze schedule.
 - `GET /movies` and `GET /shows` — IMDb catalog; accepts `q`, `limit` (max 200), and `offset`.
 - `GET /browse` — combined IMDb discovery; accepts `kind=movie|series|all`; with a TorBox key, `hash=<40-character-info-hash>` checks its cache status.
-- `GET /calendar?date=YYYY-MM-DD&country=US` — TVMaze broadcast schedule. Use `type=web` for the web schedule. Cached results are returned if TVMaze is unavailable.
+- `GET /calendar?date=YYYY-MM-DD&country=US` — TVMaze schedule. Defaults to web schedule (streaming platforms: Netflix, Prime Video, HBO Max, etc.). Use `type=broadcast` for local broadcast TV. Cached results are returned if TVMaze is unavailable.
 - `GET /library?limit=50&offset=0` — local scan and, when configured, TorBox cloud list.
 - `GET /music?q=...` or `/library/music` — audio-only view of files in the authenticated TorBox account.
 - `GET /music/search?q=...` — release and artist search via MusicBrainz.

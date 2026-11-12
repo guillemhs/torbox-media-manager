@@ -57,6 +57,10 @@
 - **Template literal fix** — calendar summary count now renders correctly instead of showing raw `${...}` syntax. (`edbd581`)
 - **HTML stripping fix** — episode summaries strip HTML tags before escaping, so `<p>` tags don't appear as literal text. (`edbd581`)
 
+### Title Detail Pages
+- **Action buttons** — every title detail page now has action buttons: Open on IMDb, Search Torrents (Prowlarr/Torrentio), and Search Usenet (NZBGeek/NZBIndex/Binsearch). (`e49a6f4`)
+- **Responsive poster** — title detail posters are now responsive with proper aspect ratios (2:3 for movies/series) and side-by-side layout on desktop. (`f60a146`)
+
 ---
 
 ## ✨ Features

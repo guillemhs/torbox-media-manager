@@ -822,6 +822,28 @@ document.addEventListener('click', (event) => {
 // ── Popstate ──
 window.addEventListener('popstate', routeFromLocation);
 
+// ── Library files expand/collapse ──
+document.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+  const header = target.closest('.library-files-header');
+  if (!header) return;
+  event.preventDefault();
+  const fileList = header.parentElement?.querySelector('.library-file-list');
+  const toggle = header.querySelector('.library-files-toggle');
+  if (!fileList || !toggle) return;
+  const isCollapsed = fileList.classList.contains('collapsed');
+  if (isCollapsed) {
+    fileList.classList.remove('collapsed');
+    header.classList.add('expanded');
+    toggle.textContent = '▼';
+  } else {
+    fileList.classList.add('collapsed');
+    header.classList.remove('expanded');
+    toggle.textContent = '▶';
+  }
+});
+
 // ── Source checkbox "all" <-> children sync ──
 initSourceCheckboxStates();
 initSourceCheckboxes();

@@ -689,6 +689,24 @@
         font-weight: 600;
         color: var(--tb-text-muted);
         margin-bottom: 0.5rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        user-select: none;
+      }
+      .library-files-header:hover {
+        color: var(--tb-accent);
+      }
+      .library-files-toggle {
+        margin-right: 0.5rem;
+        font-size: 0.65rem;
+        transition: transform 0.2s ease;
+      }
+      .library-files-header.expanded .library-files-toggle {
+        transform: rotate(90deg);
+      }
+      .library-file-list.collapsed {
+        display: none;
       }
       .library-file-row {
         display: flex;

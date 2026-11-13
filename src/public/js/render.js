@@ -358,7 +358,7 @@ export function renderTorboxLibrary(items) {
         const dlLink = fId && downloadPresent ? `<a href="/torbox/usenet/${itemId}/files/${fId}" class="library-file-download" title="Download">${esc(fName)}</a>` : `<span class="library-file-name">${esc(fName)}</span>`;
         return `<div class="library-file-row">${dlLink}<span class="library-file-size">${esc(fSize)}</span></div>`;
       }).join('');
-      filesHtml = `<div class="library-files"><div class="library-files-header">${files.length} file${files.length !== 1 ? 's' : ''}</div>${fileList}</div>`;
+      filesHtml = `<div class="library-files"><div class="library-files-header" data-toggle-files="${itemId}" style="cursor: pointer;"><span class="library-files-toggle">▶</span> ${files.length} file${files.length !== 1 ? 's' : ''}</div><div class="library-file-list collapsed">${fileList}</div></div>`;
     }
 
     // Build action links

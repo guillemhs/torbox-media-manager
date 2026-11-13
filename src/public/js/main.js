@@ -178,9 +178,37 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
     const torrentId = deleteBtn.dataset.deleteTorrent;
     if (!torrentId) return;
-    if (!confirm('Delete this torrent from TorBox? This cannot be undone.')) return;
-    deleteBtn.disabled = true;
-    deleteBtn.style.opacity = '0.5';
+
+    // Store torrentId on the modal confirm button and show Bootstrap modal
+    const confirmBtn = document.getElementById('delete-confirm-btn');
+    if (confirmBtn) {
+      confirmBtn.dataset.deleteTorrent = torrentId;
+      const modalEl = document.getElementById('delete-confirm-modal');
+      if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+      }
+    }
+    return;
+  }
+
+  // Delete confirmation modal confirm button handler
+  const confirmDeleteBtn = target.closest('#delete-confirm-btn');
+  if (confirmDeleteBtn) {
+    const modalEl = document.getElementById('delete-confirm-modal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    const torrentId = confirmDeleteBtn.dataset.deleteTorrent;
+    if (!torrentId) return;
+
+    // Re-find the delete button from the page (it may have been re-rendered)
+    const btn = document.querySelector(`[data-delete-torrent="${esc(torrentId)}"]`);
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+    }
+
     void (async () => {
       try {
         await jsonFetch(`/library/torrent/${encodeURIComponent(torrentId)}`, {
@@ -191,8 +219,10 @@ document.addEventListener('click', (event) => {
         void loadLibraryPage(state.currentPage['library'] || 1);
       } catch (error) {
         showToast(error.message, 'error');
-        deleteBtn.disabled = false;
-        deleteBtn.style.opacity = '1';
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
       }
     })();
     return;

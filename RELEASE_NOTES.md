@@ -15,6 +15,7 @@
 - **Source selector ALL ↔ children sync** — selecting **Indexers - ALL** checks Prowlarr + Torrentio; deselecting unchecks both. Same for **Usenet - ALL** ↔ NZBGeek/NZBIndex/Binsearch. `Usenet - ALL` is checked by default on Browse, Movies, Shows, and Music.
 - **URL state persistence** — `?page=N` and `?q=` are synced into the URL and restored on refresh/shared links.
 - **E2e test suites** — Playwright coverage for pagination consistency, source-selector sync, URL state, initial load/UI, and discover functionality.
+- **GNU AGPL-3.0 license** — project relicensed from MIT to AGPL-3.0-or-later with full license text in LICENSE file.
 
 ---
 
@@ -48,6 +49,7 @@
 - **Action links on every item** — view details (IMDb), copy magnet, download files, and per-file download links. (`58253e5`)
 - **Client-side search/filter/sort** — library search, sort (created/name/size/status), and filter (all/video/music/other) all work client-side without reloads. (`58253e5`)
 - **Delete torrent** — delete button (trash icon) on each library item uses `POST /v1/api/torrents/controltorrent` with `operation=delete` to permanently remove torrents from your TorBox account. (`c3c8ae0`)
+- **Expand/collapse file lists** — library item file lists are now collapsed by default; click the file count header to expand/collapse. (`52ae86a`)
 
 ### Calendar
 - **Streaming-platform relevant results** — calendar now defaults to TVMaze's web schedule (`/schedule/web`) showing streaming platforms (Netflix, Prime Video, HBO Max, Disney+, etc.) instead of broadcast TV. (`b2130a2`)
@@ -64,12 +66,14 @@
 - **Action buttons** — every title detail page now has action buttons: Open on IMDb, Search Torrents (Prowlarr/Torrentio), and Search Usenet (NZBGeek/NZBIndex/Binsearch). (`e49a6f4`)
 - **Responsive poster** — title detail posters are now responsive with proper aspect ratios (2:3 for movies/series) and side-by-side layout on desktop. (`f60a146`)
 - **Poster caption** — artwork source (e.g. TMDB) now appears as a centered caption below the poster instead of floating in the middle of the page. (`721ab2e`)
+- **Delete confirmation modal** — replaced JavaScript `confirm()` dialog with Bootstrap modal for torrent deletion; mobile-friendly and accessible. (`3affedb`)
 
 ---
 
 ## ✨ Features
 
 - Individual indexer selection (Prowlarr / Torrentio) with pill groups. (`428738e`, `5ed29dc`)
+- All documentation files (`README.md`, `RELEASE_NOTES.md`, `QA_TEST_PROMPT.md`) are now self-hosted with no external domain references (`98c2c0f`)
 - Torrentio results added to Indexers search. (`6b8f71e`)
 - Torrentio selection bypasses Prowlarr when Prowlarr is not configured. (`bc15527`, `b1ae673`)
 - Prowlarr timeout increased to wait longer for results. (`aa976bb`)

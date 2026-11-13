@@ -119,6 +119,20 @@ The server is intended for a trusted self-hosted network and does not implement 
 | `HOST_MEDIA_PATH` | Host media directory |
 | `POSTGRES_PASSWORD`, `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_DATA_PATH` | PostgreSQL configuration |
 
+## Repository Documentation
+
+The following Markdown documents are available in the repository:
+
+| File | Description |
+|------|-------------|
+| [README.md](README.md) | This file — project overview, features, routes, environment variables, and license information. |
+| [INSTALL.md](INSTALL.md) | Complete self-hosted installation guide — prerequisites, Docker Compose setup, environment configuration, Prowlarr/TorBox/Usenet configuration, backup, and troubleshooting. |
+| [RELEASE_NOTES.md](RELEASE_NOTES.md) | Release notes for version `202611` — changelog, bug fixes, new features, environment variables, and deployment instructions. |
+| [QA_TEST_PROMPT.md](QA_TEST_PROMPT.md) | QA automation test specification — end-to-end test criteria for search, discover, initial load, library, calendar, and item detail routes using Playwright. |
+| [constitution.md](constitution.md) | Project constitution — mission, vision, data philosophy, operating modes, and supported data sources (IMDb, TVMaze, TorBox). |
+| [devArchitect.md.agent.md](devArchitect.md.agent.md) | Autonomous agent directive — system prompt and core rules for the devArchitect autonomous repository maintainer agent. |
+| [LICENSE](LICENSE) | GNU Affero General Public License v3.0 (AGPL-3.0-or-later) — full license text. |
+
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0-or-later).

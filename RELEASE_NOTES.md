@@ -128,6 +128,3 @@ curl -fsS http://localhost:8066/health
 The app is deployed at `http://0.0.0.0:8066` and responds `HTTP 200` on `/health`.
 
 ---
-
-> ⚠️ Security: If you pasted an NZBGeek API key in chat or logs, rotate it on NZBGeek and keep it only in the production `.env`.
-

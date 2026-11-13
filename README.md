@@ -118,3 +118,13 @@ The server is intended for a trusted self-hosted network and does not implement 
 | `TVMAZE_SYNC_INTERVAL` | TVMaze cache interval in hours (default `24`) |
 | `HOST_MEDIA_PATH` | Host media directory |
 | `POSTGRES_PASSWORD`, `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_DATA_PATH` | PostgreSQL configuration |
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0-or-later).
+See the [LICENSE](LICENSE) file for the full license text.
+
+The AGPL-3.0 requires that if you run a modified version of this software on a server
+and allow users to interact with it remotely through a computer network, you must make
+the Corresponding Source available to those users at no charge. This includes any
+modifications you make to the TorBox Media Manager codebase.

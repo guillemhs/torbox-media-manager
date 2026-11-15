@@ -46,6 +46,7 @@ export const trendingMusicRoute: RequestHandler = async (_req, res) => {
     url.searchParams.set('inc', 'artists');
     url.searchParams.set('limit', '20');
     url.searchParams.set('offset', '0');
+    url.searchParams.set('query', '*');
     // Recent releases - sort by release date descending
     const response = await fetch(url, {
       headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },

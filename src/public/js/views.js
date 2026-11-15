@@ -580,7 +580,7 @@ export function renderTrendingItem(item, idx, kind) {
   const route = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=${kind === 'music' ? 'series' : kind === 'shows' ? 'series' : 'movie'}` : `/browse?q=${encodeURIComponent(title)}&kind=${kind === 'music' ? 'music' : kind === 'shows' ? 'series' : 'movie'}`;
   return `
     <article class="tb-trending-card">
-      ${poster ? `<img src="${esc(poster)}" alt="${esc(title)} poster" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;300&quot; height=&quot;300&quot; fill=&quot;%23334155&quot;/><text x=&quot;50%&quot; y=&quot;50%&quot; font-size=&quot;14&quot; fill=&quot;%2394a3b8&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;middle&quot;>No Cover</text></svg>'">` : '<div class="tb-trending-card-placeholder">No Poster</div>'}
+      ${poster ? `<img src="${esc(poster)}" alt="${esc(title)} poster" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;300&quot; height=&quot;300&quot; fill=&quot;%23334155&quot;/><text x=&quot;50%&quot; y=&quot;50%&quot; font-size=&quot;14&quot; fill=&quot;%2394a3b8&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;middle&quot;>No Cover</text></svg>'">` : ''}
       <div class="tb-trending-card-body">
         <h3 class="tb-trending-card-title" title="${esc(title)}">${esc(title)}</h3>
         <div class="tb-trending-card-meta">

@@ -83,6 +83,11 @@ export function parseSeasonEpisode(rawQuery: string): ParsedQuery {
   }
   if (season !== undefined && (season < 1 || season > 99)) season = undefined;
   if (episode !== undefined && (episode < 1 || episode > 999)) episode = undefined;
+
+  // Strip quality/resolution tokens (1080p, 2160p, 4k, hd, bluray, etc.)
+  // that are not part of the actual title
+  base = base.replace(/\b(1080p|2160p|4k|4K|uhd|hd|bluray|blu.?ray|webrip|web.?rip|web.?dl|dvdrip|bdrip|hdtv|remux|hdrip|blurayrip|bluray-rip|web-dl|dvd-rip|bd-rip|hd-tv|remux-rip)\b/gi, '');
+
   return { baseQuery: base.replace(/\s+/g, ' ').trim(), season, episode };
 }
 

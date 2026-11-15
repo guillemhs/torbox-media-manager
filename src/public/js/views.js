@@ -586,17 +586,18 @@ export function renderTrendingItem(item, idx, kind) {
     route = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=movie` : `/browse?q=${encodeURIComponent(title)}&kind=movie`;
   }
   return `
-    <article class="tb-trending-card">
-      <div class="tb-trending-card-body">
-        <h3 class="tb-trending-card-title" title="${esc(title)}">${esc(title)}</h3>
-        <div class="tb-trending-card-meta">
-          ${year ? `<span>${esc(year)}</span>` : ''}
-          ${kindLabel ? `<span>${esc(kindLabel)}</span>` : ''}
-          ${rating ? `<span>★ ${esc(rating)}</span>` : ''}
+    <a href="${route}" class="tb-trending-card-link" style="text-decoration:none; color:inherit; display:block;">
+      <article class="tb-trending-card">
+        <div class="tb-trending-card-body">
+          <h3 class="tb-trending-card-title" title="${esc(title)}">${esc(title)}</h3>
+          <div class="tb-trending-card-meta">
+            ${year ? `<span>${esc(year)}</span>` : ''}
+            ${kindLabel ? `<span>${esc(kindLabel)}</span>` : ''}
+            ${rating ? `<span>★ ${esc(rating)}</span>` : ''}
+          </div>
         </div>
-      </div>
-      <a href="${route}" class="tb-trending-card-link" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;"></a>
-    </article>
+      </article>
+    </a>
   `;
 }
 

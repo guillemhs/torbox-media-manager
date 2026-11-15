@@ -240,6 +240,7 @@ export function renderMusicDetail(release) {
           ${release.date ? `<p><strong>Release Date:</strong> ${esc(release.date)}</p>` : ''}
           ${release.type ? `<p><strong>Type:</strong> ${esc(release.type)}</p>` : ''}
           ${release.id ? `<p><strong>MusicBrainz ID:</strong> ${esc(release.id)}</p>` : ''}
+          ${release.id ? `<a href="https://musicbrainz.org/release-group/${encodeURIComponent(release.id)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-sm"><i class="fas fa-external-link-alt"></i> Open on MusicBrainz</a>` : ''}
         </div>
       </div>
     </section>

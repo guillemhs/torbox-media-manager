@@ -302,6 +302,7 @@ export function renderTvmazeShow(show) {
           <div class="detail-actions">
             ${imdbId ? `<a href="/title/${encodeURIComponent(imdbId)}?kind=series" class="btn btn-tb-primary btn-sm"><i class="fas fa-external-link-alt"></i> Open Local Title</a>` : ''}
             ${imdbId ? `<a href="https://www.imdb.com/title/${encodeURIComponent(imdbId)}/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-sm"><i class="fas fa-external-link-alt"></i> Open on IMDb</a>` : ''}
+            ${show.id ? `<a href="https://www.tvmaze.com/shows/${show.id}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-light btn-sm"><i class="fas fa-external-link-alt"></i> Open on TVMaze</a>` : ''}
             <button class="btn btn-outline-secondary btn-sm" data-search-usenet="${esc(show.name || '')}"><i class="fas fa-download"></i> Search Usenet</button>
           </div>
         </div>

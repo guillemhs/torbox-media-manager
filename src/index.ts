@@ -38,6 +38,7 @@ import {
   musicDetailRoute,
   musicTorrentDownloadRoute,
   musicArtworkRoute,
+  trendingMusicRoute,
 } from './routes/music';
 import {
   moviesRoute,
@@ -45,6 +46,8 @@ import {
   browseRoute,
   titleRoute,
   titleArtworkRoute,
+  trendingMoviesRoute,
+  trendingShowsRoute,
 } from './routes/catalog';
 import { unifiedSearchRoute } from './routes/search';
 import { calendarRoute, tvmazeShowRoute } from './routes/calendar';
@@ -103,12 +106,15 @@ app.get('/api/search', unifiedSearchRoute);
 app.get('/api/calendar', calendarRoute);
 app.get('/tvmaze/shows/:id', tvmazeShowRoute);
 app.get('/artwork/:imdbId', titleArtworkRoute);
+app.get('/api/movies/trending', trendingMoviesRoute);
+app.get('/api/shows/trending', trendingShowsRoute);
 app.get('/api/music', musicRoute);
 app.get('/api/music/:id', musicDetailRoute);
 app.get('/music/search', musicMetadataSearchRoute);
 app.get('/music/torrents/search', musicTorrentSearchRoute);
 app.get('/music/torrents/download/:token', musicTorrentDownloadRoute);
 app.get('/music/artwork', musicArtworkRoute);
+app.get('/api/music/trending', trendingMusicRoute);
 app.get('/music/:torrentId/:fileId/stream', streamTorboxTrackRoute);
 app.post('/admin/imdb/import', imdbImportRoute);
 app.get('/admin/imdb/status', async (_req, res) => {

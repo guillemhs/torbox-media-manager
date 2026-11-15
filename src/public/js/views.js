@@ -546,6 +546,54 @@ export async function loadTvmazeShow(tvmazeId) {
   }
 }
 
+// ── Fetch trending content ──
+export async function loadTrending(kind = 'movie') {
+  try {
+    setStatus(kind, 'Loading trending…');
+    const data = await jsonFetch(`/api/${kind}/trending`);
+    const items = data.results?.local?.items || [];
+    const container = $(`#${kind}-trending`);
+    const emptyContainer = $(`#${kind}-trending-empty`);
+    if (container) {
+      container.innerHTML = items.length ? items.map((item, idx) => renderTrendingItem(item, idx, kind)).join('') : '';
+    }
+    if (emptyContainer) {
+      if (items.length) {
+        emptyContainer.classList.add('hidden');
+      } else {
+        emptyContainer.classList.remove('hidden');
+      }
+    }
+    setStatus(kind, '');
+  } catch (error) {
+    setStatus(kind, error.message);
+  }
+}
+
+export function renderTrendingItem(item, idx, kind) {
+  const title = item.primaryTitle || item.name || item.title || 'Unknown';
+  const year = item.startYear || item.year || item.date || '';
+  const kindLabel = item.kind || item.titleType || (kind === 'music' ? 'Release' : 'Movie');
+  const rating = item.averageRating || item.rating || '';
+  const poster = item.artwork?.url || item.cover || '';
+  const imdbId = item.imdbId || '';
+  const route = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=${kind === 'music' ? 'series' : kind === 'shows' ? 'series' : 'movie'}` : `/browse?q=${encodeURIComponent(title)}&kind=${kind === 'music' ? 'music' : kind === 'shows' ? 'series' : 'movie'}`;
+  return `
+    <article class="tb-trending-card">
+      ${poster ? `<img src="${esc(poster)}" alt="${esc(title)} poster" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;300&quot; height=&quot;300&quot; fill=&quot;%23334155&quot;/><text x=&quot;50%&quot; y=&quot;50%&quot; font-size=&quot;14&quot; fill=&quot;%2394a3b8&quot; text-anchor=&quot;middle&quot; dominant-baseline=&quot;middle&quot;>No Cover</text></svg>'">` : '<div class="tb-trending-card-placeholder">No Poster</div>'}
+      <div class="tb-trending-card-body">
+        <h3 class="tb-trending-card-title" title="${esc(title)}">${esc(title)}</h3>
+        <div class="tb-trending-card-meta">
+          ${year ? `<span>${esc(year)}</span>` : ''}
+          ${kindLabel ? `<span>${esc(kindLabel)}</span>` : ''}
+          ${rating ? `<span>★ ${esc(rating)}</span>` : ''}
+        </div>
+      </div>
+      <a href="${route}" class="tb-trending-card-link" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;"></a>
+    </article>
+  `;
+}
+
 // ── Route from browser location ──
 export function routeFromLocation() {
   const path = decodeURIComponent(location.pathname).replace(/^\/+|\/+$/g, '');
@@ -641,12 +689,20 @@ export async function loadView(view, reset = false) {
     const q = $(`#${view}-query`)?.value || '';
     if (!q || q.length < 2) {
       resetViewState(view);
+      // Load trending content when no search query is active
+      if (view === 'movies' || view === 'shows' || view === 'music') {
+        void loadTrending(view);
+      }
       return;
     }
 
     setStatus(view, 'Loading…');
     try {
       void doSearch(view, pageParam);
+      // Also load trending content in the background
+      if (view === 'movies' || view === 'shows' || view === 'music') {
+        void loadTrending(view);
+      }
     } catch (error) {
       setStatus(view, error.message);
     }

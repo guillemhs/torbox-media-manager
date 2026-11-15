@@ -24,6 +24,9 @@ export interface TitleSearch {
   kind?: 'movie' | 'series' | 'all';
   limit?: number;
   offset?: number;
+  minYear?: number;
+  sortBy?: 'year' | 'rating' | 'votes';
+  sortOrder?: 'asc' | 'desc';
 }
 
 let sqlite: InstanceType<typeof Sqlite> | undefined;
@@ -186,6 +189,10 @@ export async function searchTitles(options: TitleSearch = {}) {
   }
   if (options.kind === 'movie') conditions.push("title_type = 'movie'");
   if (options.kind === 'series') conditions.push("title_type IN ('tvSeries', 'tvMiniSeries')");
+  if (options.minYear) {
+    conditions.push('start_year >= ?');
+    params.push(options.minYear);
+  }
 
   // When no search query is provided, only show titles released up to the
   // current year so future-dated titles (e.g. 2030, 2031, 2032) do not appear
@@ -197,6 +204,21 @@ export async function searchTitles(options: TitleSearch = {}) {
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // Build ORDER BY clause based on sortBy/sortOrder
+  let orderBy = '';
+  const sortBy = options.sortBy || 'year';
+  const sortOrder = options.sortOrder || 'desc';
+  const sortDir = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  if (sortBy === 'rating') {
+    orderBy = `COALESCE(average_rating, 0) ${sortDir}, COALESCE(num_votes, 0) ${sortDir}, COALESCE(start_year, 0) ${sortDir}`;
+  } else if (sortBy === 'votes') {
+    orderBy = `COALESCE(num_votes, 0) ${sortDir}, COALESCE(average_rating, 0) ${sortDir}, COALESCE(start_year, 0) ${sortDir}`;
+  } else {
+    // year (default)
+    orderBy = `COALESCE(start_year, 0) ${sortDir}, COALESCE(num_votes, 0) ${sortDir}, COALESCE(average_rating, 0) ${sortDir}`;
+  }
+
   const countResult = await query<{ count: number }>(`SELECT COUNT(*) AS count FROM titles ${where}`, params);
   const result = await query(
     `SELECT imdb_id AS "imdbId", title_type AS "titleType", primary_title AS "primaryTitle",
@@ -204,11 +226,7 @@ export async function searchTitles(options: TitleSearch = {}) {
             runtime_minutes AS "runtimeMinutes", genres, average_rating AS "averageRating",
             num_votes AS "numVotes"
      FROM titles ${where}
-     ORDER BY
-       ${q
-         ? 'COALESCE(num_votes, 0) DESC, COALESCE(average_rating, 0) DESC, COALESCE(start_year, 0) DESC'
-         : 'COALESCE(start_year, 0) DESC, COALESCE(num_votes, 0) DESC, COALESCE(average_rating, 0) DESC'
-       },
+     ORDER BY ${orderBy},
        primary_title ASC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset]

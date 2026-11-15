@@ -39,6 +39,50 @@ export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
   } catch (error) { return res.status(502).json({ error: error instanceof Error ? error.message : 'Music torrent search failed.' }); }
 };
 
+export const trendingMusicRoute: RequestHandler = async (_req, res) => {
+  try {
+    const url = new URL('https://musicbrainz.org/ws/2/release-group/');
+    url.searchParams.set('fmt', 'json');
+    url.searchParams.set('inc', 'artists');
+    url.searchParams.set('limit', '20');
+    url.searchParams.set('offset', '0');
+    // Recent releases - sort by release date descending
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'TorBoxMediaManager/1.0 (self-hosted media manager)' },
+      signal: AbortSignal.timeout(15_000)
+    });
+    if (!response.ok) throw new Error(`MusicBrainz returned HTTP ${response.status}`);
+    const data = await response.json() as Record<string, unknown>;
+    const releaseGroups = Array.isArray(data['release-groups']) ? data['release-groups'] : [];
+    const releases = releaseGroups.map((item: any) => {
+      const artistCredit = item['artist-credit'] || [];
+      const artist = artistCredit.map((c: any) => c.name || (c.artist && c.artist.name) || '').join(' ');
+      return {
+        id: item.id,
+        title: item.title,
+        artist,
+        date: item['first-release-date'] || '',
+        type: item['primary-type'] || 'Release',
+        cover: `https://coverartarchive.org/release-group/${item.id}/front-250`,
+        _source: 'MusicBrainz',
+        _category: 'Music',
+      };
+    });
+    // Sort by release date descending
+    releases.sort((a: any, b: any) => (b.date || '').localeCompare(a.date || ''));
+    return res.json({
+      query: '',
+      kind: 'music',
+      results: {
+        local: { items: releases, total: releases.length },
+      },
+      source: 'MusicBrainz',
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch trending music' });
+  }
+};
+
 export const musicRoute: RequestHandler = async (req, res) => {
   const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const sources = parseSources(scalar(req.query.sources));

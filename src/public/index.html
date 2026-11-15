@@ -893,6 +893,84 @@
         overflow: hidden;
       }
 
+      /* ── Trending section ── */
+      .tb-trending-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--tb-border);
+      }
+      .tb-trending-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--tb-text);
+        margin: 0 0 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .tb-trending-title::before {
+        content: "\f04b";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        color: var(--tb-accent);
+      }
+      .tb-trending-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+      }
+      .tb-trending-card {
+        background: var(--tb-surface);
+        border: 1px solid var(--tb-border);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        transition: all 0.25s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .tb-trending-card:hover {
+        border-color: var(--tb-accent);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      }
+      .tb-trending-card img {
+        width: 100%;
+        height: 270px;
+        object-fit: cover;
+        display: block;
+      }
+      .tb-trending-card img:hover {
+        transform: scale(1.02);
+        transition: transform 0.25s ease;
+      }
+      .tb-trending-card-body {
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .tb-trending-card-title {
+        font-weight: 700;
+        color: var(--tb-text);
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .tb-trending-card-meta {
+        font-size: 0.8rem;
+        color: var(--tb-text-muted);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
       /* ── Buttons ── */
       .btn-tb-primary {
         background: var(--tb-accent);
@@ -1099,6 +1177,15 @@
         </div>
         <div id="movies-pagination" class="tb-pagination"></div>
         <div id="movies-status" class="tb-status"></div>
+
+        <!-- ── Trending Movies ── -->
+        <div class="tb-trending-section">
+          <h3 class="tb-trending-title">New & Trending Movies</h3>
+          <div id="movies-trending" class="tb-trending-grid"></div>
+          <div id="movies-trending-empty" class="tb-empty hidden">
+            <p class="text-muted">No trending movies available</p>
+          </div>
+        </div>
       </section>
 
       <!-- ── Shows view ── -->
@@ -1158,6 +1245,15 @@
         </div>
         <div id="shows-pagination" class="tb-pagination"></div>
         <div id="shows-status" class="tb-status"></div>
+
+        <!-- ── Trending Shows ── -->
+        <div class="tb-trending-section">
+          <h3 class="tb-trending-title">New & Trending TV Shows</h3>
+          <div id="shows-trending" class="tb-trending-grid"></div>
+          <div id="shows-trending-empty" class="tb-empty hidden">
+            <p class="text-muted">No trending shows available</p>
+          </div>
+        </div>
       </section>
 
       <!-- ── Music view ── -->
@@ -1217,6 +1313,15 @@
         </div>
         <div id="music-pagination" class="tb-pagination"></div>
         <div id="music-status" class="tb-status"></div>
+
+        <!-- ── Trending Music ── -->
+        <div class="tb-trending-section">
+          <h3 class="tb-trending-title">New & Trending Music</h3>
+          <div id="music-trending" class="tb-trending-grid"></div>
+          <div id="music-trending-empty" class="tb-empty hidden">
+            <p class="text-muted">No trending music available</p>
+          </div>
+        </div>
       </section>
 
       <!-- ── Library view ── -->

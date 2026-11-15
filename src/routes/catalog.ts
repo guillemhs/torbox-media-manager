@@ -163,6 +163,66 @@ export const titleArtworkRoute: RequestHandler = async (req, res) => {
   return res.json({ artwork });
 };
 
+export const trendingMoviesRoute: RequestHandler = async (_req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const minYear = currentYear - 2;
+    const result = await searchTitles({
+      q: '',
+      kind: 'movie',
+      limit: 20,
+      offset: 0,
+      minYear,
+      sortBy: 'year',
+      sortOrder: 'desc',
+    });
+    return res.json({
+      query: '',
+      kind: 'movie',
+      results: {
+        local: { items: result.items.map((item: Record<string, unknown>) => ({
+          ...item,
+          _source: 'local-movies',
+          _category: 'Movies',
+        })), total: result.total },
+      },
+      source: 'local',
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch trending movies' });
+  }
+};
+
+export const trendingShowsRoute: RequestHandler = async (_req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const minYear = currentYear - 2;
+    const result = await searchTitles({
+      q: '',
+      kind: 'series',
+      limit: 20,
+      offset: 0,
+      minYear,
+      sortBy: 'year',
+      sortOrder: 'desc',
+    });
+    return res.json({
+      query: '',
+      kind: 'series',
+      results: {
+        local: { items: result.items.map((item: Record<string, unknown>) => ({
+          ...item,
+          _source: 'local-shows',
+          _category: 'Shows',
+        })), total: result.total },
+      },
+      source: 'local',
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch trending shows' });
+  }
+};
+
 function scalar(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }

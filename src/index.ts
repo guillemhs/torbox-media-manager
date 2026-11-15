@@ -111,6 +111,7 @@ app.get('/artwork/:imdbId', titleArtworkRoute);
 app.get('/api/movies/trending', trendingMoviesRoute);
 app.get('/api/shows/trending', trendingShowsRoute);
 app.get('/api/music', musicRoute);
+app.get('/api/music/trending', trendingMusicRoute);
 app.get('/api/music/:id', musicDetailRoute);
 app.get('/music/search', musicMetadataSearchRoute);
 app.get('/music/torrents/search', musicTorrentSearchRoute);

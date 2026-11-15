@@ -576,7 +576,15 @@ export function renderTrendingItem(item, idx, kind) {
   const kindLabel = item.kind || item.titleType || (kind === 'music' ? 'Release' : 'Movie');
   const rating = item.averageRating || item.rating || '';
   const imdbId = item.imdbId || '';
-  const route = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=${kind === 'music' ? 'series' : kind === 'shows' ? 'series' : 'movie'}` : `/browse?q=${encodeURIComponent(title)}&kind=${kind === 'music' ? 'music' : kind === 'shows' ? 'series' : 'movie'}`;
+  const musicId = item.id || '';
+  let route;
+  if (kind === 'music') {
+    route = musicId ? `/music/release/${encodeURIComponent(musicId)}` : `/browse?q=${encodeURIComponent(title)}&kind=music`;
+  } else if (kind === 'shows') {
+    route = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=series` : `/browse?q=${encodeURIComponent(title)}&kind=series`;
+  } else {
+    route = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=movie` : `/browse?q=${encodeURIComponent(title)}&kind=movie`;
+  }
   return `
     <article class="tb-trending-card">
       <div class="tb-trending-card-body">

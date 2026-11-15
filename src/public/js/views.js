@@ -575,13 +575,10 @@ export function renderTrendingItem(item, idx, kind) {
   const year = item.startYear || item.year || item.date || '';
   const kindLabel = item.kind || item.titleType || (kind === 'music' ? 'Release' : 'Movie');
   const rating = item.averageRating || item.rating || '';
-  const poster = item.artwork?.url || item.cover || '';
   const imdbId = item.imdbId || '';
   const route = imdbId ? `/title/${encodeURIComponent(imdbId)}?kind=${kind === 'music' ? 'series' : kind === 'shows' ? 'series' : 'movie'}` : `/browse?q=${encodeURIComponent(title)}&kind=${kind === 'music' ? 'music' : kind === 'shows' ? 'series' : 'movie'}`;
-  const posterSrc = poster || 'data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22300%22 fill=%22%23334155%22/><text x=%2250%25%22 y=%2250%25%22 font-size=%2214%22 fill=%22%2394a3b8%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>No Cover</text></svg>';
   return `
     <article class="tb-trending-card">
-      <img src="${posterSrc}" alt="${esc(title)} poster" loading="lazy" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22300%22 fill=%22%23334155%22/><text x=%2250%25%22 y=%2250%25%22 font-size=%2214%22 fill=%22%2394a3b8%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>No Cover</text></svg>'">
       <div class="tb-trending-card-body">
         <h3 class="tb-trending-card-title" title="${esc(title)}">${esc(title)}</h3>
         <div class="tb-trending-card-meta">

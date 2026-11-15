@@ -811,14 +811,15 @@
         border: 1px solid var(--tb-border);
         border-radius: 0.75rem;
         overflow: hidden;
-        transition: all 0.2s ease;
+        transition: all 0.25s ease;
         height: 100%;
         display: flex;
         flex-direction: column;
       }
       .episode-card:hover {
         border-color: var(--tb-accent);
-        transform: translateY(-2px);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
       }
       .episode-link {
         display: block;
@@ -835,17 +836,23 @@
         object-fit: cover;
         display: block;
       }
+      .episode-card img:hover {
+        transform: scale(1.02);
+        transition: transform 0.25s ease;
+      }
       .episode-copy {
-        padding: 0.75rem;
+        padding: 1rem;
         flex: 1;
         display: flex;
         flex-direction: column;
+        gap: 0.5rem;
       }
       .episode-name {
-        font-weight: 600;
+        font-weight: 700;
         color: var(--tb-text);
-        margin: 0 0 0.25rem 0;
-        font-size: 0.95rem;
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.3;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
@@ -854,19 +861,32 @@
       .episode-time {
         font-size: 0.8rem;
         color: var(--tb-accent);
-        margin: 0 0 0.25rem 0;
-        font-weight: 500;
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .episode-time::before {
+        content: "\f017";
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
       }
       .episode-meta {
         font-size: 0.8rem;
         color: var(--tb-text-muted);
-        margin: 0 0 0.5rem 0;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
       }
       .episode-summary {
         font-size: 0.85rem;
         color: var(--tb-text);
         margin: 0;
         flex: 1;
+        line-height: 1.5;
         display: -webkit-box;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
@@ -1249,6 +1269,8 @@
               <select id="calendar-platform" class="form-select form-select-dark form-select-sm" style="width: auto;">
                 <option value="all">All</option>
               </select>
+              <label for="calendar-country" class="form-label me-2">Country</label>
+              <input id="calendar-country" type="text" class="form-control form-control-dark form-control-sm" placeholder="US" maxlength="2" />
             </div>
             <div id="calendar-summary" class="text-muted small mt-2"></div>
           </div>

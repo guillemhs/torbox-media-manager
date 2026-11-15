@@ -667,7 +667,10 @@ export async function loadCalendar() {
     const date = new Date().toISOString().slice(0, 10);
     const dateInput = $('#calendar-date');
     if (dateInput) dateInput.value = date;
-    const data = await jsonFetch(`/api/calendar?date=${date}`);
+    const countryInput = $('#calendar-country');
+    const country = countryInput ? countryInput.value.trim().toUpperCase() : '';
+    const countryParam = country ? `&country=${encodeURIComponent(country)}` : '';
+    const data = await jsonFetch(`/api/calendar?date=${date}${countryParam}`);
     state.calendarData = data;
     populateCalendarPlatforms(data);
     const container = $('#calendar-results');
@@ -714,7 +717,10 @@ export async function shiftCalendarDay(offset) {
     const today = new Date();
     today.setDate(today.getDate() + offset);
     const date = today.toISOString().slice(0, 10);
-    const data = await jsonFetch(`/api/calendar?date=${date}`);
+    const countryInput = $('#calendar-country');
+    const country = countryInput ? countryInput.value.trim().toUpperCase() : '';
+    const countryParam = country ? `&country=${encodeURIComponent(country)}` : '';
+    const data = await jsonFetch(`/api/calendar?date=${date}${countryParam}`);
     state.calendarData = data;
     populateCalendarPlatforms(data);
     const container = $('#calendar-results');
@@ -738,7 +744,10 @@ document.getElementById('calendar-date')?.addEventListener('change', (event) => 
   setStatus('calendar', 'Loading…');
   void (async () => {
     try {
-      const data = await jsonFetch(`/api/calendar?date=${target.value}`);
+      const countryInput = $('#calendar-country');
+      const country = countryInput ? countryInput.value.trim().toUpperCase() : '';
+      const countryParam = country ? `&country=${encodeURIComponent(country)}` : '';
+      const data = await jsonFetch(`/api/calendar?date=${target.value}${countryParam}`);
       state.calendarData = data;
       populateCalendarPlatforms(data);
       const container = $('#calendar-results');
@@ -758,6 +767,14 @@ document.getElementById('calendar-date')?.addEventListener('change', (event) => 
 
 // ── Calendar platform filter handler ──
 document.getElementById('calendar-platform')?.addEventListener('change', () => {
+  const container = $('#calendar-results');
+  if (container) {
+    container.innerHTML = renderCalendar();
+  }
+});
+
+// ── Calendar country input handler ──
+document.getElementById('calendar-country')?.addEventListener('change', () => {
   const container = $('#calendar-results');
   if (container) {
     container.innerHTML = renderCalendar();

@@ -29,6 +29,9 @@ For each route below, verify that entering the query and clicking the primary **
 - Torrentio resolves text queries via local IMDb ID lookup before calling the Stremio addon.
 - Multiple IMDb IDs are fetched, deduplicated by hash/magnet, and paginated together.
 - Pagination totals stay stable across pages (74 results on page 1 should remain 74 on page 2).
+- **Quality/season/episode token stripping**: Queries like "His & Hers 1080p", "His & Hers S01E02", "His & Hers S01 Complete" strip quality/season/episode tokens before IMDb lookup, returning correct results.
+
+---
 
 ## 2. DISCOVER FUNCTIONALITY (Metadata Action Flow)
 
@@ -41,6 +44,8 @@ For each route below, verify that entering the query and clicking the secondary 
 | `/shows` | "Breaking Bad" | UI renders results from local IMDb only (TV shows & series filter applied). Check that pagination functions correctly. |
 | `/music` | "Michael Jackson" | UI renders results from MusicBrainz API only. Check that pagination functions correctly. |
 
+---
+
 ## 3. INITIAL LOAD, STATE TRANSITIONS & RESPONSIVE UI BEHAVIOR
 
 - **Initial Load:** Verify that `/browse`, `/movies`, `/shows`, and `/music` display ONLY the centered hero search bar (`.input-group-lg`) on initial page load. Confirm no auto-search triggers and no empty result grids or placeholder containers are present in the DOM below the input.
@@ -48,31 +53,47 @@ For each route below, verify that entering the query and clicking the secondary 
 - **Responsive Grid:** Verify that the media card container adapts correctly across viewports with correct poster aspect ratios for each version.
 - **Pagination:** Verify pagination controls function correctly across all routes, updating URL search parameters (`?page=N`) and refreshing the grid view when items exceed one page. URL state (`?page=N`, `?q=`) is persisted via `history.replaceState` and restored on refresh/shared links.
 
+---
+
 ## 4. LIBRARY & CALENDAR
 
 ### Library
 - Verify user library items render correctly using a valid TorBox API Key injected into the browser session/localStorage.
 - Verify all library items are returned (no server-side truncation); client-side pagination shows 20 items per page with correct totals.
 - Verify library items show full content: progress bar, download/upload speed, ETA, download state, size, creation date, hash, and complete file list.
-- Verify action links on each item: view details (IMDb), copy magnet link, download files (individual file download links when available).
+- Verify action links on each item: view details (IMDb), copy magnet link, download files (individual file download links when available), delete torrent (trash icon).
 - Verify client-side search, sort (added/name/size/status), and filter (all/video/music/other) work without reloads.
 - Verify library pagination functions correctly across pages.
+- Verify file lists are collapsed by default and expand/collapse on clicking the file count header.
 
 ### Calendar
 - Verify the calendar view grid renders correctly with streaming-platform results (TVMaze web schedule: Netflix, Prime Video, HBO Max, Disney+, etc.).
 - Verify clicking any calendar item triggers navigation to its corresponding title detail page (`/title/:id` if IMDb ID available, or `/browse?q=<show name>&kind=series` if not).
 - Verify calendar search filters by title or show name.
+- Verify country dropdown is populated with country options and filtering works.
 - Verify platform dropdown is populated from calendar data and filtering works.
 - Verify date picker allows selecting any date to view that day's streaming schedule.
+
+---
 
 ## 5. ITEM DETAIL ROUTES & RENDERING
 
 - **Movie Detail:** Verify `/title/tt0109830?kind=movie` renders the movie correctly with a 2:3 poster container, metadata badges, release year, genres, overview layout, and action buttons (Open on IMDb, Search Torrents, Search Usenet).
 - **TV Show Detail:** Verify `/title/tt0903747?kind=series` renders the TV show correctly with poster, metadata, action buttons, and overview layout.
-- **Music Release Detail:** Verify `/music/release/a87dfac7-aca6-42e0-93cd-da849434cf6d` renders the music release correctly with square cover art (1:1 ratio), metadata, tracklist, and details.
-- **TVMaze Show Detail:** Verify `/tvmaze/90392` renders the TVMaze show correctly with poster, metadata, summary, network, status, and action buttons (Open Local Title, Open on IMDb, Search Usenet).
+- **Music Release Detail:** Verify `/music/release/a87dfac7-aca6-42e0-93cd-da849434cf6d` renders the music release correctly with square cover art (1:1 ratio), metadata, tracklist, details, and **Open on MusicBrainz** button.
+- **TVMaze Show Detail:** Verify `/tvmaze/90392` renders the TVMaze show correctly with poster, metadata, summary, network, status, and action buttons (Open Local Title, Open on IMDb, Open on TVMaze, Search Usenet).
 - **Poster Caption:** Verify artwork source (e.g., "TMDB") appears as a centered caption below the poster image on title detail pages.
 - **Responsive Detail Layout:** Verify title detail pages stack poster and info vertically on mobile, side-by-side on desktop (≥768px).
+
+---
+
+## 6. TRENDING CONTENT
+
+- **Movies Trending:** Verify `/api/movies/trending` returns recent movies (last 2 years) sorted by year desc. UI shows trending section on `/movies` page with poster, title, year, rating, and category. Clicking a card navigates to `/title/:imdbId?kind=movie`.
+- **Shows Trending:** Verify `/api/shows/trending` returns recent TV shows (last 2 years) sorted by year desc. UI shows trending section on `/shows` page with poster, title, year, rating, and category. Clicking a card navigates to `/title/:imdbId?kind=series`.
+- **Music Trending:** Verify `/api/music/trending` returns recent MusicBrainz releases sorted by release date desc. UI shows trending section on `/music` page with cover art, title, artist, date, and category. Clicking a card navigates to `/music/release/:id`.
+
+---
 
 ## 6. ENVIRONMENT & CONFIGURATION
 
@@ -80,6 +101,8 @@ For each route below, verify that entering the query and clicking the secondary 
 - Verify `NZBGEEK_API_HOST`, `NZBGEEK_API_KEY`, `NZBGEEK_WHITELIST_IP` are configured for NZBGeek usenet searches.
 - Verify `TORBOX_API_KEY` is configured for TorBox cloud library/music operations.
 - Verify production `.env` is used without modification for production testing.
+
+---
 
 ## 7. E2E TEST SUITES
 

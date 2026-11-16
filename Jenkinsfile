@@ -12,10 +12,13 @@
  * Required Jenkins credentials:
  *   - TORBOX_API_URL: Base URL of the TorBox Media Manager instance
  *                        (e.g., http://your-server:8066)
- *   - TORBOX_ADMIN_TOKEN: Optional authentication token if auth is enabled
+ *   - TORBOX_API_KEY: Optional authentication token if auth is enabled
  *
  * Required environment variables on the Jenkins agent:
- *   - None required beyond the Jenkins credentials above
+ *   - TORBOX_API_URL: Base URL of the TorBox Media Manager instance
+ *   - TORBOX_API_KEY: Optional authentication token if auth is enabled
+ *
+ * Deployment target: /opt/torbox-media-manager
  */
 
 pipeline {
@@ -24,7 +27,7 @@ pipeline {
     parameters {
         // Allow manual trigger with optional override
         booleanParam(name: 'FORCE_IMPORT', defaultValue: false, description: 'Force import even if data is up to date')
-        stringParam(name: 'TORBOX_URL', defaultValue: '', description: 'Override TorBox API URL (e.g., http://localhost:8066)')
+        stringParam(name: 'TORBOX_URL', defaultValue: 'http://localhost:8066', description: 'TorBox Media Manager URL (e.g., http://localhost:8066)')
         booleanParam(name: 'SEND_NOTIFICATIONS', defaultValue: true, description: 'Send email notifications on completion')
     }
 
@@ -42,8 +45,11 @@ pipeline {
         NOTIFY_SUCCESS = "${SEND_NOTIFICATIONS}"
         NOTIFY_FAILURE = "${SEND_NOTIFICATIONS}"
         
-        // Slack/Email notification configuration (configure in Jenkins)
+        // Notification configuration (configure in Jenkins)
         NOTIFY_TO = ''
+        
+        // Workspace directory
+        TORBOX_HOME = '/opt/torbox-media-manager'
     }
 
     options {
@@ -53,7 +59,7 @@ pipeline {
         // Timeout the entire pipeline
         timeout(time: 2, unit: 'HOURS')
         
-        // Disable resume for simplicity (or enable for durability)
+        // Disable resume for simplicity
         disableResume()
         
         // Clean workspace before each run
@@ -76,6 +82,7 @@ pipeline {
                     echo "Build Number: ${BUILD_NUMBER}"
                     echo "Build ID: ${BUILD_ID}"
                     echo "Build Date: ${new Date()}"
+                    echo "Target Directory: ${TORBOX_HOME}"
                     echo "========================================"
                 }
             }
@@ -88,7 +95,7 @@ pipeline {
                     
                     def statusResponse = httpRequest(
                         url: "${TORBOX_IMPORT_STATUS}",
-                        httpMode: 'GET',
+                        httpMethod: 'GET',
                         contentType: 'APPLICATION_JSON',
                         validResponseCodes: '200',
                         timeout: 30
@@ -110,13 +117,6 @@ pipeline {
                             error("Import already in progress. Set FORCE_IMPORT=true to override.")
                         }
                     }
-                    
-                    // Check if import is needed (unless forced)
-                    if (FORCE_IMPORT != 'true') {
-                        // If we have titles and no error, we might still want to import
-                        // The backend will handle the actual check
-                        echo "Proceeding with import request..."
-                    }
                 }
             }
         }
@@ -128,7 +128,7 @@ pipeline {
                     
                     def importResponse = httpRequest(
                         url: "${TORBOX_IMPORT_ENDPOINT}",
-                        httpMode: 'POST',
+                        httpMethod: 'POST',
                         contentType: 'APPLICATION_JSON',
                         validResponseCodes: '200, 202',
                         timeout: 30
@@ -158,7 +158,7 @@ pipeline {
                     boolean importComplete = false
                     String lastStatus = ''
                     
-                    echo "Monitoring import progress (polling every ${POLL_INTERVAL}s, max ${IMPORT_INTERVAL}s)..."
+                    echo "Monitoring import progress (polling every ${POLL_INTERVAL}s, max ${IMPORT_TIMEOUT}s)..."
                     
                     while (!importComplete && attempt < maxAttempts) {
                         attempt++
@@ -166,7 +166,7 @@ pipeline {
                         try {
                             def statusResponse = httpRequest(
                                 url: "${TORBOX_IMPORT_STATUS}",
-                                httpMode: 'GET',
+                                httpMethod: 'GET',
                                 contentType: 'APPLICATION_JSON',
                                 validResponseCodes: '200',
                                 timeout: 30
@@ -200,8 +200,8 @@ pipeline {
                                 break
                             }
                             
-                        } catch (e) {
-                            echo "Warning: Status check failed: ${e.getMessage()}"
+                        } catch (error) {
+                            echo "Warning: Status check failed: ${error.getMessage()}"
                             // Don't fail immediately - might be a temporary network issue
                         }
                         
@@ -222,7 +222,7 @@ pipeline {
                     
                     def statusResponse = httpRequest(
                         url: "${TORBOX_IMPORT_STATUS}",
-                        httpMode: 'GET',
+                        httpMethod: 'GET',
                         contentType: 'APPLICATION_JSON',
                         validResponseCodes: '200',
                         timeout: 30
@@ -284,6 +284,106 @@ pipeline {
                 }
             }
         }
+
+        stage('Notify Failure') {
+            when {
+                expression { return NOTIFY_FAILURE == 'true' && currentBuild.result != 'SUCCESS' }
+            }
+            steps {
+                script {
+                    echo "Sending failure notification..."
+                    
+                    def errorMessage = currentBuild.getCauses()?.toString() ?: 'Unknown error'
+                    
+                    def message = """
+                    ❌ *TorBox Media Manager - IMDb Import FAILED*
+                    
+                    *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
+                    *Job:* ${env.JOB_NAME}
+                    *Node:* ${env.NODE_NAME}
+                    *Time:* ${new Date()}
+                    
+                    *Status:* FAILED
+                    *Error:* ${errorMessage}
+                    
+                    Please check the build logs and the application logs for details.
+                    """
+                    
+                    mail(
+                        to: "${NOTIFY_TO}",
+                        subject: "[ALERT] TorBox Media Manager - IMDb Import FAILED - Build #${BUILD_NUMBER}",
+                        body: message
+                    )
+                    
+                    slackSend(
+                        color: 'danger',
+                        message: "*❌ TorBox Media Manager - IMDb Import FAILED*\n*Build:* <${env.BUILD_URL}|#${BUILD_NUMBER}>\n*Job:* ${env.JOB_NAME}\n*Status:* FAILED\n*Error:* ${errorMessage}"
+                    ) {
+                        // Slack integration requires the Slack Notification plugin
+                    }
+                }
+            }
+        }
+
+        stage('Notify Aborted') {
+            when {
+                expression { currentBuild.result == 'ABORTED' }
+            }
+            steps {
+                script {
+                    echo "Build was aborted."
+                    
+                    def message = """
+                    ⚠️ *TorBox Media Manager - IMDb Import ABORTED*
+                    
+                    *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
+                    *Job:* ${env.JOB_NAME}
+                    *Node:* ${env.NODE_NAME}
+                    *Time:* ${new Date()}
+                    
+                    *Status:* ABORTED
+                    
+                    The import was manually aborted.
+                    """
+                    
+                    mail(
+                        to: "${NOTIFY_TO}",
+                        subject: "[WARN] TorBox Media Manager - IMDb Import Aborted - Build #${BUILD_NUMBER}",
+                        body: message
+                    )
+                }
+            }
+        }
+
+        stage('Notify Unstable') {
+            when {
+                expression { currentBuild.result == 'UNSTABLE' }
+            }
+            steps {
+                script {
+                    echo "Build unstable."
+                    
+                    def message = """
+                    ⚠️ *TorBox Media Manager - IMDb Import UNSTABLE*
+                    
+                    *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
+                    *Job:* ${env.JOB_NAME}
+                    *Node:* ${env.NODE_NAME}
+                    *Time:* ${new Date()}
+                    
+                    *Status:* UNSTABLE
+                    
+                    The import completed but with warnings. Please review the logs.
+                    """
+                    
+                    mail(
+                        to: "${NOTIFY_TO}",
+                        subject: "[WARN] TorBox Media Manager - IMDb Import Unstable - Build #${BUILD_NUMBER}",
+                        body: message
+                    )
+                }
+            }
+        }
     }
 
     post {
@@ -294,89 +394,6 @@ pipeline {
                 echo "Job: ${env.JOB_NAME}"
                 echo "Status: ${currentBuild.currentResult}"
                 echo "Timestamp: ${new Date()}"
-            }
-        }
-
-        failure {
-            script {
-                echo "Build failed. Sending failure notification..."
-                
-                def errorMessage = currentBuild.getCauses()?.toString() ?: 'Unknown error'
-                
-                def message = """
-                ❌ *TorBox Media Manager - IMDb Import FAILED*
-                
-                *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
-                *Job:* ${env.JOB_NAME}
-                *Node:* ${env.NODE_NAME}
-                *Time:* ${new Date()}
-                
-                *Status:* FAILED
-                *Error:* ${errorMessage}
-                
-                Please check the build logs and the application logs for details.
-                """
-                
-                mail(
-                    to: "${NOTIFY_TO}",
-                    subject: "[ALERT] TorBox Media Manager - IMDb Import FAILED - Build #${BUILD_NUMBER}",
-                    body: message
-                )
-                
-                slackSend(
-                    color: 'danger',
-                    message": "*❌ TorBox Media Manager - IMDb Import FAILED*\n*Build:* <${env.BUILD_URL}|#${BUILD_NUMBER}>\n*Job:* ${env.JOB_NAME}\n*Status:* FAILED\n*Error:* ${errorMessage}"
-                ) {
-                    // Slack integration requires the Slack Notification plugin
-                }
-            }
-        }
-
-        aborted {
-            script {
-                echo "Build was aborted."
-                def message = """
-                ⚠️ *TorBox Media Manager - IMDb Import ABORTED*
-                
-                *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
-                *Job:* ${env.JOB_NAME}
-                *Node:* ${env.NODE_NAME}
-                *Time:* ${new Date()}
-                
-                *Status:* ABORTED
-                
-                The import was manually aborted.
-                """
-                
-                mail(
-                    to: "${NOTIFY_TO}",
-                    subject: "[WARN] TorBox Media Manager - IMDb Import Aborted - Build #${BUILD_NUMBER}",
-                    body: message
-                )
-            }
-        }
-
-        unstable {
-            script {
-                echo "Build unstable."
-                def message = """
-                ⚠️ *TorBox Media Manager - IMDb Import UNSTABLE*
-                
-                *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
-                *Job:* ${env.JOB_NAME}
-                *Node:* ${env.NODE_NAME}
-                *Time:* ${new Date()}
-                
-                *Status:* UNSTABLE
-                
-                The import completed but with warnings. Please review the logs.
-                """
-                
-                mail(
-                    to: "${NOTIFY_TO}",
-                    subject: "[WARN] TorBox Media Manager - IMDb Import Unstable - Build #${BUILD_NUMBER}",
-                    body: message
-                )
             }
         }
     }

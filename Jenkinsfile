@@ -52,6 +52,10 @@ pipeline {
         TORBOX_HOME = '/opt/torbox-media-manager'
     }
 
+    triggers {
+        cron('0 2 * * 0')  # Weekly on Sunday at 02:00 UTC
+    }
+
     options {
         // Retry the entire pipeline once on failure
         retry(1)

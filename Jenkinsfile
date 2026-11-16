@@ -7,11 +7,11 @@
  *
  * Usage:
  *   - Scheduled: Runs weekly on Sundays at 02:00 UTC
-   - Manual: Trigger manually via Jenkins UI with optional parameters
+ *   - Manual: Trigger manually via Jenkins UI with optional parameters
  *
  * Required Jenkins credentials:
  *   - TORBOX_API_URL: Base URL of the TorBox Media Manager instance
- *                        (e.g., http://your-server:8066)
+ *                     (e.g., http://your-server:8066)
  *   - TORBOX_API_KEY: Optional authentication token if auth is enabled
  *
  * Required environment variables on the Jenkins agent:
@@ -27,13 +27,13 @@ pipeline {
     parameters {
         // Allow manual trigger with optional override
         booleanParam(name: 'FORCE_IMPORT', defaultValue: false, description: 'Force import even if data is up to date')
-        stringParam(name: 'TORBOX_URL', defaultValue: 'http://localhost:8066', description: 'TorBox Media Manager URL (e.g., http://localhost:8066)')
+        string(name: 'TORBOX_URL', defaultValue: 'http://localhost:8066', description: 'TorBox Media Manager URL (e.g., http://localhost:8066)')
         booleanParam(name: 'SEND_NOTIFICATIONS', defaultValue: true, description: 'Send email notifications on completion')
     }
 
     environment {
         // TorBox API configuration
-        TORBOX_API_URL = "${TORBOX_URL ?: env.TORBOX_API_URL ?: 'http://localhost:8066'}"
+        TORBOX_API_URL = "${params.TORBOX_URL ?: env.TORBOX_API_URL ?: 'http://localhost:8066'}"
         TORBOX_IMPORT_ENDPOINT = "${TORBOX_API_URL}/admin/imdb/import"
         TORBOX_IMPORT_STATUS = "${TORBOX_API_URL}/admin/imdb/status"
         
@@ -42,10 +42,10 @@ pipeline {
         POLL_INTERVAL = '30'     // Poll status every 30 seconds
         
         // Notification settings
-        NOTIFY_SUCCESS = "${SEND_NOTIFICATIONS}"
-        NOTIFY_FAILURE = "${SEND_NOTIFICATIONS}"
+        NOTIFY_SUCCESS = "${params.SEND_NOTIFICATIONS}"
+        NOTIFY_FAILURE = "${params.SEND_NOTIFICATIONS}"
         
-        // Notification configuration (configure in Jenkins)
+        // Notification configuration (configure recipient email here)
         NOTIFY_TO = ''
         
         // Workspace directory
@@ -53,7 +53,7 @@ pipeline {
     }
 
     triggers {
-        cron('0 2 * * 0')  # Weekly on Sunday at 02:00 UTC
+        cron('0 2 * * 0')  // Weekly on Sunday at 02:00 UTC
     }
 
     options {
@@ -66,9 +66,6 @@ pipeline {
         // Disable resume for simplicity
         disableResume()
         
-        // Clean workspace before each run
-        cleanWhenAlways()
-        
         // Timestamps in console output
         timestamps()
     }
@@ -76,13 +73,14 @@ pipeline {
     stages {
         stage('Pre-flight Checks') {
             steps {
+                cleanWs()
                 script {
                     echo "========================================"
                     echo "TorBox Media Manager - IMDb Import"
                     echo "========================================"
                     echo "TorBox API URL: ${TORBOX_API_URL}"
                     echo "Import Endpoint: ${TORBOX_IMPORT_ENDPOINT}"
-                    echo "Force Import: ${FORCE_IMPORT}"
+                    echo "Force Import: ${params.FORCE_IMPORT}"
                     echo "Build Number: ${BUILD_NUMBER}"
                     echo "Build ID: ${BUILD_ID}"
                     echo "Build Date: ${new Date()}"
@@ -97,14 +95,7 @@ pipeline {
                 script {
                     echo "Checking current IMDb import status..."
                     
-                    def statusResponse = httpRequest(
-                        url: "${TORBOX_IMPORT_STATUS}",
-                        httpMethod: 'GET',
-                        contentType: 'APPLICATION_JSON',
-                        validResponseCodes: '200',
-                        timeout: 30
-                    )
-                    
+                    def statusResponse = curlRequest('GET', TORBOX_IMPORT_STATUS, [200])
                     def statusJson = parseJson(statusResponse.content)
                     echo "Current import status: ${statusContent(statusResponse.content)}"
                     
@@ -115,7 +106,7 @@ pipeline {
                     // Check if import is already running
                     if (statusJson.running == true) {
                         echo "WARNING: An IMDb import is already running."
-                        if (FORCE_IMPORT == 'true') {
+                        if (params.FORCE_IMPORT) {
                             echo "FORCE_IMPORT is true - proceeding anyway."
                         } else {
                             error("Import already in progress. Set FORCE_IMPORT=true to override.")
@@ -130,18 +121,11 @@ pipeline {
                 script {
                     echo "Triggering IMDb import via POST ${TORBOX_IMPORT_ENDPOINT}..."
                     
-                    def importResponse = httpRequest(
-                        url: "${TORBOX_IMPORT_ENDPOINT}",
-                        httpMethod: 'POST',
-                        contentType: 'APPLICATION_JSON',
-                        validResponseCodes: '200, 202',
-                        timeout: 30
-                    )
-                    
+                    def importResponse = curlRequest('POST', TORBOX_IMPORT_ENDPOINT, [200, 202])
                     def importResult = parseJson(importResponse.content)
                     echo "Import response: ${importResponse.content}"
                     
-                    if (importResponse.status == 202) {
+                    if (importResponse.status == 202 || importResponse.status == 200) {
                         echo "Import started successfully."
                         echo "Status: ${importResult.status}"
                         if (importResult.torrentCount != null) {
@@ -168,14 +152,7 @@ pipeline {
                         attempt++
                         
                         try {
-                            def statusResponse = httpRequest(
-                                url: "${TORBOX_IMPORT_STATUS}",
-                                httpMethod: 'GET',
-                                contentType: 'APPLICATION_JSON',
-                                validResponseCodes: '200',
-                                timeout: 30
-                            )
-                            
+                            def statusResponse = curlRequest('GET', TORBOX_IMPORT_STATUS, [200])
                             def statusJson = parseJson(statusResponse.content)
                             
                             def currentStatus = "${statusJson.importedItems ?: 0} items imported"
@@ -204,8 +181,8 @@ pipeline {
                                 break
                             }
                             
-                        } catch (error) {
-                            echo "Warning: Status check failed: ${error.getMessage()}"
+                        } catch (err) {
+                            echo "Warning: Status check failed: ${err.getMessage()}"
                             // Don't fail immediately - might be a temporary network issue
                         }
                         
@@ -224,14 +201,7 @@ pipeline {
                 script {
                     echo "Verifying import completion..."
                     
-                    def statusResponse = httpRequest(
-                        url: "${TORBOX_IMPORT_STATUS}",
-                        httpMethod: 'GET',
-                        contentType: 'APPLICATION_JSON',
-                        validResponseCodes: '200',
-                        timeout: 30
-                    )
-                    
+                    def statusResponse = curlRequest('GET', TORBOX_IMPORT_STATUS, [200])
                     def statusJson = parseJson(statusResponse.content)
                     echo "Final status: ${statusContent(statusResponse.content)}"
                     
@@ -247,109 +217,79 @@ pipeline {
                 }
             }
         }
+    }
 
-        stage('Notify Success') {
-            when {
-                expression { return NOTIFY_SUCCESS == 'true' }
-            }
-            steps {
-                script {
+    post {
+        success {
+            script {
+                if (NOTIFY_SUCCESS == 'true' && NOTIFY_TO) {
                     echo "Sending success notification..."
-                    
                     def message = """
-                    ✅ *TorBox Media Manager - IMDb Import Completed*
-                    
-                    *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
-                    *Job:* ${env.JOB_NAME}
-                    *Node:* ${env.NODE_NAME}
-                    *Time:* ${new Date()}
-                    
-                    *Import Status:* Completed successfully
-                    *Source:* IMDb public datasets
-                    *Target:* TorBox Media Manager (${TORBOX_API_URL})
-                    
-                    Please verify the imported data in the application.
+✅ TorBox Media Manager - IMDb Import Completed
+
+Build: ${env.BUILD_NUMBER} (${env.BUILD_URL})
+Job: ${env.JOB_NAME}
+Node: ${env.NODE_NAME}
+Time: ${new Date()}
+
+Import Status: Completed successfully
+Source: IMDb public datasets
+Target: TorBox Media Manager (${TORBOX_API_URL})
+
+Please verify the imported data in the application.
                     """
-                    
-                    // Send notification via email
                     mail(
                         to: "${NOTIFY_TO}",
                         subject: "[TorBox] IMDb Import Completed Successfully - Build #${BUILD_NUMBER}",
                         body: message
                     )
-                    
-                    // Also send to Slack if configured
-                    slackSend(
-                        color: 'good',
-                        message: "*✅ TorBox Media Manager - IMDb Import Completed*\n*Build:* <${env.BUILD_URL}|#${BUILD_NUMBER}>\n*Job:* ${env.JOB_NAME}\n*Status:* Import completed successfully"
-                    ) {
-                        // Slack integration requires the Slack Notification plugin
-                    }
                 }
             }
         }
 
-        stage('Notify Failure') {
-            when {
-                expression { return NOTIFY_FAILURE == 'true' && currentBuild.result != 'SUCCESS' }
-            }
-            steps {
-                script {
+        failure {
+            script {
+                if (NOTIFY_FAILURE == 'true' && NOTIFY_TO) {
                     echo "Sending failure notification..."
-                    
                     def errorMessage = currentBuild.getCauses()?.toString() ?: 'Unknown error'
-                    
                     def message = """
-                    ❌ *TorBox Media Manager - IMDb Import FAILED*
-                    
-                    *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
-                    *Job:* ${env.JOB_NAME}
-                    *Node:* ${env.NODE_NAME}
-                    *Time:* ${new Date()}
-                    
-                    *Status:* FAILED
-                    *Error:* ${errorMessage}
-                    
-                    Please check the build logs and the application logs for details.
+❌ TorBox Media Manager - IMDb Import FAILED
+
+Build: ${env.BUILD_NUMBER} (${env.BUILD_URL})
+Job: ${env.JOB_NAME}
+Node: ${env.NODE_NAME}
+Time: ${new Date()}
+
+Status: FAILED
+Error: ${errorMessage}
+
+Please check the build logs and the application logs for details.
                     """
-                    
                     mail(
                         to: "${NOTIFY_TO}",
                         subject: "[ALERT] TorBox Media Manager - IMDb Import FAILED - Build #${BUILD_NUMBER}",
                         body: message
                     )
-                    
-                    slackSend(
-                        color: 'danger',
-                        message: "*❌ TorBox Media Manager - IMDb Import FAILED*\n*Build:* <${env.BUILD_URL}|#${BUILD_NUMBER}>\n*Job:* ${env.JOB_NAME}\n*Status:* FAILED\n*Error:* ${errorMessage}"
-                    ) {
-                        // Slack integration requires the Slack Notification plugin
-                    }
                 }
             }
         }
 
-        stage('Notify Aborted') {
-            when {
-                expression { currentBuild.result == 'ABORTED' }
-            }
-            steps {
-                script {
-                    echo "Build was aborted."
-                    
+        aborted {
+            script {
+                echo "Build was aborted."
+                if (NOTIFY_TO) {
                     def message = """
-                    ⚠️ *TorBox Media Manager - IMDb Import ABORTED*
-                    
-                    *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
-                    *Job:* ${env.JOB_NAME}
-                    *Node:* ${env.NODE_NAME}
-                    *Time:* ${new Date()}
-                    
-                    *Status:* ABORTED
-                    
-                    The import was manually aborted.
+⚠️ TorBox Media Manager - IMDb Import ABORTED
+
+Build: ${env.BUILD_NUMBER} (${env.BUILD_URL})
+Job: ${env.JOB_NAME}
+Node: ${env.NODE_NAME}
+Time: ${new Date()}
+
+Status: ABORTED
+
+The import was manually aborted.
                     """
-                    
                     mail(
                         to: "${NOTIFY_TO}",
                         subject: "[WARN] TorBox Media Manager - IMDb Import Aborted - Build #${BUILD_NUMBER}",
@@ -359,27 +299,22 @@ pipeline {
             }
         }
 
-        stage('Notify Unstable') {
-            when {
-                expression { currentBuild.result == 'UNSTABLE' }
-            }
-            steps {
-                script {
-                    echo "Build unstable."
-                    
+        unstable {
+            script {
+                echo "Build unstable."
+                if (NOTIFY_TO) {
                     def message = """
-                    ⚠️ *TorBox Media Manager - IMDb Import UNSTABLE*
-                    
-                    *Build:* ${env.BUILD_NUMBER} (<${env.BUILD_URL}|View>)
-                    *Job:* ${env.JOB_NAME}
-                    *Node:* ${env.NODE_NAME}
-                    *Time:* ${new Date()}
-                    
-                    *Status:* UNSTABLE
-                    
-                    The import completed but with warnings. Please review the logs.
+⚠️ TorBox Media Manager - IMDb Import UNSTABLE
+
+Build: ${env.BUILD_NUMBER} (${env.BUILD_URL})
+Job: ${env.JOB_NAME}
+Node: ${env.NODE_NAME}
+Time: ${new Date()}
+
+Status: UNSTABLE
+
+The import completed but with warnings. Please review the logs.
                     """
-                    
                     mail(
                         to: "${NOTIFY_TO}",
                         subject: "[WARN] TorBox Media Manager - IMDb Import Unstable - Build #${BUILD_NUMBER}",
@@ -388,9 +323,7 @@ pipeline {
                 }
             }
         }
-    }
 
-    post {
         always {
             script {
                 echo "=== Build Summary ==="
@@ -399,8 +332,30 @@ pipeline {
                 echo "Status: ${currentBuild.currentResult}"
                 echo "Timestamp: ${new Date()}"
             }
+            cleanWs()
         }
     }
+}
+
+/**
+ * Helper function to perform HTTP requests via curl (no extra plugins required)
+ */
+def curlRequest(String method, String url, List<Integer> validCodes = [200]) {
+    def authHeader = env.TORBOX_API_KEY ? "-H 'Authorization: Bearer ${env.TORBOX_API_KEY}'" : ""
+    def rawOutput = sh(
+        script: "curl -sS --max-time 30 -X ${method} -H 'Content-Type: application/json' ${authHeader} -w '\\n%{http_code}' '${url}'",
+        returnStdout: true
+    ).trim()
+
+    def lastNewline = rawOutput.lastIndexOf('\n')
+    def body = lastNewline >= 0 ? rawOutput.substring(0, lastNewline) : ''
+    def statusCode = (lastNewline >= 0 ? rawOutput.substring(lastNewline + 1) : rawOutput) as Integer
+
+    if (!validCodes.contains(statusCode)) {
+        error("HTTP ${method} ${url} failed with status ${statusCode}. Body: ${body}")
+    }
+
+    return [status: statusCode, content: body]
 }
 
 /**

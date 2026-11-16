@@ -19,6 +19,7 @@ TorBox Media Manager is a self-hosted, local-first media catalog. It combines IM
 11. [Backup & Restore](#backup--restore)
 12. [Troubleshooting](#troubleshooting)
 13. [Security Notice](#security-notice)
+14. [License](#license)
 
 ---
 
@@ -50,6 +51,12 @@ The repository contains:
 - `.env.example` — Environment variable template
 - `src/` — Application source code
 - `tests/e2e/` — Playwright end-to-end test suites
+- `INSTALL.md` — This installation guide
+- `README.md` — Project overview and documentation index
+- `RELEASE_NOTES.md` — Release notes and changelog
+- `constitution.md` — Project constitution and development standards
+- `QA_TEST_PROMPT.md` — QA automation test specification
+- `LICENSE` — GNU Affero General Public License v3.0
 
 ---
 

@@ -1,16 +1,18 @@
 /*
  * TorBox Media Manager - Jenkinsfile for IMDb Import
  *
- * Checks out scripts/import-imdb.sh from GitHub and runs it on the MacMini agent.
+ * Checks out scripts/import-imdb.sh from GitHub and runs it on the selected agent.
  *
  * Usage:
- *   - Scheduled: Runs weekly on Sundays at 02:00 UTC
+ *   - Scheduled: Runs weekly on Sundays at 02:00 UTC (defaults to 'macmini')
  *   - Manual: Trigger manually via Jenkins UI with optional parameters
  */
+
 pipeline {
-    agent { label 'macmini' }
+    agent { label "${params.AGENT_LABEL ?: 'macmini'}" }
 
     parameters {
+        choice(name: 'AGENT_LABEL', choices: ['macmini', 'built-in'], description: 'Jenkins agent label to run the import on')
         booleanParam(name: 'FORCE_IMPORT', defaultValue: false, description: 'Force import even if an import is already running or data is up to date')
         string(name: 'TORBOX_URL', defaultValue: 'http://localhost:8066', description: 'TorBox Media Manager URL (e.g., http://localhost:8066)')
     }
@@ -59,7 +61,7 @@ pipeline {
                     echo "========================================"
                     echo "TorBox Media Manager - IMDb Import"
                     echo "========================================"
-                    echo "Agent Label    : ${AGENT_LABEL}"
+                    echo "Agent Label    : ${params.AGENT_LABEL ?: 'macmini'} (Node: ${env.NODE_NAME})"
                     echo "Repository     : ${REPO_URL} (${REPO_BRANCH})"
                     echo "TorBox API URL : ${TORBOX_API_URL}"
                     echo "Force Import   : ${FORCE_IMPORT}"

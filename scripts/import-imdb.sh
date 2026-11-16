@@ -75,6 +75,15 @@ check_status() {
     local error
     error=$(json_value "error" "$response")
     
+    # When import is not running, importedRows in progress is 0.
+    # Get the total from datasets[0].importedRows instead.
+    if [ "$status" = "false" ] || [ "$status" = "false," ]; then
+        imported=$(json_value "datasets[0].importedRows" "$response")
+        if [ -z "$imported" ] || [ "$imported" = "null" ]; then
+            imported="0"
+        fi
+    fi
+    
     echo "${status}|${imported}|${error}"
     return 0
 }

@@ -1,7 +1,7 @@
 # TorBox Media Manager — Release Notes
 
 **Release:** `202611`  
-**Date:** 2026-11-11  
+**Date:** 2026-11-16  
 **Previous release:** `20261106`  
 **Deployed:** `user@0.0.0.0:/opt/torbox-media-manager` (production, `http://localhost:8066`)
 
@@ -9,7 +9,7 @@
 
 ## 🎯 Highlights
 
-- **Torrentio text queries now return results** — Torrentio's Stremio addon resolves streams by IMDb ID, not free text. The app now looks up text queries in the local IMDb database to get IMDb ID(s), then calls Torrentio with those IMDb IDs. Only Torrentio results are shown when Torrentio is the sole source selected.
+- **Torrentio text queries now return results** — Torrentio's Stremio addon resolves streams by IMDb ID, not free text. The app now looks up text queries in the local IMDb database to get IMDb ID(s), then calls Torrentio with those IMDb IDs. Only Torrentio results are shown when Torrentio is the sole source selected. Quality/season/episode tokens (e.g., "1080p", "S01E02") are stripped before lookup.
 - **Stable pagination totals** — page 1 no longer shows a different total than page 2. Each provider is fetched once (`limit=100, offset=0`), results are deduplicated by hash/magnet across all providers and IMDb IDs, then sliced per page. A 5-minute provider cache prevents totals from drifting while navigating pages.
 - **Usenet works per source and as "All"** — NZBGeek, NZBIndex, and Binsearch now return results individually; `usenetSource=all` returns all sources combined. NZBGeek API errors (e.g. `103: IP Address … Not Approved`) are surfaced as warnings instead of silently returning 0 results.
 - **Source selector ALL ↔ children sync** — selecting **Indexers - ALL** checks Prowlarr + Torrentio; deselecting unchecks both. Same for **Usenet - ALL** ↔ NZBGeek/NZBIndex/Binsearch. `Usenet - ALL` is checked by default on Browse, Movies, Shows, and Music.
@@ -23,12 +23,13 @@
 
 ### Search / indexers
 - **Torrentio text queries** — resolve to local IMDb IDs before calling the Stremio addon; per-ID movie/series kind selection based on `titleType`; multiple IMDb IDs are fetched, deduplicated, and paginated together. (`dfe2e4f`, `d5865ec`)
+- **Torrentio quality/season/episode token stripping** — text queries like "His & Hers 1080p", "His & Hers S01E02" have quality/season/episode tokens stripped before IMDb lookup, so results are returned correctly. (`5cbed39`)
 - **Pagination totals drift** — fetch full batch per provider, dedupe by hash/magnet, slice per page; 5-minute in-memory provider result cache. (`facd452`, `93a4eac`)
 - **`usenetSource=all` returned 0 results** — routes passed an empty source list; now `undefined` means all sources. (`6a7f470`)
 - **Usenet no longer gated on Torznab config** — usenet search works without `TORZNAB_URL`/`TORZNAB_API_KEY`. (`6a7f470`)
 - **Binsearch returned 0 results individually** — parser now reads `/details/<id>` result links with checkbox `name` attribute fallback. (`a80aaca`)
 - **NZBGeek `<error>` responses ignored** — Newznab `<error code description>` bodies (HTTP 200) now throw and surface as warnings; observed egress IP logged next to `NZBGEEK_WHITELIST_IP`. (`cd6e643`)
-- **Season/episode parsing** — queries like `silo s03` are stripped to the base title for IMDb lookups so Torrentio series searches return results. (`d5865ec`)
+- **Season/episode parsing** — queries like "silo s03" are stripped to the base title for IMDb lookups so Torrentio series searches return results. (`d5865ec`)
 
 ### Frontend / UI
 - **Source selector ALL sync** — bidirectional check/uncheck between ALL pills and their children; deselecting ALL leaves nothing selected. (`0f4feab`)
@@ -37,6 +38,8 @@
 - **Pagination in URL** — `?page=N` and `?q=` persisted via `history.replaceState`; `loadView()` restores state on refresh. (`bb1db75`)
 - **SyntaxError on music pages** — fixed `onerror` handler in `renderSearchItem` that used backslash-escaped quotes (`\"`) inside HTML attributes, which broke attribute parsing and caused `Invalid or unexpected token` errors. Now uses `&quot;` HTML entities. (`e8f3736`)
 - **Clearer API errors** — `jsonFetch` now validates `Content-Type` before parsing JSON, throwing a descriptive error if HTML is returned instead of JSON. (`e8f3736`)
+- **Trending card links** — clicking a trending card now navigates to the correct detail page (`/title/:imdbId?kind=series|movie` for movies/shows, `/music/release/:id` for music). (`1b90934`)
+- **Poster images removed from trending cards** — trending cards now show only title, year, kind, and rating without poster images. (`cc95756`)
 
 ### Usenet pipeline
 - **NZB download endpoint** — TorBox Web Download expects `link` field, not `url`. (`7729338`)
@@ -50,13 +53,15 @@
 - **Client-side search/filter/sort** — library search, sort (created/name/size/status), and filter (all/video/music/other) all work client-side without reloads. (`58253e5`)
 - **Delete torrent** — delete button (trash icon) on each library item uses `POST /v1/api/torrents/controltorrent` with `operation=delete` to permanently remove torrents from your TorBox account. (`c3c8ae0`)
 - **Expand/collapse file lists** — library item file lists are now collapsed by default; click the file count header to expand/collapse. (`52ae86a`)
+- **Delete confirmation modal** — replaced JavaScript `confirm()` dialog with Bootstrap modal for torrent deletion; mobile-friendly and accessible. (`3affedb`)
 
 ### Calendar
 - **Streaming-platform relevant results** — calendar now defaults to TVMaze's web schedule (`/schedule/web`) showing streaming platforms (Netflix, Prime Video, HBO Max, Disney+, etc.) instead of broadcast TV. (`b2130a2`)
 - **Working episode links** — calendar episode cards link to title details (`/title/:imdbId` or `/tvmaze/:id`). (`3fcb08f`)
 - **Platform filter** — platform dropdown is populated from calendar data; filter by any streaming service. (`3fcb08f`)
+- **Country dropdown** — country dropdown populated with 50+ country options for filtering calendar results by country. (`c8078a1`)
 - **Date picker** — select any date to view that day's streaming schedule. (`3fcb08f`)
-- **Calendar search** — search calendar content directly by title or show name. Works with streaming platforms (Netflix, Apple TV+, Prime Video, etc.). (`6e8b069`)
+- **Calendar search** — search calendar content directly by title or show name. Works with streaming platforms (Netflix, Prime Video, HBO Max, etc.). (`6e8b069`)
 - **Calendar episode links** — episode cards now link to the local IMDb title page (`/title/:imdbId`) when an IMDb ID is available, or to a local catalog search (`/browse?q=<show name>`) when it is not. Previously linked to TVMaze external pages. (`2cb0f7f`)
 - **TVMaze show page (`/tvmaze/:id`)** — now loads and displays TVMaze show details instead of just opening the calendar. Includes poster, summary, genres, network, status, and links to local IMDb title page or IMDb.com. (`220f45f`)
 - **Template literal fix** — calendar summary count now renders correctly instead of showing raw `${...}` syntax. (`edbd581`)
@@ -72,8 +77,10 @@
 
 ## ✨ Features
 
+- **Trending content** — new trending sections on `/movies`, `/shows`, and `/music` pages showing recent content sorted by year/release date. Trending cards link to title detail pages. (`9624514`)
+- **Trending API endpoints** — `GET /api/movies/trending`, `GET /api/shows/trending`, `GET /api/music/trending` return trending content from local IMDb dataset and MusicBrainz. (`9624514`)
 - Individual indexer selection (Prowlarr / Torrentio) with pill groups. (`428738e`, `5ed29dc`)
-- All documentation files (`README.md`, `RELEASE_NOTES.md`, `QA_TEST_PROMPT.md`) are now self-hosted with no external domain references (`98c2c0f`)
+- All documentation files (`README.md`, `RELEASE_NOTES.md`, `QA_TEST_PROMPT.md`, `INSTALL.md`) are now self-hosted with no external domain references (`98c2c0f`)
 - Torrentio results added to Indexers search. (`6b8f71e`)
 - Torrentio selection bypasses Prowlarr when Prowlarr is not configured. (`bc15527`, `b1ae673`)
 - Prowlarr timeout increased to wait longer for results. (`aa976bb`)
@@ -88,7 +95,12 @@ Added Playwright E2e suites (`tests/e2e/`):
 - `initial-load-ui.spec.ts` — initial load hero bar, skeletons, empty states, responsive grid, pagination.
 - `discover-functionality.spec.ts` — metadata action flow (local IMDb / MusicBrainz).
 - `search-functionality.spec.ts` — dual action flow (Search / Discover) across `/browse`, `/movies`, `/shows`, `/music`.
-- `library-calendar.spec.ts`, `item-detail-routes.spec.ts`, `usenet-pipeline.spec.ts`, `media-manager.spec.ts`.
+- `library-calendar.spec.ts` — Library and calendar functionality.
+- `item-detail-routes.spec.ts` — Item detail page rendering.
+- `usenet-pipeline.spec.ts` — Usenet pipeline functionality.
+- `media-manager.spec.ts` — Media manager operations.
+- `simple.spec.ts` — Basic smoke tests.
+- `simple_search.spec.ts` — Basic search smoke tests.
 
 Tests run against production via `BASE_URL=http://<host>:8066 npx playwright test`.
 
@@ -128,3 +140,5 @@ curl -fsS http://localhost:8066/health
 The app is deployed at `http://0.0.0.0:8066` and responds `HTTP 200` on `/health`.
 
 ---
+
+> ⚠️ Security: If you pasted an NZBGeek API key in chat or logs, rotate it on NZBGeek and keep it only in the production `.env`.

@@ -74,14 +74,18 @@ check_status() {
     local error
     error=$(json_value "error" "$response")
     
-    # Try to get imported count from progress.importedRows (when importing)
-    # or from datasets[0].importedRows (when idle/complete)
-    imported=$(json_value "progress.importedRows" "$response")
-    if [ -z "$imported" ] || [ "$imported" = "null" ]; then
+    # When import is running, importedRows shows current progress.
+    # When import is not running, importedRows is 0 - get total from datasets[0].importedRows instead.
+    if [ "$status" = "true" ] || [ "$status" = "true," ]; then
+        imported=$(json_value "progress.importedRows" "$response")
+        if [ -z "$imported" ] || [ "$imported" = "null" ]; then
+            imported="0"
+        fi
+    else
         imported=$(json_value "datasets[0].importedRows" "$response")
-    fi
-    if [ -z "$imported" ] || [ "$imported" = "null" ]; then
-        imported="0"
+        if [ -z "$imported" ] || [ "$imported" = "null" ]; then
+            imported="0"
+        fi
     fi
     
     echo "${status}|${imported}|${error}"

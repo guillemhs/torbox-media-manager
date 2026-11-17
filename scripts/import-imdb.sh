@@ -180,8 +180,8 @@ run_import() {
         fi
         last_dataset="$dataset"
 
-        # Detect new error
-        if [ -n "$error" ] && [ "$error" != "$last_error" ]; then
+        # Detect new error (skip empty and JSON "null" values)
+        if [ -n "$error" ] && [ "$error" != "null" ] && [ "$error" != "$last_error" ]; then
             echo ""
             log_error "Import error reported: ${error}"
             last_error="$error"
@@ -201,10 +201,10 @@ run_import() {
                 local ds_name="${part%%:*}"
                 local ds_rows="${part##*:}"
                 completed_detail="  ${ds_name}: ${ds_rows} titles"
-                echo -ne "\r${CYAN}[${ts()}]${NC} ${dataset}: ${imported} titles | ${completed_detail} | Elapsed: ${elapsed}s | ~${rate} titles/s"
+                printf '\r%s[%s]%s %s: %s titles | %s | Elapsed: %ss | ~%s titles/s' "${CYAN}" "$(ts)" "${NC}" "${dataset}" "${imported}" "${completed_detail}" "${elapsed}" "${rate}"
             done
         else
-            echo -ne "\r${CYAN}[${ts()}]${NC} ${dataset}: ${imported} titles | Elapsed: ${elapsed}s | ~${rate} titles/s"
+            printf '\r%s[%s]%s %s: %s titles | Elapsed: %ss | ~%s titles/s' "${CYAN}" "$(ts)" "${NC}" "${dataset}" "${imported}" "${elapsed}" "${rate}"
         fi
 
         last_imported="$imported"

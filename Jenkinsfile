@@ -80,7 +80,7 @@ pipeline {
             steps {
                 sh '''
                     chmod +x ./scripts/import-imdb.sh
-                    ./scripts/import-imdb.sh
+                    ./scripts/import-imdb.sh http://192.168.1.5:8066
                 '''
             }
         }

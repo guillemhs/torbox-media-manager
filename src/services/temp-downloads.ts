@@ -155,7 +155,7 @@ export class TempDownloadService {
       try {
         fs.unlinkSync(record.file_path);
         console.log('[TEMP-DOWNLOADS] Local file deleted', { token, filePath: record.file_path, timestamp: new Date().toISOString() });
-    log('Deleted local temp file', { token, filePath: record.file_path });
+        log('Deleted local temp file', { token, filePath: record.file_path });
       } catch (error) {
         log('Failed to delete local temp file', { token, filePath: record.file_path, error: error instanceof Error ? error.message : String(error) });
       }

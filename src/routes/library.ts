@@ -4,13 +4,7 @@ import { addTorrentToTorbox, addUsenetNzb, checkCachedTorrent, controlTorrent, c
 import { buildTempDownloadService } from '../services/temp-downloads';
 import { normalizeTorBoxMusicLibrary } from '../services/torbox/musicLibrary';
 import { fetchUsenetNzb, searchUsenet } from '../services/usenetSearch';
-import { pagination, sendError } from './routeUtils';
-
-function canonicalUsenetSources(value: string | undefined): string[] | undefined {
-  const valid: Record<string, string> = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
-  const list = [...new Set((value || 'all').split(',').map(s => valid[s.trim().toLowerCase()]).filter((s): s is string => Boolean(s)))];
-  return list.length > 0 ? list : undefined; // undefined = all sources
-}
+import { pagination, sendError, canonicalUsenetSources, scalar } from './routeUtils';
 
 let tempDownloadServiceInstance: import('../services/temp-downloads').TempDownloadService | undefined;
 
@@ -31,19 +25,35 @@ export const getLibraryRoute: RequestHandler = async (req, res) => {
       message: 'Local files are scanned from LOCAL_MEDIA_PATH.',
     };
     if (process.env.TORBOX_API_KEY?.trim()) {
-      // Fetch ALL TorBox items (no server-side pagination; client paginates)
+      // Fetch ALL TorBox items (no server-side pagination; client paginates).
+      // Torrents and Usenet are fetched independently so one source failing
+      // does not take down the whole library response.
       const [torrentResponse, usenetResponse] = await Promise.allSettled([
         getTorrentList(undefined, { limit: 10000, offset: 0, bypass_cache: false }),
         getUsenetList(undefined, { limit: 10000, offset: 0 }),
       ]);
-      if (torrentResponse.status === 'rejected') throw torrentResponse.reason;
-      const torrentItems = Array.isArray(torrentResponse.value.data) ? torrentResponse.value.data : [torrentResponse.value.data];
-      const usenetItems = usenetResponse.status === 'fulfilled' ? (Array.isArray(usenetResponse.value.data) ? usenetResponse.value.data : [usenetResponse.value.data]) : [];
+
+      let torrentItems: unknown[] = [];
+      let usenetItems: unknown[] = [];
+
+      if (torrentResponse.status === 'fulfilled') {
+        const data = torrentResponse.value.data;
+        torrentItems = Array.isArray(data) ? data : [data];
+      } else {
+        result.torrentError = torrentResponse.reason instanceof Error ? torrentResponse.reason.message : 'TorBox torrent list is unavailable.';
+      }
+
+      if (usenetResponse.status === 'fulfilled') {
+        const data = usenetResponse.value.data;
+        usenetItems = Array.isArray(data) ? data : [data];
+      } else {
+        result.usenetError = usenetResponse.reason instanceof Error ? usenetResponse.reason.message : 'TorBox Usenet library is unavailable.';
+      }
+
       const allTorbox = [...torrentItems, ...usenetItems];
       result.torbox = allTorbox;
       result.torboxTotal = allTorbox.length;
       result.music = normalizeTorBoxMusicLibrary(torrentItems);
-      if (usenetResponse.status === 'rejected') result.usenetError = usenetResponse.reason instanceof Error ? usenetResponse.reason.message : 'TorBox Usenet library is unavailable.';
     }
     return res.json(result);
   } catch (error) {
@@ -52,7 +62,6 @@ export const getLibraryRoute: RequestHandler = async (req, res) => {
 };
 
 export const usenetSearchRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const query = scalar(req.query.q)?.trim() || '';
   const sourceValue = scalar(req.query.source) || 'all';
   if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Usenet search must be between 2 and 180 characters.' });
@@ -68,7 +77,6 @@ export const usenetSearchRoute: RequestHandler = async (req, res) => {
 
 export const addUsenetToTorboxRoute: RequestHandler = async (req, res) => {
   if (!process.env.TORBOX_API_KEY?.trim()) return res.status(503).json({ error: 'TORBOX_API_KEY is not configured.' });
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const source = scalar(req.body?.source);
   const id = scalar(req.body?.id)?.trim() || '';
   const requestedName = scalar(req.body?.name)?.trim() || '';
@@ -150,7 +158,6 @@ export const getLibraryStatusRoute: RequestHandler = (_req, res) => res.json(get
 
 export const deleteTorrentRoute: RequestHandler = async (req, res) => {
   if (!process.env.TORBOX_API_KEY?.trim()) return res.status(503).json({ error: 'TORBOX_API_KEY is not configured.' });
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const torrentId = scalar(req.params.torrentId);
   if (!torrentId) return res.status(400).json({ error: 'Torrent ID is required.' });
   try {

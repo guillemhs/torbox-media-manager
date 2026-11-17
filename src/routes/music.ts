@@ -1,23 +1,11 @@
 import type { RequestHandler } from 'express';
 import { searchMusicMetadata, searchMusicTorrents, getMusicTorrentDownload } from '../services/musicSearch';
 import { getMusicArtwork, getMusicArtworkByReleaseGroup } from '../services/artwork.service';
-import { pagination, sendError } from './routeUtils';
+import { pagination, sendError, canonicalUsenetSources, parseSources, scalar } from './routeUtils';
 
 import { searchMedia } from '../services/search/search.service';
 
-function canonicalUsenetSources(value: string | undefined): string[] | undefined {
-  const valid: Record<string, string> = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
-  const list = [...new Set((value || 'all').split(',').map(s => valid[s.trim().toLowerCase()]).filter((s): s is string => Boolean(s)))];
-  return list.length > 0 ? list : undefined; // undefined = all sources
-}
-
-function parseSources(value: unknown): string[] {
-  if (typeof value !== 'string') return [];
-  return value.split(',').filter(s => ['local', 'indexers', 'usenet'].includes(s));
-}
-
 export const musicMetadataSearchRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const query = scalar(req.query.q)?.trim() || '';
   if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Music search must be between 2 and 180 characters.' });
   try {
@@ -28,7 +16,6 @@ export const musicMetadataSearchRoute: RequestHandler = async (req, res) => {
 };
 
 export const musicTorrentSearchRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const query = scalar(req.query.q)?.trim() || '';
   if (query.length < 2 || query.length > 180) return res.status(400).json({ error: 'Music torrent search must be between 2 and 180 characters.' });
   const page = pagination(req.query as Record<string, unknown>);
@@ -85,9 +72,7 @@ export const trendingMusicRoute: RequestHandler = async (_req, res) => {
 };
 
 export const musicRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const sources = parseSources(scalar(req.query.sources));
-  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
   // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
   const searchIndexers = sources.includes('indexers');
   const searchUsenet = sources.includes('usenet');
@@ -123,7 +108,6 @@ export const musicRoute: RequestHandler = async (req, res) => {
 };
 
 export const musicTorrentDownloadRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const token = scalar(req.params.token) || '';
   if (!/^[a-f0-9-]{36}$/i.test(token)) return res.status(400).json({ error: 'Torrent download link is invalid or expired.' });
   try {
@@ -140,7 +124,6 @@ export const musicTorrentDownloadRoute: RequestHandler = async (req, res) => {
 };
 
 export const musicArtworkRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const releaseGroupId = scalar(req.query.id)?.trim();
   if (releaseGroupId) {
     const artwork = await getMusicArtworkByReleaseGroup(releaseGroupId);
@@ -169,7 +152,6 @@ export const musicArtworkRoute: RequestHandler = async (req, res) => {
 };
 
 export const musicDetailRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const mbId = scalar(req.params.id) || '';
   if (!/^[a-f0-9-]{36}$/i.test(mbId)) {
     return res.status(400).json({ error: 'Invalid MusicBrainz ID.' });

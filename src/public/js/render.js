@@ -73,7 +73,7 @@ export function renderPaginationHtml(viewKey, totalItems, currentPage, limit) {
 
 // ── Media card (search results) ──
 export function renderSearchItem(item, idx) {
-  const source = item._source || item.source || 'Unknown';
+  const source = item.source || item._source || 'Unknown';
   const isTorrent = item._source === 'torrents';
   const isUsenet = item._source === 'usenet';
   const isLocal = item._source !== 'torrents' && item._source !== 'usenet';

@@ -460,14 +460,11 @@ export async function searchMusicTorrents(query: string, indexers: string[] = ['
     }
   }
   
-  // Search Torrentio via Torznab feed if requested
+  // Torrentio is a Stremio addon, not a Torznab provider, and has no music
+  // feed; music searches use Prowlarr/Torznab only (see searchIndexerTorrents
+  // for the general Torrentio path keyed by IMDb ID).
   if (indexers.includes('torrentio')) {
-    try {
-      const torznabResults = await searchTorznabFeed(query, categories.join(','), limit, offset);
-      results.push(...torznabResults);
-    } catch (error) {
-      console.warn('Torznab music search failed:', error instanceof Error ? error.message : 'unknown error');
-    }
+    console.log('[musicSearch] Torrentio is not a Torznab provider; skipping for music torrent search');
   }
   
   // Deduplicate by hash

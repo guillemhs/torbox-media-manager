@@ -85,3 +85,17 @@ export function formatUsenetMetadata(candidate: { posted?: number; complete?: bo
   const completeStr = candidate.complete ? 'Complete' : 'Partial';
   return `0 seeders · 0 leechers · ${postedStr} · ${completeStr}`;
 }
+
+/** Canonicalize Usenet source query values (nzbgeek/nzbindex/binsearch, case-insensitive).
+ * Returns undefined when "all" or no valid sources are given, meaning all sources. */
+export function canonicalUsenetSources(value: string | undefined): string[] | undefined {
+  const valid: Record<string, string> = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
+  const list = [...new Set((value || 'all').split(',').map(s => valid[s.trim().toLowerCase()]).filter((s): s is string => Boolean(s)))];
+  return list.length > 0 ? list : undefined;
+}
+
+/** Parse a comma-separated sources query param into a filtered array of known sources. */
+export function parseSources(value: unknown): string[] {
+  if (typeof value !== 'string') return [];
+  return value.split(',').filter(s => ['local', 'indexers', 'usenet'].includes(s));
+}

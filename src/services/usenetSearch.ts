@@ -18,7 +18,9 @@ async function readResponse(response: Response): Promise<string> {
 async function searchNzbIndex(query: string, limit = 50, offset = 0): Promise<UsenetCandidate[]> {
   const url = new URL('https://api.nzbindex.com/api/search');
   url.searchParams.set('q', query);
-  url.searchParams.set('max', String(Math.min(100, Math.max(1, limit))));
+  // Fetch enough results to cover the requested window; pagination is applied
+  // once on the combined list in searchUsenet() so multi-source searches stay correct.
+  url.searchParams.set('max', String(Math.min(100, Math.max(1, offset + limit))));
   url.searchParams.set('complete', '1');
   const payload = JSON.parse(await readResponse(await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(30_000) }))) as {
     data?: { content?: Array<Record<string, unknown>> }; error?: boolean; errorMessage?: string;
@@ -30,13 +32,13 @@ async function searchNzbIndex(query: string, limit = 50, offset = 0): Promise<Us
     return [{ id, name: text(item.name) || 'Unnamed NZB', size: Number(item.size) || undefined,
       posted: Number(item.posted) || undefined, complete: item.complete === true,
       groups: Array.isArray(item.groups) ? item.groups.filter((group): group is string => typeof group === 'string') : [], source: 'NZBIndex' as const }];
-  }).slice(offset, offset + limit);
+  });
 }
 
 async function searchBinsearch(query: string, limit = 50, offset = 0): Promise<UsenetCandidate[]> {
   const url = new URL('https://www.binsearch.info/');
   url.searchParams.set('q', query);
-  url.searchParams.set('max', String(Math.min(200, Math.max(1, limit))));
+  url.searchParams.set('max', String(Math.min(200, Math.max(1, offset + limit))));
   const html = await readResponse(await fetch(url, { headers: { 'User-Agent': 'TorBoxMediaManager/1.0 (+self-hosted media indexer search)', Accept: 'text/html' }, signal: AbortSignal.timeout(30_000) }));
   // Binsearch exposes each result as a /details/<id> link whose text is the subject.
   // Keep parsing deliberately defensive because the public HTML is not a versioned API.
@@ -80,7 +82,7 @@ async function searchBinsearch(query: string, limit = 50, offset = 0): Promise<U
     }
   }
 
-  return candidates.slice(offset, offset + limit);
+  return candidates;
 }
 
 /**
@@ -121,10 +123,13 @@ async function searchNzbgeek(query: string, limit = 50, offset = 0): Promise<Use
 
 export async function searchUsenet(query: string, source: 'all' | 'NZBIndex' | 'Binsearch' | 'NZBGeek', limit = 50, offset = 0) {
   const sources = source === 'all' ? ['NZBIndex', 'Binsearch', 'NZBGeek'] as const : [source] as const;
+  // Each source returns results from index 0 up to the requested window; the
+  // combined list is sliced once below so page N stays stable across sources.
+  const windowLimit = offset + limit;
   const results = await Promise.allSettled(sources.map(name => {
-    if (name === 'NZBIndex') return searchNzbIndex(query, limit, offset);
-    if (name === 'Binsearch') return searchBinsearch(query, limit, offset);
-    return searchNzbgeek(query, limit, offset);
+    if (name === 'NZBIndex') return searchNzbIndex(query, windowLimit, 0);
+    if (name === 'Binsearch') return searchBinsearch(query, windowLimit, 0);
+    return searchNzbgeek(query, windowLimit, 0);
   }));
   const candidates = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
   const warnings = results.flatMap((result, index) => result.status === 'rejected'

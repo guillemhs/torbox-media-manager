@@ -1,49 +1,40 @@
-import type { RequestHandler } from 'express';
+import type { Request, RequestHandler } from 'express';
 import { getTitle, searchTitles } from '../db/database';
 import { getTitleArtwork, getTitleMetadata } from '../services/artwork.service';
 import { getTvmazeShowByImdb } from '../services/tvmaze/schedule.service';
 import { searchMedia } from '../services/search/search.service';
-import { pagination, sendError, extractCategoryFromTitle } from './routeUtils';
+import { pagination, sendError, canonicalUsenetSources, parseSources, scalar } from './routeUtils';
 
-function canonicalUsenetSources(value: string | undefined): string[] | undefined {
-  const valid: Record<string, string> = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
-  const list = [...new Set((value || 'all').split(',').map(s => valid[s.trim().toLowerCase()]).filter((s): s is string => Boolean(s)))];
-  return list.length > 0 ? list : undefined; // undefined = all sources
-}
-
-function parseSources(value: unknown): string[] {
-  if (typeof value !== 'string') return [];
-  return value.split(',').filter(s => ['local', 'indexers', 'usenet'].includes(s));
-}
-
-export const moviesRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
+function buildListOptions(req: Request, kind: 'movie' | 'series' | 'all', overrides: Record<string, unknown> = {}) {
   const sources = parseSources(scalar(req.query.sources));
-  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
-  // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
   const searchIndexers = sources.includes('indexers');
   const searchUsenet = sources.includes('usenet');
   const searchLocal = sources.includes('local') || sources.length === 0;
   const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
   const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
   const usenetSources = canonicalUsenetSources(scalar(req.query.usenetSource));
+  const query = typeof req.query.q === 'string' ? req.query.q : '';
+  return {
+    query,
+    kind,
+    page: pagination(req.query as Record<string, unknown>),
+    localKind: searchLocal ? kind : undefined,
+    indexerCategories: searchIndexers ? (kind === 'movie' ? ['2000'] : kind === 'series' ? ['5000'] : undefined) : undefined,
+    indexerType: searchIndexers ? (kind === 'series' ? 'tvsearch' : 'movie') : undefined,
+    categoryMode: 'title' as const,
+    includeLocal: searchLocal,
+    includeIndexers: searchIndexers,
+    includeUsenet: searchUsenet,
+    indexers,
+    usenetSources,
+    browseLink: `/browse?q=${encodeURIComponent(query)}&kind=${kind === 'all' ? 'all' : kind === 'movie' ? 'movie' : 'series'}`,
+    ...overrides,
+  } as Parameters<typeof searchMedia>[0];
+}
+
+export const moviesRoute: RequestHandler = async (req, res) => {
   try {
-    const result = await searchMedia({
-      query: typeof req.query.q === 'string' ? req.query.q : '',
-      kind: 'movie',
-      page: pagination(req.query as Record<string, unknown>),
-      localKind: searchLocal ? 'movie' : undefined,
-      localSourceLabel: 'local-movies',
-      indexerCategories: searchIndexers ? ['2000'] : undefined,
-      indexerType: searchIndexers ? 'movie' : undefined,
-      categoryMode: 'title',
-      includeLocal: searchLocal,
-      includeIndexers: searchIndexers,
-      includeUsenet: searchUsenet,
-      indexers,
-      usenetSources,
-      browseLink: `/browse?q=${encodeURIComponent(typeof req.query.q === 'string' ? req.query.q : '')}&kind=movie`,
-    });
+    const result = await searchMedia(buildListOptions(req, 'movie', { localSourceLabel: 'local-movies' }));
     console.warn('[Movies route] response:', {
       query: result.query,
       localCount: result.results.local.items.length,
@@ -55,33 +46,8 @@ export const moviesRoute: RequestHandler = async (req, res) => {
 };
 
 export const showsRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
-  const sources = parseSources(scalar(req.query.sources));
-  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
-  // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
-  const searchIndexers = sources.includes('indexers');
-  const searchUsenet = sources.includes('usenet');
-  const searchLocal = sources.includes('local') || sources.length === 0;
-  const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
-  const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
-  const usenetSources = canonicalUsenetSources(scalar(req.query.usenetSource));
   try {
-    const result = await searchMedia({
-      query: typeof req.query.q === 'string' ? req.query.q : '',
-      kind: 'series',
-      page: pagination(req.query as Record<string, unknown>),
-      localKind: searchLocal ? 'series' : undefined,
-      localSourceLabel: 'local-shows',
-      indexerCategories: searchIndexers ? ['5000'] : undefined,
-      indexerType: searchIndexers ? 'tvsearch' : undefined,
-      categoryMode: 'title',
-      includeLocal: searchLocal,
-      includeIndexers: searchIndexers,
-      includeUsenet: searchUsenet,
-      indexers,
-      usenetSources,
-      browseLink: `/browse?q=${encodeURIComponent(typeof req.query.q === 'string' ? req.query.q : '')}&kind=series`,
-    });
+    const result = await searchMedia(buildListOptions(req, 'series', { localSourceLabel: 'local-shows' }));
     console.warn('[Shows route] response:', {
       query: result.query,
       localCount: result.results.local.items.length,
@@ -93,37 +59,19 @@ export const showsRoute: RequestHandler = async (req, res) => {
 };
 
 export const browseRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const hash = scalar(req.query.hash);
   if (hash && process.env.TORBOX_API_KEY?.trim()) {
     const { checkCachedTorrent } = await import('../services/torbox/client');
     try { return res.json({ cachedTorrent: await checkCachedTorrent(hash) }); }
     catch (error) { return sendError(res, error); }
   }
-  const sources = parseSources(scalar(req.query.sources));
-  const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
-  // Torrentio works without Prowlarr; only the Prowlarr branch checks config inside searchMedia.
-  const searchIndexers = sources.includes('indexers');
-  const searchUsenet = sources.includes('usenet');
-  const searchLocal = sources.includes('local') || sources.length === 0;
-  const indexersParam = scalar(req.query.indexers) || 'prowlarr,torrentio';
-  const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
-  const usenetSources = canonicalUsenetSources(scalar(req.query.usenetSource));
   try {
-    const result = await searchMedia({
-      query: typeof req.query.q === 'string' ? req.query.q : '',
-      kind: ((scalar(req.query.kind) === 'movie' || scalar(req.query.kind) === 'series') ? scalar(req.query.kind) : 'all') as 'movie' | 'series' | 'all',
-      page: pagination(req.query as Record<string, unknown>),
-      localKind: searchLocal ? 'all' : undefined,
+    const result = await searchMedia(buildListOptions(req, 'all', {
+      localKind: 'all',
       indexerCategories: undefined,
-      categoryMode: 'name',
-      includeLocal: searchLocal,
-      includeIndexers: searchIndexers,
-      includeUsenet: searchUsenet,
-      indexers,
-      usenetSources,
+      categoryMode: 'name' as const,
       browseLink: undefined,
-    });
+    }));
     console.warn('[Browse route] response:', {
       query: result.query,
       kind: result.kind,
@@ -222,7 +170,3 @@ export const trendingShowsRoute: RequestHandler = async (_req, res) => {
     return res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch trending shows' });
   }
 };
-
-function scalar(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}

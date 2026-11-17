@@ -8,6 +8,7 @@ import {
   extractCategoryFromName,
   formatTorrentMetadata,
   formatUsenetMetadata,
+  canonicalUsenetSources,
 } from './routeUtils';
 
 describe('scalar', () => {
@@ -108,6 +109,28 @@ describe('formatUsenetMetadata', () => {
   it('formats incomplete usenet item', () => {
     const result = formatUsenetMetadata({ posted: 1700000000, complete: false });
     expect(result).toContain('Partial');
+  });
+});
+
+describe('canonicalUsenetSources', () => {
+  it('returns all sources (undefined) for "all"', () => {
+    expect(canonicalUsenetSources('all')).toBeUndefined();
+    expect(canonicalUsenetSources(undefined)).toBeUndefined();
+  });
+  it('canonicalizes single sources case-insensitively', () => {
+    expect(canonicalUsenetSources('nzbgeek')).toEqual(['NZBGeek']);
+    expect(canonicalUsenetSources('NZBGeek')).toEqual(['NZBGeek']);
+    expect(canonicalUsenetSources('nzbindex')).toEqual(['NZBIndex']);
+    expect(canonicalUsenetSources('binsearch')).toEqual(['Binsearch']);
+  });
+  it('merges multiple sources and deduplicates', () => {
+    expect(canonicalUsenetSources('nzbgeek,nzbindex')).toEqual(['NZBGeek', 'NZBIndex']);
+    expect(canonicalUsenetSources('NZBGeek,nzbgeek')).toEqual(['NZBGeek']);
+  });
+  it('ignores unknown values', () => {
+    expect(canonicalUsenetSources('nzbgeek,unknown')).toEqual(['NZBGeek']);
+    expect(canonicalUsenetSources('')).toBeUndefined();
+    expect(canonicalUsenetSources('unknown')).toBeUndefined();
   });
 });
 

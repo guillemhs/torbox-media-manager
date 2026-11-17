@@ -3,18 +3,10 @@ import { searchMusicMetadata } from '../services/musicSearch';
 import { searchTitles } from '../db/database';
 import { searchMusicTorrents } from '../services/musicSearch';
 import { searchTorrentCandidates, searchTorrentsViaProwlarr, parseSeasonEpisode, type TorrentCandidate } from '../services/torbox/torrentSearch';
-import { searchIndexerTorrents } from '../services/musicSearch';
 import { searchUsenet } from '../services/usenetSearch';
-import { pagination, sendError, extractCategoryFromName } from './routeUtils';
-
-function canonicalUsenetSources(value: string | undefined): string[] | undefined {
-  const valid: Record<string, string> = { nzbgeek: 'NZBGeek', nzbindex: 'NZBIndex', binsearch: 'Binsearch' };
-  const list = [...new Set((value || 'all').split(',').map(s => valid[s.trim().toLowerCase()]).filter((s): s is string => Boolean(s)))];
-  return list.length > 0 ? list : undefined; // undefined = all sources
-}
+import { pagination, sendError, extractCategoryFromName, canonicalUsenetSources, scalar } from './routeUtils';
 
 export const unifiedSearchRoute: RequestHandler = async (req, res) => {
-  const scalar = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
   const query = scalar(req.query.q)?.trim() || '';
   if (query.length < 2 || query.length > 180) {
     return res.status(400).json({ error: 'Search query must be between 2 and 180 characters.' });
@@ -31,8 +23,6 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
   const indexers = indexersParam.split(',').filter(s => ['prowlarr', 'torrentio'].includes(s));
 
   const hasIndexerConfig = Boolean(process.env.TORZNAB_URL?.trim() && process.env.TORZNAB_API_KEY?.trim());
-  const categoryMode: string = 'name';
-  const fixedCategory = '';
 
   try {
     const combined: Array<Record<string, unknown> & { _source: string }> = [];
@@ -50,15 +40,12 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
     if (sources.includes('indexers') && (kind === 'all' || kind === 'torrents' || kind === 'movie' || kind === 'series' || kind === 'music')) {
       try {
         let torrentCandidates: TorrentCandidate[] = [];
-        const sourceNames: string[] = [];
-        const searches: Promise<unknown>[] = [];
-        const providerNames: string[] = [];
 
         if (indexers.includes('prowlarr') && hasIndexerConfig) {
           // Fetch a full batch (offset 0); the combined list is sliced per page at the end.
           const candidates = await searchTorrentsViaProwlarr(query, 100, 0, undefined);
           for (const candidate of candidates) {
-            const category = categoryMode === 'fixed' ? (fixedCategory || '') : (categoryMode === 'name' ? extractCategoryFromName(candidate.name) : '');
+            const category = extractCategoryFromName(candidate.name);
             torrentCandidates.push({
               name: candidate.name,
               seeders: candidate.seeders,
@@ -70,7 +57,6 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
               ...(candidate.imdbId ? { imdbId: candidate.imdbId } : {}),
             });
           }
-          providerNames.push('Prowlarr');
         }
 
         if (indexers.includes('torrentio')) {
@@ -119,42 +105,14 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
                 console.warn('[search.ts] Torrentio search failed for IMDb', { imdbId, error: error instanceof Error ? error.message : String(error) });
               }
             }
-            providerNames.push('Torrentio');
           }
         }
 
-        try {
-          const searchResults = await Promise.allSettled(searches);
-          const successful: TorrentCandidate[] = searchResults.flatMap((result) =>
-            result.status === 'fulfilled' ? result.value as TorrentCandidate[] : []
-          );
-          const sourceWarnings = searchResults.flatMap((result, index) => result.status === 'rejected'
-            ? [`${providerNames[index]}: ${result.reason instanceof Error ? result.reason.message : 'search failed'}`]
-            : []);
-          warnings.push(...sourceWarnings);
-
-          const unique = new Map<string, TorrentCandidate>();
-          for (const candidate of successful) {
-            const hashKey = candidate.hash || '';
-            const existing = unique.get(hashKey);
-            unique.set(hashKey, existing ? {
-              ...existing,
-              seeders: existing.seeders ?? candidate.seeders,
-              leechers: existing.leechers ?? candidate.leechers,
-              size: existing.size ?? candidate.size,
-              downloadToken: existing.downloadToken ?? candidate.downloadToken,
-            } : candidate);
-          }
-          torrentCandidates.push(...[...unique.values()]);
-        } catch (error) {
-          warnings.push(error instanceof Error ? error.message : 'Indexer fallback search failed');
-        }
-
-        // Dedupe by hash across all providers/IMDb IDs before paginating, so the
-        // total count stays stable across pages.
-        const deduped = new Map<string, typeof torrentCandidates[number]>();
+        // Dedupe by hash/magnet/name across all providers and IMDb IDs before
+        // paginating, so the total count stays stable across pages.
+        const deduped = new Map<string, TorrentCandidate>();
         for (const candidate of torrentCandidates) {
-          const key = (candidate as { hash?: string }).hash || (candidate as { magnet?: string }).magnet || candidate.name;
+          const key = candidate.hash || candidate.magnet || candidate.name;
           if (!key) continue;
           const existing = deduped.get(key);
           deduped.set(key, existing ? {
@@ -162,10 +120,10 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
             seeders: existing.seeders ?? candidate.seeders,
             leechers: existing.leechers ?? candidate.leechers,
             size: existing.size ?? candidate.size,
+            downloadToken: existing.downloadToken ?? candidate.downloadToken,
           } : candidate);
         }
 
-        const torrentSource = sourceNames.join(' + ') || 'Torrentio + Prowlarr';
         for (const candidate of deduped.values()) {
           combined.push({ ...candidate, _source: 'torrents' });
         }
@@ -174,58 +132,58 @@ export const unifiedSearchRoute: RequestHandler = async (req, res) => {
       }
     }
 
-  // 3. Usenet search
-  if (sources.includes('usenet') && (kind === 'all' || kind === 'usenet')) {
-    try {
-      const useUsenetSources = canonicalUsenetSources(scalar(req.query.usenetSource)) ?? ['NZBGeek', 'NZBIndex', 'Binsearch'];
-      for (const source of useUsenetSources) {
-        try {
-          const usenetResult = await searchUsenet(query, source as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
-          const candidates = usenetResult.candidates || [];
-          for (const candidate of candidates) {
-            combined.push({ ...candidate, _source: 'usenet' });
+    // 3. Usenet search
+    if (sources.includes('usenet') && (kind === 'all' || kind === 'usenet')) {
+      try {
+        const useUsenetSources = canonicalUsenetSources(scalar(req.query.usenetSource)) ?? ['NZBGeek', 'NZBIndex', 'Binsearch'];
+        for (const source of useUsenetSources) {
+          try {
+            const usenetResult = await searchUsenet(query, source as 'all' | 'NZBIndex' | 'Binsearch', page.limit, page.offset);
+            const candidates = usenetResult.candidates || [];
+            for (const candidate of candidates) {
+              combined.push({ ...candidate, _source: 'usenet' });
+            }
+            if (usenetResult.warnings) {
+              warnings.push(...usenetResult.warnings);
+            }
+          } catch (error) {
+            console.warn(`[search.ts] Usenet search ${source} failed:`, error instanceof Error ? error.message : String(error));
           }
-          if (usenetResult.warnings) {
-            warnings.push(...usenetResult.warnings);
-          }
-        } catch (error) {
-          console.warn(`[search.ts] Usenet search ${source} failed:`, error instanceof Error ? error.message : String(error));
         }
+      } catch (error) {
+        warnings.push(error instanceof Error ? error.message : 'Usenet search failed');
       }
-    } catch (error) {
-      warnings.push(error instanceof Error ? error.message : 'Usenet search failed');
     }
+
+    // Group results by source for frontend compatibility
+    const movies = combined.filter(item => item._source === 'local-movies');
+    const shows = combined.filter(item => item._source === 'local-shows');
+    const music = combined.filter(item => item._source === 'local-music');
+    const torrents = combined.filter(item => item._source === 'torrents');
+    const usenet = combined.filter(item => item._source === 'usenet');
+
+    // Apply pagination to each group
+    const paginatedMovies = movies.slice(page.offset, page.offset + page.limit);
+    const paginatedShows = shows.slice(page.offset, page.offset + page.limit);
+    const paginatedMusic = music.slice(page.offset, page.offset + page.limit);
+    const paginatedTorrents = torrents.slice(page.offset, page.offset + page.limit);
+    const paginatedUsenet = usenet.slice(page.offset, page.offset + page.limit);
+
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.json({
+      query,
+      kind,
+      sources,
+      indexers,
+      page: { limit: page.limit, offset: page.offset },
+      movies: { items: paginatedMovies, total: movies.length },
+      shows: { items: paginatedShows, total: shows.length },
+      music: { items: paginatedMusic, total: music.length },
+      torrents: { items: paginatedTorrents, total: torrents.length },
+      usenet: { items: paginatedUsenet, total: usenet.length },
+      warnings: warnings.length > 0 ? warnings : undefined,
+    });
+  } catch (error) {
+    return res.status(502).json({ error: error instanceof Error ? error.message : 'Search failed.' });
   }
-
-  // Group results by source for frontend compatibility
-  const movies = combined.filter(item => item._source === 'local-movies');
-  const shows = combined.filter(item => item._source === 'local-shows');
-  const music = combined.filter(item => item._source === 'local-music');
-  const torrents = combined.filter(item => item._source === 'torrents');
-  const usenet = combined.filter(item => item._source === 'usenet');
-
-  // Apply pagination to each group
-  const paginatedMovies = movies.slice(page.offset, page.offset + page.limit);
-  const paginatedShows = shows.slice(page.offset, page.offset + page.limit);
-  const paginatedMusic = music.slice(page.offset, page.offset + page.limit);
-  const paginatedTorrents = torrents.slice(page.offset, page.offset + page.limit);
-  const paginatedUsenet = usenet.slice(page.offset, page.offset + page.limit);
-
-  res.setHeader('Cache-Control', 'private, no-store');
-  return res.json({
-    query,
-    kind,
-    sources,
-    indexers,
-    page: { limit: page.limit, offset: page.offset },
-    movies: { items: paginatedMovies, total: movies.length },
-    shows: { items: paginatedShows, total: shows.length },
-    music: { items: paginatedMusic, total: music.length },
-    torrents: { items: paginatedTorrents, total: torrents.length },
-    usenet: { items: paginatedUsenet, total: usenet.length },
-    warnings: warnings.length > 0 ? warnings : undefined,
-  });
-} catch (error) {
-  return res.status(502).json({ error: error instanceof Error ? error.message : 'Search failed.' });
-}
 };

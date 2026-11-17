@@ -264,7 +264,6 @@ export async function doSearch(view, page = 1) {
     }
 
     state.items[view] = rows;
-    state.offset[view] = offset + rows.length;
 
     hideSkeletons(view);
     if (container) {
@@ -334,7 +333,6 @@ export async function searchLocal(view, page = 1) {
 
     state.total[view] = data.results?.local?.total || 0;
     state.items[view] = local;
-    state.offset[view] = offset + local.length;
 
     hideSkeletons(view);
     if (container) {

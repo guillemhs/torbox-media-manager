@@ -52,7 +52,7 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
   const imdbId = scalar(req.query.imdbId) || '';
   const kind = scalar(req.query.kind) === 'series' ? 'series' : 'movie';
   const seasonValue = scalar(req.query.season) || '1';
-  if (!/^\d{1,2}$/.test(seasonValue) || Number(seasonValue) < 1 || Number(seasonValue) > 99) return res.status(400).json({ error: 'Season must be between 1 and 99.' });
+  if (!/^\d{1,2}$/.test(seasonValue) || Number(seasonValue) < 1) return res.status(400).json({ error: 'Season must be between 1 and 99.' });
   if (!/^tt\d+$/.test(imdbId)) return res.status(400).json({ error: 'A valid IMDb ID is required for torrent search.' });
   const storedTitle = await getTitle(imdbId) as { primaryTitle?: string } | null;
   const title = (scalar(req.query.title)?.trim() || storedTitle?.primaryTitle || '').slice(0, 180);
@@ -74,7 +74,6 @@ export const torrentSearchRoute: RequestHandler = async (req, res) => {
     if (indexers.includes('prowlarr')) {
       searches.push(searchIndexerTorrents(torznabQuery, kind === 'series' ? 'tvsearch' : 'movie', [kind === 'series' ? '5000' : '2000'], page.limit, page.offset));
       providerNames.push('Prowlarr');
-
     }
     const settled = await Promise.allSettled(searches);
 

@@ -264,7 +264,7 @@ export class NzbgeekClient {
       total,
       offset,
       limit,
-      results: results.slice(offset, offset + limit),
+      results,
     };
   }
 

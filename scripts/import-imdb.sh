@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # TorBox Media Manager - IMDb Import Script
-# 
+#
 # Triggers and monitors IMDb dataset import via the TorBox API.
 #
 # Usage:
@@ -28,6 +28,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Logging functions
@@ -35,6 +36,10 @@ log_info()  { echo -e "${BLUE}[INFO]${NC}  $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC}  $1"; }
+log_step()  { echo -e "${CYAN}[STEP]${NC} $1"; }
+
+# Timestamp helper
+ts() { date '+%Y-%m-%d %H:%M:%S'; }
 
 # Check if curl is available
 if ! command -v curl &> /dev/null; then
@@ -60,35 +65,36 @@ json_value() {
     fi
 }
 
-# Function to check import status
+# Function to check import status - returns detailed pipe-delimited info
+# Format: running|dataset|importedRows|error|dataset1:rows1,dataset2:rows2
 check_status() {
     local response
     response=$(curl -s -m 30 "${TORBOX_API_URL}/admin/imdb/status" 2>/dev/null) || {
         log_error "Failed to connect to ${TORBOX_API_URL}/admin/imdb/status"
         return 1
     }
-    
-    local status
-    status=$(json_value "running" "$response")
-    local imported
-    local error
-    error=$(json_value "error" "$response")
-    
-    # When import is running, importedRows shows current progress.
-    # When import is not running, importedRows is 0 - get total from datasets[0].importedRows instead.
-    if [ "$status" = "true" ] || [ "$status" = "true," ]; then
-        imported=$(json_value "progress.importedRows" "$response")
-        if [ -z "$imported" ] || [ "$imported" = "null" ]; then
-            imported="0"
-        fi
+
+    local running dataset imported error
+    running=$(json_value "progress.running" "$response")
+    dataset=$(json_value "progress.dataset" "$response")
+    imported=$(json_value "progress.importedRows" "$response")
+    error=$(json_value "progress.error" "$response")
+
+    # Build completed datasets summary: title.basics.tsv.gz:123456,title.ratings.tsv.gz:789012
+    local datasets_summary=""
+    if [ "$HAS_JQ" = true ]; then
+        datasets_summary=$(echo "$response" | jq -r '[.datasets[] | "\(.dataset):\(.importedRows)"] | join(",")' 2>/dev/null || echo "")
     else
-        imported=$(json_value "datasets[0].importedRows" "$response")
-        if [ -z "$imported" ] || [ "$imported" = "null" ]; then
-            imported="0"
-        fi
+        # Without jq we can't reliably parse the datasets array; leave summary empty.
+        datasets_summary=""
     fi
-    
-    echo "${status}|${imported}|${error}"
+
+    [ -z "$running" ] && running="false"
+    [ -z "$dataset" ] && dataset="—"
+    [ -z "$imported" ] && imported="0"
+    [ -z "$error" ] && error=""
+
+    echo "${running}|${dataset}|${imported}|${error}|${datasets_summary}"
     return 0
 }
 
@@ -99,7 +105,7 @@ trigger_import() {
         log_error "Failed to connect to ${IMPORT_ENDPOINT}"
         return 1
     }
-    
+
     local status
     status=$(json_value "status" "$response")
     echo "$status"
@@ -110,18 +116,21 @@ trigger_import() {
 run_import() {
     log_info "Starting IMDb import..."
     log_info "Target: ${TORBOX_API_URL}"
+    log_info "Import endpoint: ${IMPORT_ENDPOINT}"
+    log_info "Status endpoint: ${STATUS_ENDPOINT}"
+    log_info "Poll interval: ${POLL_INTERVAL}s | Timeout: ${IMPORT_TIMEOUT}s"
     echo ""
-    
+
     # Trigger import
     local result
     result=$(trigger_import) || {
         log_error "Failed to start import"
         return 1
     }
-    
+
     echo "Import response: ${result}"
     echo ""
-    
+
     # Check if import was already running
     if echo "$result" | grep -q "running"; then
         log_warn "Import is already running. Will monitor existing import."
@@ -130,78 +139,125 @@ run_import() {
     else
         log_warn "Unexpected response: ${result}"
     fi
-    
+
     echo ""
-    echo "Monitoring import progress..."
+    log_step "Monitoring import progress (Ctrl+C to stop monitoring — import continues server-side)..."
     echo "----------------------------------------"
-    
+
     # Monitor progress
     local start_time=$(date +%s)
     local last_imported=0
-    
+    local last_dataset=""
+    local last_error=""
+    local poll_count=0
+
     while true; do
         local status_info
         status_info=$(check_status) || {
-            log_error "Failed to get import status"
-            return 1
+            log_error "Failed to get import status — retrying in ${POLL_INTERVAL}s..."
+            sleep "$POLL_INTERVAL"
+            continue
         }
-        
-        local status=$(echo "$status_info" | cut -d'|' -f1)
-        local imported=$(echo "$status_info" | cut -d'|' -f2)
-        local error=$(echo "$status_info" | cut -d'|' -f3)
-        
-        # Update progress display
-        if [ -n "$imported" ] && [ "$imported" != "0" ] && [ "$imported" != "$last_imported" ]; then
-            elapsed=$(( $(date +%s) - start_time ))
-            echo -ne "\r${BLUE}[INFO]${NC} Imported: ${imported} titles | Elapsed: ${elapsed}s"
-            last_imported=$imported
+
+        local running dataset imported error datasets_summary
+        running=$(echo "$status_info" | cut -d'|' -f1)
+        dataset=$(echo "$status_info" | cut -d'|' -f2)
+        imported=$(echo "$status_info" | cut -d'|' -f3)
+        error=$(echo "$status_info" | cut -d'|' -f4)
+        datasets_summary=$(echo "$status_info" | cut -d'|' -f5-)
+
+        [ -z "$imported" ] && imported="0"
+        [ -z "$dataset" ] && dataset="—"
+
+        local now=$(date +%s)
+        local elapsed=$((now - start_time))
+
+        # Detect dataset change
+        if [ "$dataset" != "$last_dataset" ] && [ -n "$last_dataset" ]; then
+            echo ""
+            log_step "Dataset changed: ${last_dataset} → ${dataset}"
+            last_imported=0
         fi
-        
+        last_dataset="$dataset"
+
+        # Detect new error
+        if [ -n "$error" ] && [ "$error" != "$last_error" ]; then
+            echo ""
+            log_error "Import error reported: ${error}"
+            last_error="$error"
+        fi
+
+        # Print a full status line on the first poll, then update in place
+        local rate="0"
+        if [ "$elapsed" -gt 0 ]; then
+            rate=$(( imported / elapsed ))
+        fi
+
+        # Completed datasets detail
+        local completed_detail=""
+        if [ -n "$datasets_summary" ]; then
+            IFS=',' read -ra ds_parts <<< "$datasets_summary"
+            for part in "${ds_parts[@]}"; do
+                local ds_name="${part%%:*}"
+                local ds_rows="${part##*:}"
+                completed_detail="  ${ds_name}: ${ds_rows} titles"
+                echo -ne "\r${CYAN}[${ts()}]${NC} ${dataset}: ${imported} titles | ${completed_detail} | Elapsed: ${elapsed}s | ~${rate} titles/s"
+            done
+        else
+            echo -ne "\r${CYAN}[${ts()}]${NC} ${dataset}: ${imported} titles | Elapsed: ${elapsed}s | ~${rate} titles/s"
+        fi
+
+        last_imported="$imported"
+        poll_count=$((poll_count + 1))
+
+        # Print a fresh full line every 10 polls so the log doesn't get lost
+        if [ $((poll_count % 10)) -eq 0 ]; then
+            echo ""
+        fi
+
         # Check if complete
-        if [ "$status" = "false" ] || [ "$status" = "false," ]; then
+        if [ "$running" = "false" ] || [ "$running" = "false," ]; then
             echo ""
             if [ -n "$error" ] && [ "$error" != "null" ] && [ "$error" != "" ]; then
                 log_error "Import completed with error: ${error}"
                 return 1
             fi
             log_success "Import completed successfully!"
-            if [ -n "$imported" ] && [ "$imported" != "0" ]; then
-                echo "Total titles imported: ${imported}"
+            echo "  Final dataset: ${dataset}"
+            echo "  Total titles imported: ${imported}"
+            echo "  Elapsed: ${elapsed}s"
+            if [ -n "$datasets_summary" ]; then
+                echo "  Per-dataset summary: ${datasets_summary}"
             fi
             return 0
         fi
-        
+
         # Check timeout
-        local current_time=$(date +%s)
-        local elapsed=$((current_time - start_time))
         if [ "$elapsed" -ge "$IMPORT_TIMEOUT" ]; then
             echo ""
             log_error "Import did not complete within ${IMPORT_TIMEOUT} seconds"
+            log_info "Last known state: ${dataset}: ${imported} titles"
             return 1
         fi
-        
+
         sleep "$POLL_INTERVAL"
     done
 }
 
 # Main execution
 main() {
-    echo "========================================"
+    echo "=============================================="
     echo "TorBox Media Manager - IMDb Import"
-    echo "========================================"
-    echo "Target: ${TORBOX_API_URL}"
-    echo "Import Endpoint: ${IMPORT_ENDPOINT}"
-    echo "Status Endpoint: ${STATUS_ENDPOINT}"
-    echo "Poll Interval: ${POLL_INTERVAL}s"
-    echo "Timeout: ${IMPORT_TIMEOUT}s"
-    echo "========================================"
+    echo "=============================================="
+    echo "Target:          ${TORBOX_API_URL}"
+    echo "Import endpoint: ${IMPORT_ENDPOINT}"
+    echo "Status endpoint: ${STATUS_ENDPOINT}"
+    echo "Poll interval:   ${POLL_INTERVAL}s"
+    echo "Timeout:         ${IMPORT_TIMEOUT}s"
+    echo "=============================================="
     echo ""
-    
+
     run_import "$@"
 }
 
 main "$@"
-ENDOFJENKINSFILE
-echo "Import script created"
-chmod +x /Users/guillem/code/torbox-media-manager/scripts/import-imdb.sh
-ls -la /Users/guillem/code/torbox-media-manager/scripts/import-imdb.sh

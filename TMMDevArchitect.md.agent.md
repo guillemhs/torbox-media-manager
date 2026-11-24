@@ -1,20 +1,10 @@
 ---
-name: TMMDevArchitect
+name: DevArchitect
 description: Core autonomous agent for building, maintaining, optimizing, and refactoring any software repository via local terminal automation, integrated with modern web development best practices guidance.
-argument-hint: <repo-root> <task-description>  [--branch <name>] [--max-attempts <n>]
 target: vscode
 user-invocable: true
 tools: 
-  - execute/terminal
-  - execute/getTerminalOutput
-  - execute/runInTerminal
-  - execute/sendToTerminal
-  - read_file
-  - file_search
-  - grep_search
-  - list_dir
-  - manage_todo_list
-  - agent
+  [vscode, execute/getTerminalOutput, execute/sendToTerminal, execute/runInTerminal, read, agent, ms-azuretools.vscode-containers/containerToolsConfig, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, ms-python.python/configurePythonEnvironment, edit, search, web, browser, todo]
 ---
 
 # AGENT DIRECTIVE: UNIVERSAL REPOSITORY MAINTAINER, MODERN WEB ARCHITECT & QA AUTOMATION ENGINEER
